@@ -59,7 +59,11 @@ https://live-scanner.smirart.ru/
 ```text
 index.html      оболочка приложения
 styles.css      темная тема, desktop и mobile layout
-app.js          mock data, pattern engine, экраны и настройки
+app.js          экранная логика, журнал, pattern engine
+data/mock-data.js
+                mock-матчи, статистика, паттерны и стартовая история
+services/football-provider.js
+                слой данных, который позже заменяется на реальный API
 manifest.webmanifest
 sw.js
 icons/icon.svg
@@ -71,7 +75,7 @@ icons/icon.svg
 - `getSignalStrength(score)`
 - `evaluatePattern(match, snapshot, pattern, side)`
 - `evaluateAllMatches()`
-- mock-данные матчей, snapshot-ов, паттернов и истории
+- журнал событий и расчёт win/lose
 
 ## Формула индекса давления
 
@@ -96,7 +100,7 @@ HIGH: 75-100
 
 ## Как добавлять паттерны
 
-Добавьте новый объект в массив `getMockPatterns()` в `app.js`, затем добавьте проверку в `evaluatePattern()`.
+Добавьте новый объект в массив `mockPatterns` в `data/mock-data.js`, затем добавьте проверку в `evaluatePattern()` в `app.js`.
 
 Минимальная структура:
 
@@ -121,6 +125,12 @@ interface FootballDataProvider {
   getMatchStats(matchId: string): Promise<MatchStatsSnapshot>;
   getMatchEvents?(matchId: string): Promise<any[]>;
 }
+```
+
+Текущая реализация уже вынесена в:
+
+```text
+services/football-provider.js
 ```
 
 Планируемые реализации:
