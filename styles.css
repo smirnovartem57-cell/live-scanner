@@ -688,6 +688,49 @@ h2 {
   font-weight: 750;
 }
 
+.team-note-card {
+  display: grid;
+  gap: 10px;
+}
+
+.team-note-field {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-main);
+  padding: 10px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.team-tags-field {
+  display: grid;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.team-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.team-tags span {
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .team-profile-sections {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

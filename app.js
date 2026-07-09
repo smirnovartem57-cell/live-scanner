@@ -1,6 +1,7 @@
 const SERVICE_META_KEY = "football-pattern-lab-service-meta";
 const PATTERN_EVENTS_KEY = "football-pattern-lab-pattern-events";
 const PATTERN_SETTINGS_KEY = "football-pattern-lab-pattern-settings";
+const TEAM_NOTES_KEY = "football-pattern-lab-team-notes";
 const footballProvider = window.FootballDataProvider.createFootballProvider("mock");
 const patternEngine = window.FootballPatternEngine;
 const signalResultEngine = window.FootballSignalResultEngine;
@@ -26,6 +27,7 @@ const state = {
   activePatternId: "pressure_without_goal",
   settings: readSettings(),
   patternSettings: readPatternSettings(),
+  teamNotes: readTeamNotes(),
   patterns: [],
   matches: [],
   snapshots: [],
@@ -209,6 +211,20 @@ function bindPageEvents() {
     button.addEventListener("click", () => {
       state.selectedTeam = null;
       render();
+    });
+  });
+
+  root.querySelectorAll("[data-team-note]").forEach((input) => {
+    input.addEventListener("input", () => {
+      updateTeamNote(input.dataset.teamNote, { note: input.value });
+    });
+  });
+
+  root.querySelectorAll("[data-team-tags]").forEach((input) => {
+    input.addEventListener("input", () => {
+      updateTeamNote(input.dataset.teamTags, {
+        tags: input.value.split(",").map((tag) => tag.trim()).filter(Boolean)
+      });
     });
   });
 
@@ -995,6 +1011,7 @@ function renderTeamProfile(selection) {
     return "";
   }
   const averages = profile.averages || {};
+  const note = getTeamNote(profile.id);
 
   return `
     <section class="team-profile-panel">
@@ -1018,6 +1035,17 @@ function renderTeamProfile(selection) {
         <article>
           <h3>Текущий контекст</h3>
           <p>${profile.summary}</p>
+        </article>
+        <article class="team-note-card">
+          <h3>Моя заметка</h3>
+          <textarea class="team-note-field" data-team-note="${profile.id}" placeholder="Наблюдения по команде">${escapeHtml(note.note || "")}</textarea>
+          <label class="team-tags-field">
+            Теги через запятую
+            <input type="text" data-team-tags="${profile.id}" value="${escapeHtml((note.tags || []).join(", "))}" placeholder="темп, фланги, прессинг">
+          </label>
+          <div class="team-tags">
+            ${(note.tags || []).map((tag) => `<span>${escapeHtml(tag)}</span>`).join("") || "<span>Тегов пока нет</span>"}
+          </div>
         </article>
         <article>
           <h3>Сигналы команды</h3>
@@ -1304,6 +1332,19 @@ function getTeamProfile(selection) {
     pressureScore,
     summary: `${teamName} против ${opponentName}: ${stats.dangerousAttacks} опасных атак, ${stats.shotsTotal} ударов, ${stats.shotsOnTarget} в створ, ${stats.corners} угловых. Разница pressure score с соперником: ${pressureGap > 0 ? "+" : ""}${pressureGap}, ${trend}.`
   };
+}
+
+function getTeamNote(teamId) {
+  return state.teamNotes[teamId] || { note: "", tags: [], updatedAt: null };
+}
+
+function updateTeamNote(teamId, patch) {
+  state.teamNotes[teamId] = {
+    ...getTeamNote(teamId),
+    ...patch,
+    updatedAt: new Date().toISOString()
+  };
+  writeTeamNotes();
 }
 
 function getPatternStats(pattern, events) {
@@ -1997,6 +2038,18 @@ function readPatternSettings() {
 
 function writePatternSettings() {
   localStorage.setItem(PATTERN_SETTINGS_KEY, JSON.stringify(state.patternSettings));
+}
+
+function readTeamNotes() {
+  try {
+    return JSON.parse(localStorage.getItem(TEAM_NOTES_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function writeTeamNotes() {
+  localStorage.setItem(TEAM_NOTES_KEY, JSON.stringify(state.teamNotes));
 }
 
 function escapeHtml(value) {
