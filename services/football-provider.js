@@ -7,6 +7,17 @@ function withUpdatedAt(matches) {
   return matches.map((match) => ({ ...match, updatedAt: now }));
 }
 
+const footballDataProviderContract = [
+  "getLiveMatches",
+  "getMatchStats",
+  "getMatchEvents",
+  "getPatterns",
+  "getSeedSignals",
+  "getSeedHistory",
+  "getTeamProfile",
+  "getTeamRecentMatches"
+];
+
 function createMockFootballProvider() {
   const data = window.FootballMockData;
 
@@ -17,6 +28,9 @@ function createMockFootballProvider() {
     },
     getMatchStats() {
       return cloneData(data.snapshots);
+    },
+    getMatchEvents(matchId) {
+      return cloneData(data.events?.[matchId] || []);
     },
     getPatterns() {
       return cloneData(data.patterns);
@@ -37,6 +51,47 @@ function createMockFootballProvider() {
   };
 }
 
+function createRealFootballProvider() {
+  return {
+    mode: "real",
+    getLiveMatches() {
+      return [];
+    },
+    getMatchStats() {
+      return [];
+    },
+    getMatchEvents() {
+      return [];
+    },
+    getPatterns() {
+      return [];
+    },
+    getSeedSignals() {
+      return [];
+    },
+    getSeedHistory() {
+      return [];
+    },
+    getTeamProfile() {
+      return null;
+    },
+    getTeamRecentMatches() {
+      return [];
+    }
+  };
+}
+
+function createFootballProvider(mode = "mock") {
+  if (mode === "real") {
+    return createRealFootballProvider();
+  }
+
+  return createMockFootballProvider();
+}
+
 window.FootballDataProvider = {
-  createMockFootballProvider
+  contract: footballDataProviderContract,
+  createFootballProvider,
+  createMockFootballProvider,
+  createRealFootballProvider
 };

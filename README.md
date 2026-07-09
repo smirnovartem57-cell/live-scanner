@@ -30,7 +30,8 @@
 - Статусы паттернов: `new`, `promising`, `working`, `weak`, `ineffective`, `testing`.
 - Профиль команды показывает последние матчи, средние значения, средние по таймам, характерные паттерны и важные матчи.
 - Экран настроек подготовлен к будущему real football API и личному профилю.
-- UI-заглушка Telegram-уведомлений.
+- FootballDataProvider с контрактом, MockFootballProvider и RealFootballProvider-заглушкой.
+- UI Telegram-уведомлений и service-заглушка для тестового сообщения и отправки аналитического сигнала.
 - PWA manifest и service worker.
 
 ## Как открыть
@@ -76,6 +77,8 @@ services/football-provider.js
                 слой данных, который позже заменяется на реальный API
 services/pattern-engine.js
                 pressure score, оценка матчей и создание сигналов
+services/telegram-service.js
+                Telegram-заглушка без внешней отправки
 manifest.webmanifest
 sw.js
 icons/icon.svg
@@ -159,13 +162,16 @@ HIGH: 75-100
 
 ## Подготовка под реальный API
 
-В текущем MVP используется mock mode. При переходе к API стоит вынести слой данных в интерфейс:
+В текущем MVP используется mock mode. Слой данных уже вынесен в единый контракт:
 
 ```ts
 interface FootballDataProvider {
   getLiveMatches(): Promise<Match[]>;
   getMatchStats(matchId: string): Promise<MatchStatsSnapshot>;
   getMatchEvents?(matchId: string): Promise<any[]>;
+  getPatterns(): Promise<Pattern[]>;
+  getTeamProfile(teamId: string): Promise<TeamProfile | null>;
+  getTeamRecentMatches(teamId: string): Promise<TeamMatch[]>;
 }
 ```
 
@@ -175,12 +181,26 @@ interface FootballDataProvider {
 services/football-provider.js
 ```
 
-Планируемые реализации:
+Доступные реализации:
 
 ```text
 MockFootballProvider
 RealFootballProvider
 ```
+
+`RealFootballProvider` пока возвращает пустые значения и оставлен как точка подключения будущего football API.
+
+## Telegram-заглушка
+
+Файл `services/telegram-service.js` содержит:
+
+```text
+sendTelegramTestMessage(settings)
+sendSignalToTelegram(signal, settings)
+buildSignalMessage(signal)
+```
+
+Сервис пока работает в mock-режиме: готовит текст аналитического уведомления и возвращает статус без внешней отправки.
 
 ## Env на будущее
 

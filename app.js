@@ -1,7 +1,8 @@
 const SERVICE_META_KEY = "football-pattern-lab-service-meta";
 const PATTERN_EVENTS_KEY = "football-pattern-lab-pattern-events";
-const footballProvider = window.FootballDataProvider.createMockFootballProvider();
+const footballProvider = window.FootballDataProvider.createFootballProvider("mock");
 const patternEngine = window.FootballPatternEngine;
+const telegramService = window.FootballTelegramService.createTelegramService();
 
 const navItems = [
   { id: "live", label: "Матчи", title: "Сканер матчей" },
@@ -227,13 +228,12 @@ function bindPageEvents() {
 
   const testTelegram = root.querySelector("#testTelegram");
   if (testTelegram) {
-    testTelegram.addEventListener("click", () => {
-      testTelegram.textContent = "Тестовое сообщение подготовлено";
+    testTelegram.addEventListener("click", async () => {
       testTelegram.disabled = true;
-      setTimeout(() => {
-        testTelegram.textContent = "Отправить тестовое сообщение";
-        testTelegram.disabled = false;
-      }, 1600);
+      testTelegram.textContent = "Готовим сообщение";
+      state.settings.lastTelegramTest = await telegramService.sendTelegramTestMessage(state.settings);
+      writeSettings();
+      render();
     });
   }
 }
@@ -561,6 +561,10 @@ function renderPatternStatusSummary(rows) {
 }
 
 function renderSettings() {
+  const telegramStatus = state.settings.lastTelegramTest
+    ? `<p class="telegram-status">${escapeHtml(state.settings.lastTelegramTest.message)}<span>${escapeHtml(state.settings.lastTelegramTest.channel)} · ${formatDateTime(state.settings.lastTelegramTest.createdAt)}</span></p>`
+    : "";
+
   return `
     <section class="settings-grid">
       <div class="panel">
@@ -592,6 +596,7 @@ function renderSettings() {
           <input id="telegramChannel" type="text" value="${escapeHtml(state.settings.telegramChannel)}" placeholder="@my_channel">
         </label>
         <button class="primary-button" id="testTelegram" type="button">Отправить тестовое сообщение</button>
+        ${telegramStatus}
       </div>
 
       <div class="panel">
@@ -600,8 +605,10 @@ function renderSettings() {
   getLiveMatches()
   getMatchStats(matchId)
   getMatchEvents(matchId)
-  getTeamProfile(teamId)</pre>
-        <p class="muted">Интерфейс оставлен независимым от поставщика данных, чтобы позже заменить demo-данные на реальный football API.</p>
+  getPatterns()
+  getTeamProfile(teamId)
+  getTeamRecentMatches(teamId)</pre>
+        <p class="muted">Интерфейс оставлен независимым от поставщика данных: сейчас работает MockFootballProvider, дальше подключается RealFootballProvider.</p>
       </div>
 
       <div class="panel">
@@ -1446,11 +1453,21 @@ function formatDate(value) {
   });
 }
 
+function formatDateTime(value) {
+  return new Date(value).toLocaleString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
 function readSettings() {
   const defaults = {
     mockMode: true,
     telegramEnabled: false,
     telegramChannel: "",
+    lastTelegramTest: null,
     favoriteLeagues: ["Spain LaLiga", "Italy Serie A", "Portugal Primeira"]
   };
 
