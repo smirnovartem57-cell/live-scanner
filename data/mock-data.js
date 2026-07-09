@@ -182,6 +182,22 @@ const mockSignals = [
   { id: "seed-m5-corner-home", matchId: "m5", patternId: "corner_pressure", teamId: "leiria", teamSide: "home", minute: 68, scoreHome: 0, scoreAway: 0, pressureScore: 74, strength: "MED", status: "in_progress", createdAt: "2026-07-09T10:18:00.000Z" }
 ];
 
+const mockEvents = {
+  m1: [
+    { id: "event-m1-69-home-goal", type: "goal", minute: 69, teamSide: "home", teamId: "barcelona", scoreHome: 1, scoreAway: 0 }
+  ],
+  m2: [
+    { id: "event-m2-80-away-goal", type: "goal", minute: 80, teamSide: "away", teamId: "lazio", scoreHome: 1, scoreAway: 2 }
+  ],
+  m3: [
+    { id: "event-m3-51-away-goal", type: "goal", minute: 51, teamSide: "away", teamId: "porto", scoreHome: 0, scoreAway: 2 }
+  ],
+  m4: [
+    { id: "event-m4-87-home-goal", type: "goal", minute: 87, teamSide: "home", teamId: "kofu", scoreHome: 2, scoreAway: 2 }
+  ],
+  m5: []
+};
+
 const mockTeamProfiles = [
   {
     id: "barcelona",
@@ -373,6 +389,7 @@ window.FootballMockData = {
   matches: mockMatches,
   snapshots: mockSnapshots,
   signals: mockSignals,
+  events: mockEvents,
   patterns: mockPatterns,
   history: mockHistory,
   teamProfiles: mockTeamProfiles,

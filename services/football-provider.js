@@ -32,6 +32,9 @@ function createMockFootballProvider() {
       return cloneData(data.snapshots);
     },
     getMatchEvents(matchId) {
+      if (!matchId) {
+        return cloneData(data.events || {});
+      }
       return cloneData(data.events?.[matchId] || []);
     },
     getPatterns() {

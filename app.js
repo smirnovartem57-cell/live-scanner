@@ -2,6 +2,7 @@ const SERVICE_META_KEY = "football-pattern-lab-service-meta";
 const PATTERN_EVENTS_KEY = "football-pattern-lab-pattern-events";
 const footballProvider = window.FootballDataProvider.createFootballProvider("mock");
 const patternEngine = window.FootballPatternEngine;
+const signalResultEngine = window.FootballSignalResultEngine;
 const telegramService = window.FootballTelegramService.createTelegramService();
 
 const navItems = [
@@ -25,6 +26,7 @@ const state = {
   patterns: [],
   matches: [],
   snapshots: [],
+  matchEvents: {},
   signals: [],
   history: [],
   userProfile: null,
@@ -75,11 +77,13 @@ function init() {
   state.patterns = footballProvider.getPatterns();
   state.matches = footballProvider.getLiveMatches();
   state.snapshots = footballProvider.getMatchStats();
+  state.matchEvents = footballProvider.getMatchEvents();
   state.history = readPatternEvents(footballProvider.getSeedHistory());
   state.userProfile = footballProvider.getUserProfile?.();
   state.feedbackItems = footballProvider.getFeedbackItems?.() || [];
   state.signals = evaluateCurrentMatches();
   syncActiveSignalsToJournal();
+  syncSignalResults();
 
   bindNavigation();
   refreshButton.addEventListener("click", refreshMockData);
@@ -1374,6 +1378,38 @@ function syncActiveSignalsToJournal() {
   }
 }
 
+function syncSignalResults() {
+  let changed = false;
+  state.history = state.history.map((event) => {
+    if (!event.matchId || event.result?.manualOutcome) {
+      return event;
+    }
+
+    const match = state.matches.find((item) => item.id === event.matchId);
+    const events = getMatchEvents(event.matchId);
+    const evaluated = signalResultEngine.evaluateSignalResult(event, match, events);
+    const nextResult = { ...event.result, ...evaluated.result };
+    const nextEvent = normalizePatternEvent({
+      ...event,
+      status: evaluated.status,
+      result: nextResult,
+      updatedAt: new Date().toISOString(),
+      closedAt: ["success", "failed"].includes(evaluated.status) ? event.closedAt || new Date().toISOString() : event.closedAt
+    });
+
+    if (nextEvent.status !== event.status || JSON.stringify(nextEvent.result) !== JSON.stringify(event.result)) {
+      changed = true;
+      return nextEvent;
+    }
+
+    return event;
+  }).sort(sortEventsByTime);
+
+  if (changed) {
+    writePatternEvents();
+  }
+}
+
 function hasRecentJournalSignal(signal) {
   return state.history.some((event) =>
     event.matchId === signal.matchId &&
@@ -1383,8 +1419,13 @@ function hasRecentJournalSignal(signal) {
   );
 }
 
+function getMatchEvents(matchId) {
+  return state.matchEvents?.[matchId] || footballProvider.getMatchEvents?.(matchId) || [];
+}
+
 function signalToJournalEvent(signal) {
   const match = state.matches.find((item) => item.id === signal.matchId);
+  const evaluated = signalResultEngine.evaluateSignalResult(signal, match, getMatchEvents(signal.matchId));
   return {
     id: signal.id,
     match: `${match.homeTeam} - ${match.awayTeam}`,
@@ -1398,14 +1439,15 @@ function signalToJournalEvent(signal) {
     scoreHome: signal.scoreHome,
     scoreAway: signal.scoreAway,
     score: `${signal.scoreHome}:${signal.scoreAway}`,
-    status: signal.status,
+    status: evaluated.status,
     result: {
       goalWithin5: false,
       goalWithin10: false,
       goalWithin15: false,
       goalMinute: null,
       goalTeam: null,
-      finalComment: ""
+      finalComment: "",
+      ...evaluated.result
     },
     comment: "",
     pressureScore: signal.pressureScore,
@@ -1520,6 +1562,7 @@ function refreshMockData() {
   }));
   state.signals = evaluateCurrentMatches();
   syncActiveSignalsToJournal();
+  syncSignalResults();
   render();
 }
 

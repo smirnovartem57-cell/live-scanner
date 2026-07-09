@@ -22,6 +22,7 @@
   - `Пустое давление`
 - Защита от дублей по `matchId + patternId + teamSide` за последние 10 минут.
 - История сигналов, ручное закрытие Win/Lose, комментарии и статистика по паттернам.
+- Автоматическая проверка результата сигнала по mock-событиям матча в окнах 5/10/15 минут.
 - Фильтры истории: `Все`, `Win`, `Lose`, `В процессе`.
 - Периоды статистики: `Сегодня`, `7 дней`, `Всё время`.
 - Экспорт истории в `JSON` и `CSV`.
@@ -79,6 +80,8 @@ services/football-provider.js
                 слой данных, который позже заменяется на реальный API
 services/pattern-engine.js
                 pressure score, оценка матчей и создание сигналов
+services/signal-result-engine.js
+                проверка результата сигнала по событиям матча
 src/services/patternEngine/
                 TypeScript-структура Pattern Engine для будущей сборки
 services/telegram-service.js

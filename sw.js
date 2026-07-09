@@ -1,4 +1,4 @@
-const CACHE_NAME = "football-pattern-lab-v14";
+const CACHE_NAME = "football-pattern-lab-v15";
 const ASSETS = [
   "./",
   "./index.html",
@@ -6,6 +6,7 @@ const ASSETS = [
   "./data/mock-data.js",
   "./services/football-provider.js",
   "./services/pattern-engine.js",
+  "./services/signal-result-engine.js",
   "./services/telegram-service.js",
   "./app.js",
   "./manifest.webmanifest",
