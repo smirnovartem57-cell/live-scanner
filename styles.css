@@ -1090,6 +1090,10 @@ h2 {
   min-width: 1540px;
 }
 
+.history-card-list {
+  display: none;
+}
+
 .table-head,
 .table-row {
   display: grid;
@@ -1234,6 +1238,73 @@ h2 {
 .mini-action.is-lose {
   border-color: rgba(255, 77, 79, 0.48);
   color: var(--red);
+}
+
+.history-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 14px;
+}
+
+.history-card.is-warning {
+  border-color: rgba(255, 192, 87, 0.24);
+  background: rgba(255, 192, 87, 0.05);
+}
+
+.history-card-head,
+.history-card-status,
+.history-card-pattern {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.history-card-head strong,
+.history-card-head span,
+.history-card-pattern span,
+.history-card-status small {
+  display: block;
+}
+
+.history-card-head span,
+.history-card-status small {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.history-card-pattern {
+  border-top: 1px solid var(--border-soft);
+  padding-top: 10px;
+  font-weight: 900;
+}
+
+.history-card-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.history-card-metrics span {
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  padding: 9px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.history-card-metrics b {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--text-main);
+  font-size: 16px;
 }
 
 .stat-line {
@@ -1793,6 +1864,15 @@ input[type="text"] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .history-table {
+    display: none;
+  }
+
+  .history-card-list {
+    display: grid;
+    gap: 12px;
+  }
+
   .hero-strip {
     align-items: flex-start;
     flex-direction: column;
@@ -1850,6 +1930,16 @@ input[type="text"] {
 @media (max-width: 460px) {
   .summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .history-card-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .history-card-head,
+  .history-card-status,
+  .history-card-pattern {
+    display: grid;
   }
 
   .journal-summary {

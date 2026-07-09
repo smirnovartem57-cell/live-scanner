@@ -481,6 +481,9 @@ function renderHistory() {
           </div>
         `).join("") || renderEmpty("Событий по этому фильтру нет.")}
       </div>
+      <div class="history-card-list">
+        ${filteredHistory.map(renderHistoryCard).join("") || renderEmpty("Событий по этому фильтру нет.")}
+      </div>
     </section>
   `;
 }
@@ -529,6 +532,39 @@ function renderStatsAtSignal(event) {
       <span>Угловые <b>${stats.corners ?? "—"}</b></span>
       <span>xG <b>${typeof stats.xg === "number" ? stats.xg.toFixed(2) : "—"}</b></span>
     </details>
+  `;
+}
+
+function renderHistoryCard(item) {
+  return `
+    <article class="history-card ${item.signalKind === "warning" ? "is-warning" : ""}">
+      <div class="history-card-head">
+        <div>
+          <strong>${item.match}</strong>
+          <span>${item.league} · ${getEventTeamName(item)}</span>
+        </div>
+        <b class="source-pill ${item.resultSource}">${formatResultSource(item)}</b>
+      </div>
+      <div class="history-card-pattern">
+        <span>${patternTypeLabels[item.patternType]}</span>
+        ${item.signalKind === "warning" ? "<small class=\"warning-label\">Предупреждение</small>" : ""}
+      </div>
+      <div class="history-card-metrics">
+        <span><b>${item.minute}'</b>Минута</span>
+        <span><b>${item.score}</b>Счет</span>
+        <span><b>${item.pressureScore || "—"}</b>Индекс</span>
+      </div>
+      <div class="history-card-status">
+        <span><b class="status-dot ${item.status}"></b>${statusLabels[item.status]}</span>
+        <small>${formatResult(item)}</small>
+      </div>
+      ${renderStatsAtSignal(item)}
+      <textarea class="comment-field" data-comment-event="${item.id}" placeholder="Комментарий">${escapeHtml(item.comment || "")}</textarea>
+      <div class="event-actions">
+        <button class="mini-action ${getOutcome(item) === "win" ? "is-win" : ""}" type="button" data-close-event="${item.id}" data-outcome="win">Win</button>
+        <button class="mini-action ${getOutcome(item) === "lose" ? "is-lose" : ""}" type="button" data-close-event="${item.id}" data-outcome="lose">Lose</button>
+      </div>
+    </article>
   `;
 }
 
