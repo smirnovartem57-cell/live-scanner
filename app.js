@@ -1,7 +1,7 @@
-const SIGNAL_BUCKET_MINUTES = 10;
 const SERVICE_META_KEY = "football-pattern-lab-service-meta";
 const PATTERN_EVENTS_KEY = "football-pattern-lab-pattern-events";
 const footballProvider = window.FootballDataProvider.createMockFootballProvider();
+const patternEngine = window.FootballPatternEngine;
 
 const navItems = [
   { id: "live", label: "Матчи", title: "Сканер матчей" },
@@ -61,7 +61,7 @@ function init() {
   state.matches = footballProvider.getLiveMatches();
   state.snapshots = footballProvider.getMatchStats();
   state.history = readPatternEvents(footballProvider.getSeedHistory());
-  state.signals = evaluateAllMatches();
+  state.signals = evaluateCurrentMatches();
   syncActiveSignalsToJournal();
 
   bindNavigation();
@@ -143,7 +143,10 @@ function bindPageEvents() {
 
   root.querySelectorAll("[data-comment-event]").forEach((input) => {
     input.addEventListener("input", () => {
-      updatePatternEvent(input.dataset.commentEvent, { comment: input.value });
+      updatePatternEvent(input.dataset.commentEvent, {
+        comment: input.value,
+        result: { finalComment: input.value }
+      });
     });
   });
 
@@ -183,7 +186,7 @@ function bindPageEvents() {
     input.addEventListener("change", () => {
       const pattern = state.patterns.find((item) => item.id === input.dataset.togglePattern);
       pattern.enabled = input.checked;
-      state.signals = evaluateAllMatches();
+      state.signals = evaluateCurrentMatches();
       render();
     });
   });
@@ -605,8 +608,8 @@ function renderMatchCard(match) {
   const snapshot = getSnapshot(match.id);
   const signals = state.signals.filter((signal) => signal.matchId === match.id);
   const mainSignal = signals[0];
-  const homePressure = calculatePressureScore(snapshot.home);
-  const awayPressure = calculatePressureScore(snapshot.away);
+  const homePressure = patternEngine.calculatePressureScore(snapshot.home);
+  const awayPressure = patternEngine.calculatePressureScore(snapshot.away);
   const pressure = Math.max(homePressure, awayPressure);
 
   return `
@@ -628,8 +631,8 @@ function renderMatchCard(match) {
           <span>${mainSignal ? mainSignal.explanation : "Идет наблюдение"}</span>
         </div>
         <div class="signal-score">
-          <span class="strength ${mainSignal ? mainSignal.strength.toLowerCase() : getSignalStrength(pressure).toLowerCase()}">${mainSignal ? mainSignal.strength : getSignalStrength(pressure)}</span>
-          <span class="pressure-badge ${getSignalStrength(pressure).toLowerCase()}">${pressure}</span>
+          <span class="strength ${mainSignal ? mainSignal.strength.toLowerCase() : patternEngine.getSignalStrength(pressure).toLowerCase()}">${mainSignal ? mainSignal.strength : patternEngine.getSignalStrength(pressure)}</span>
+          <span class="pressure-badge ${patternEngine.getSignalStrength(pressure).toLowerCase()}">${pressure}</span>
         </div>
       </div>
       <div class="stat-grid compact">
@@ -773,8 +776,8 @@ function getFilteredMatches() {
 
 function getDashboardStats() {
   const pressures = state.snapshots.flatMap((snapshot) => [
-    calculatePressureScore(snapshot.home),
-    calculatePressureScore(snapshot.away)
+    patternEngine.calculatePressureScore(snapshot.home),
+    patternEngine.calculatePressureScore(snapshot.away)
   ]);
   const averagePressure = pressures.length ? Math.round(pressures.reduce((sum, item) => sum + item, 0) / pressures.length) : 0;
 
@@ -799,11 +802,11 @@ function getTeamProfile(selection) {
   const providerProfile = footballProvider.getTeamProfile?.(teamId);
   const stats = snapshot[side];
   const opponent = snapshot[opponentSide];
-  const pressureScore = calculatePressureScore(stats);
+  const pressureScore = patternEngine.calculatePressureScore(stats);
   const signals = state.signals.filter((signal) => signal.matchId === match.id && signal.teamSide === side);
   const teamEvents = state.history.filter((event) => event.match?.includes(teamName));
   const history = getJournalStats(teamEvents);
-  const pressureGap = pressureScore - calculatePressureScore(opponent);
+  const pressureGap = pressureScore - patternEngine.calculatePressureScore(opponent);
   const trend = snapshot.recent?.[side]?.dangerousAttacks >= snapshot.previous?.[side]?.dangerousAttacks
     ? "темп растет"
     : "темп стабильный или ниже";
@@ -878,7 +881,15 @@ function getHistoryByPeriod(events, period) {
 }
 
 function updatePatternEvent(id, patch) {
-  state.history = state.history.map((event) => event.id === id ? normalizePatternEvent({ ...event, ...patch }) : event);
+  state.history = state.history.map((event) => {
+    if (event.id !== id) return event;
+    return normalizePatternEvent({
+      ...event,
+      ...patch,
+      result: { ...event.result, ...patch.result },
+      updatedAt: new Date().toISOString()
+    });
+  });
   writePatternEvents();
 }
 
@@ -890,8 +901,12 @@ function closePatternEvent(id, outcome) {
       goalWithin5: false,
       goalWithin10: isWin,
       goalWithin15: isWin,
+      goalMinute: null,
+      goalTeam: null,
+      finalComment: "",
       manualOutcome: outcome
     },
+    updatedAt: new Date().toISOString(),
     closedAt: new Date().toISOString()
   });
 }
@@ -906,18 +921,29 @@ function exportHistory(format) {
 }
 
 function historyToCsv(events) {
-  const headers = ["id", "match", "league", "minute", "pattern", "score", "outcome", "status", "comment", "createdAt", "closedAt"];
+  const headers = ["id", "matchId", "teamId", "match", "league", "minute", "pattern", "scoreHome", "scoreAway", "pressureScore", "strength", "outcome", "status", "goalWithin5", "goalWithin10", "goalWithin15", "goalMinute", "goalTeam", "finalComment", "createdAt", "updatedAt", "closedAt"];
   const rows = events.map((event) => [
     event.id,
+    event.matchId,
+    event.teamId,
     event.match,
     event.league,
     event.minute,
     patternTypeLabels[event.patternType] || event.patternType,
-    event.score,
+    event.scoreHome,
+    event.scoreAway,
+    event.pressureScore,
+    event.strength,
     getOutcome(event),
     event.status,
-    event.comment || "",
+    event.result.goalWithin5,
+    event.result.goalWithin10,
+    event.result.goalWithin15,
+    event.result.goalMinute || "",
+    event.result.goalTeam || "",
+    event.result.finalComment || event.comment || "",
     event.createdAt,
+    event.updatedAt || "",
     event.closedAt || ""
   ]);
 
@@ -997,20 +1023,35 @@ function signalToJournalEvent(signal) {
     minute: signal.minute,
     patternId: signal.patternId,
     patternType: signal.patternType,
+    teamId: signal.teamId || (signal.teamSide === "home" ? match.homeTeamId : match.awayTeamId),
     teamSide: signal.teamSide,
+    scoreHome: signal.scoreHome,
+    scoreAway: signal.scoreAway,
     score: `${signal.scoreHome}:${signal.scoreAway}`,
     status: signal.status,
-    result: { goalWithin5: false, goalWithin10: false, goalWithin15: false },
+    result: {
+      goalWithin5: false,
+      goalWithin10: false,
+      goalWithin15: false,
+      goalMinute: null,
+      goalTeam: null,
+      finalComment: ""
+    },
     comment: "",
     pressureScore: signal.pressureScore,
     strength: signal.strength,
+    statsAtSignal: signal.statsAtSignal || getSignalStats(signal),
     explanation: signal.explanation,
     createdAt: signal.createdAt,
+    updatedAt: signal.updatedAt || signal.createdAt,
     closedAt: null
   };
 }
 
 function normalizePatternEvent(event) {
+  const scoreParts = String(event.score || "0:0").split(":");
+  const scoreHome = Number.isFinite(event.scoreHome) ? event.scoreHome : Number(scoreParts[0] || 0);
+  const scoreAway = Number.isFinite(event.scoreAway) ? event.scoreAway : Number(scoreParts[1] || 0);
   const normalized = {
     id: event.id || `${event.match}-${event.patternId}-${event.minute}-${event.score}`.replaceAll(" ", "-"),
     match: event.match,
@@ -1019,19 +1060,44 @@ function normalizePatternEvent(event) {
     minute: event.minute,
     patternId: event.patternId,
     patternType: event.patternType,
+    teamId: event.teamId || "",
     teamSide: event.teamSide || "both",
-    score: event.score,
+    scoreHome,
+    scoreAway,
+    score: event.score || `${scoreHome}:${scoreAway}`,
     status: event.status,
-    result: event.result || { goalWithin5: false, goalWithin10: false, goalWithin15: false },
+    result: normalizeSignalResult(event.result, event.comment),
     comment: event.comment || "",
     pressureScore: event.pressureScore || null,
     strength: event.strength || null,
+    statsAtSignal: event.statsAtSignal || null,
     explanation: event.explanation || "Событие добавлено в журнал до появления подробных объяснений.",
     createdAt: event.createdAt || event.occurredAt || state.serviceMeta.startedAt,
+    updatedAt: event.updatedAt || event.createdAt || event.occurredAt || state.serviceMeta.startedAt,
     closedAt: event.closedAt || null
   };
 
   return normalized;
+}
+
+function normalizeSignalResult(result = {}, fallbackComment = "") {
+  return {
+    goalWithin5: Boolean(result.goalWithin5),
+    goalWithin10: Boolean(result.goalWithin10),
+    goalWithin15: Boolean(result.goalWithin15),
+    goalMinute: Number.isFinite(result.goalMinute) ? result.goalMinute : null,
+    goalTeam: result.goalTeam || null,
+    finalComment: result.finalComment || fallbackComment || "",
+    manualOutcome: result.manualOutcome || null
+  };
+}
+
+function getSignalStats(signal) {
+  const snapshot = getSnapshot(signal.matchId);
+  if (!snapshot || !signal.teamSide || signal.teamSide === "both") {
+    return null;
+  }
+  return snapshot[signal.teamSide] || null;
 }
 
 function getJournalStats(events = state.history) {
@@ -1080,7 +1146,7 @@ function refreshMockData() {
     home: bumpStats(snapshot.home),
     away: bumpStats(snapshot.away)
   }));
-  state.signals = evaluateAllMatches();
+  state.signals = evaluateCurrentMatches();
   syncActiveSignalsToJournal();
   render();
 }
@@ -1095,141 +1161,8 @@ function bumpStats(stats) {
   };
 }
 
-function evaluateAllMatches() {
-  const signals = [];
-  state.matches.filter((match) => match.status === "live" || match.status === "halftime").forEach((match) => {
-    const snapshot = getSnapshot(match.id);
-    state.patterns.filter((pattern) => pattern.enabled).forEach((pattern) => {
-      ["home", "away"].forEach((side) => {
-        const signal = evaluatePattern(match, snapshot, pattern, side);
-        if (signal && !hasDuplicateSignal(signals, signal)) {
-          signals.push(signal);
-        }
-      });
-    });
-  });
-  return signals.sort((a, b) => b.pressureScore - a.pressureScore);
-}
-
-function evaluatePattern(match, snapshot, pattern, side) {
-  const team = snapshot[side];
-  const opponent = snapshot[side === "home" ? "away" : "home"];
-  const pressureScore = calculatePressureScore(team);
-  const scoreDifference = Math.abs(match.scoreHome - match.scoreAway);
-  const teamIsLosing = side === "home" ? match.scoreHome < match.scoreAway : match.scoreAway < match.scoreHome;
-  const recent = snapshot.recent?.[side] || team;
-  const previous = snapshot.previous?.[side] || team;
-
-  const checks = {
-    pressure_without_goal:
-      match.minute >= 25 &&
-      match.minute <= 70 &&
-      match.scoreHome + match.scoreAway === 0 &&
-      team.dangerousAttacks >= 50 &&
-      team.shotsTotal >= 8 &&
-      team.shotsOnTarget >= 2 &&
-      team.corners >= 3 &&
-      pressureScore >= 70,
-    late_goal:
-      match.minute >= 65 &&
-      scoreDifference <= 1 &&
-      team.dangerousAttacks >= 45 &&
-      team.shotsTotal >= 7 &&
-      pressureScore >= 65,
-    favorite_losing_but_pressing:
-      teamIsLosing &&
-      team.dangerousAttacks >= opponent.dangerousAttacks * 1.6 &&
-      team.shotsTotal >= opponent.shotsTotal * 1.4 &&
-      pressureScore >= 65,
-    match_woke_up:
-      match.minute >= 30 &&
-      recent.dangerousAttacks >= previous.dangerousAttacks * 1.7 &&
-      recent.shotsTotal >= 2 &&
-      pressureScore >= 60,
-    corner_pressure:
-      match.minute >= 20 &&
-      team.attacks >= 60 &&
-      team.dangerousAttacks >= 40 &&
-      team.corners >= 4,
-    empty_pressure:
-      team.attacks >= 70 &&
-      team.dangerousAttacks >= 45 &&
-      team.shotsOnTarget <= 1 &&
-      team.corners <= 2
-  };
-
-  if (!checks[pattern.type]) {
-    return null;
-  }
-
-  return {
-    id: `${match.id}-${pattern.id}-${side}-${Math.floor(match.minute / SIGNAL_BUCKET_MINUTES)}`,
-    matchId: match.id,
-    patternId: pattern.id,
-    patternType: pattern.type,
-    teamSide: side,
-    minute: match.minute,
-    scoreHome: match.scoreHome,
-    scoreAway: match.scoreAway,
-    pressureScore,
-    strength: getSignalStrength(pressureScore),
-    status: pattern.type === "empty_pressure" ? "new" : "in_progress",
-    explanation: buildSignalExplanation(pattern.type, match, team, opponent, side, pressureScore, recent, previous),
-    createdAt: new Date().toISOString()
-  };
-}
-
-function hasDuplicateSignal(signals, candidate) {
-  return signals.some((signal) =>
-    signal.matchId === candidate.matchId &&
-    signal.patternId === candidate.patternId &&
-    signal.teamSide === candidate.teamSide &&
-    Math.floor(signal.minute / SIGNAL_BUCKET_MINUTES) === Math.floor(candidate.minute / SIGNAL_BUCKET_MINUTES)
-  );
-}
-
-function calculatePressureScore(stats) {
-  const xgScore = typeof stats.xg === "number" ? stats.xg * 15 : 0;
-  const score =
-    stats.dangerousAttacks * 0.8 +
-    stats.shotsTotal * 3 +
-    stats.shotsOnTarget * 6 +
-    stats.corners * 4 +
-    xgScore;
-
-  return Math.min(100, Math.round(score));
-}
-
-function getSignalStrength(score) {
-  if (score >= 75) return "HIGH";
-  if (score >= 50) return "MED";
-  return "LOW";
-}
-
-function buildSignalExplanation(type, match, team, opponent, side, pressureScore, recent, previous) {
-  const teamName = side === "home" ? match.homeTeam : match.awayTeam;
-  const opponentName = side === "home" ? match.awayTeam : match.homeTeam;
-  const score = `${match.scoreHome}:${match.scoreAway}`;
-  const dangerousRatio = opponent.dangerousAttacks ? (team.dangerousAttacks / opponent.dangerousAttacks).toFixed(1) : "∞";
-  const shotsRatio = opponent.shotsTotal ? (team.shotsTotal / opponent.shotsTotal).toFixed(1) : "∞";
-  const recentGrowth = previous.dangerousAttacks ? Math.round((recent.dangerousAttacks / previous.dangerousAttacks) * 100) : 0;
-
-  const explanations = {
-    pressure_without_goal:
-      `${teamName}: счет ${score}, ${team.dangerousAttacks} опасных атак, ${team.shotsTotal} ударов, ${team.corners} угловых, индекс давления ${pressureScore}. Давление есть, голов пока нет.`,
-    late_goal:
-      `${teamName}: ${match.minute}-я минута, разница в счете не больше одного мяча, ${team.dangerousAttacks} опасных атак и индекс давления ${pressureScore}. Матч остается активным в поздней фазе.`,
-    favorite_losing_but_pressing:
-      `${teamName} уступает в счете, но давит сильнее ${opponentName}: опасные атаки x${dangerousRatio}, удары x${shotsRatio}, индекс давления ${pressureScore}.`,
-    match_woke_up:
-      `${teamName}: последние 10 минут заметно активнее предыдущего отрезка, рост опасных атак до ${recentGrowth}%, ударов за отрезок ${recent.shotsTotal}, индекс давления ${pressureScore}.`,
-    corner_pressure:
-      `${teamName}: ${team.attacks} атак, ${team.dangerousAttacks} опасных атак и ${team.corners} угловых. Команда регулярно доводит атаки до давления у ворот.`,
-    empty_pressure:
-      `${teamName}: атак много (${team.attacks}), опасных атак ${team.dangerousAttacks}, но ударов в створ ${team.shotsOnTarget} и угловых ${team.corners}. Давление может быть низкого качества.`
-  };
-
-  return explanations[type] || `${teamName}: найдено совпадение с условиями паттерна, индекс давления ${pressureScore}.`;
+function evaluateCurrentMatches() {
+  return patternEngine.evaluateAllMatches(state.matches, state.snapshots, state.patterns);
 }
 
 function getSnapshot(matchId) {

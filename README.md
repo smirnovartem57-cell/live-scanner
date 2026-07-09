@@ -72,18 +72,37 @@ data/mock-data.js
                 mock-матчи, статистика, сигналы, паттерны, команды и стартовая история
 services/football-provider.js
                 слой данных, который позже заменяется на реальный API
+services/pattern-engine.js
+                pressure score, оценка матчей и создание сигналов
 manifest.webmanifest
 sw.js
 icons/icon.svg
 ```
 
-Внутри `app.js` есть отдельные логические блоки:
+Pattern Engine вынесен в `services/pattern-engine.js`:
 
 - `calculatePressureScore(stats)`
 - `getSignalStrength(score)`
-- `evaluatePattern(match, snapshot, pattern, side)`
+- `getPatternStatus(patternType)`
 - `evaluateAllMatches()`
-- журнал событий и расчёт win/lose
+- `evaluateMatch(match, snapshot, patterns)`
+- `evaluatePattern(match, snapshot, pattern, side)`
+
+Внутри `app.js` остались экранная логика, журнал событий и расчёт Win/Lose.
+
+## Журнал сигналов
+
+Каждое событие хранит:
+
+```text
+id, matchId, patternId, teamId, teamSide,
+minute, scoreHome, scoreAway,
+pressureScore, strength,
+statsAtSignal,
+createdAt, updatedAt,
+result.goalWithin5, result.goalWithin10, result.goalWithin15,
+result.goalMinute, result.goalTeam, result.finalComment
+```
 
 ## Формула индекса давления
 

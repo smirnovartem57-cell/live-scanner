@@ -1,10 +1,11 @@
-const CACHE_NAME = "football-pattern-lab-v9";
+const CACHE_NAME = "football-pattern-lab-v10";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
   "./data/mock-data.js",
   "./services/football-provider.js",
+  "./services/pattern-engine.js",
   "./app.js",
   "./manifest.webmanifest",
   "./icons/icon.svg",
