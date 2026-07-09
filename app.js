@@ -484,6 +484,7 @@ function getPeriodMetricLabel() {
 
 function renderStats() {
   const totals = getDashboardStats();
+  const dataQuality = getDataQualityStats();
   const periodHistory = getHistoryByPeriod(state.history, state.statsPeriod);
   const journalStats = getJournalStats(periodHistory);
   const patternRows = state.patterns.map((pattern) => getPatternStats(pattern, periodHistory));
@@ -530,6 +531,7 @@ function renderStats() {
         ${renderPatternStatusSummary(patternRows)}
       </aside>
     </section>
+    ${renderDataQualityPanel(dataQuality)}
   `;
 }
 
@@ -577,6 +579,37 @@ function renderPatternStatusSummary(rows) {
       `).join("")}
     </div>
   `;
+}
+
+function renderDataQualityPanel(stats) {
+  return `
+    <section class="panel data-quality-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Источник данных</p>
+          <h2>Монитор качества данных</h2>
+        </div>
+        <span class="quality-badge ${stats.status}">${stats.label}</span>
+      </div>
+      <div class="data-quality-grid">
+        ${dataQualityMetric("Матчи", stats.matches)}
+        ${dataQualityMetric("Статистика", `${stats.statsCoverage}%`)}
+        ${dataQualityMetric("События", `${stats.eventsCoverage}%`)}
+        ${dataQualityMetric("Свежесть", stats.freshnessLabel)}
+      </div>
+      <div class="source-health-list">
+        <span><b>${stats.providerMode}</b> режим источника</span>
+        <span><b>${stats.snapshots}</b> снимков статистики</span>
+        <span><b>${stats.eventMatches}</b> матчей с событиями</span>
+        <span><b>${stats.lastUpdatedLabel}</b> последнее обновление</span>
+      </div>
+      <p class="muted">${stats.summary}</p>
+    </section>
+  `;
+}
+
+function dataQualityMetric(label, value) {
+  return `<span class="data-quality-metric"><b>${value}</b>${label}</span>`;
 }
 
 function renderProfile() {
@@ -698,6 +731,7 @@ function renderSettings() {
   const telegramStatus = state.settings.lastTelegramTest
     ? `<p class="telegram-status">${escapeHtml(state.settings.lastTelegramTest.message)}<span>${escapeHtml(state.settings.lastTelegramTest.channel)} · ${formatDateTime(state.settings.lastTelegramTest.createdAt)}</span></p>`
     : "";
+  const dataQuality = getDataQualityStats();
 
   return `
     <section class="settings-grid">
@@ -745,6 +779,10 @@ function renderSettings() {
   getUserProfile()
   getFeedbackItems()</pre>
         <p class="muted">Интерфейс оставлен независимым от поставщика данных: сейчас работает MockFootballProvider, дальше подключается RealFootballProvider.</p>
+        <div class="quality-note ${dataQuality.status}">
+          <strong>${dataQuality.label}</strong>
+          <span>${dataQuality.summary}</span>
+        </div>
       </div>
 
       <div class="panel">
@@ -1082,6 +1120,42 @@ function getDashboardStats() {
     activeSignals: state.signals.length,
     highSignals: state.signals.filter((signal) => signal.strength === "HIGH").length,
     averagePressure
+  };
+}
+
+function getDataQualityStats() {
+  const matches = state.matches.length;
+  const snapshots = state.snapshots.length;
+  const eventMatches = Object.values(state.matchEvents || {}).filter((events) => events.length > 0).length;
+  const statsCoverage = getRate(snapshots, matches || 1);
+  const eventsCoverage = getRate(eventMatches, matches || 1);
+  const updatedTimes = state.matches
+    .map((match) => new Date(match.updatedAt || state.serviceMeta.startedAt).getTime())
+    .filter(Number.isFinite);
+  const lastUpdated = updatedTimes.length ? new Date(Math.max(...updatedTimes)) : new Date(state.serviceMeta.startedAt);
+  const ageMinutes = Math.max(0, Math.round((Date.now() - lastUpdated.getTime()) / 60000));
+  const freshnessScore = ageMinutes <= 3 ? 100 : ageMinutes <= 10 ? 70 : 35;
+  const healthScore = Math.round((statsCoverage * 0.45) + (eventsCoverage * 0.25) + (freshnessScore * 0.3));
+  const status = healthScore >= 85 ? "working" : healthScore >= 65 ? "testing" : "weak";
+  const labels = {
+    working: "Источник готов",
+    testing: "Нужно наблюдение",
+    weak: "Есть пробелы"
+  };
+
+  return {
+    matches,
+    snapshots,
+    eventMatches,
+    statsCoverage,
+    eventsCoverage,
+    providerMode: footballProvider.mode === "mock" ? "MockFootballProvider" : "RealFootballProvider",
+    freshnessLabel: ageMinutes <= 1 ? "сейчас" : `${ageMinutes} мин`,
+    lastUpdatedLabel: formatDateTime(lastUpdated.toISOString()),
+    healthScore,
+    status,
+    label: labels[status],
+    summary: `Покрытие статистики ${statsCoverage}%, покрытие событий ${eventsCoverage}%, оценка качества ${healthScore}/100.`
   };
 }
 

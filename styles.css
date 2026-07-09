@@ -1228,6 +1228,58 @@ h2 {
   background: linear-gradient(90deg, var(--green), var(--blue));
 }
 
+.data-quality-panel {
+  margin-top: 16px;
+}
+
+.data-quality-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.data-quality-metric {
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  padding: 12px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.data-quality-metric b {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--green);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.source-health-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.source-health-list span {
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  padding: 11px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.source-health-list b {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-main);
+}
+
 .league-list {
   flex-direction: column;
 }
@@ -1479,6 +1531,8 @@ input[type="text"] {
   .section-grid,
   .settings-grid,
   .ideas-grid,
+  .data-quality-grid,
+  .source-health-list,
   .pattern-layout {
     grid-template-columns: 1fr;
   }
