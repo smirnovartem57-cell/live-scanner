@@ -228,6 +228,19 @@ function bindPageEvents() {
     });
   });
 
+  root.querySelectorAll("[data-team-important]").forEach((input) => {
+    input.addEventListener("change", () => {
+      updateTeamNote(input.dataset.teamImportant, { importantMatch: input.checked });
+    });
+  });
+
+  root.querySelectorAll("[data-save-team-note]").forEach((button) => {
+    button.addEventListener("click", () => {
+      saveTeamNoteSnapshot(button.dataset.saveTeamNote);
+      render();
+    });
+  });
+
   root.querySelectorAll("[data-pattern-id]").forEach((button) => {
     button.addEventListener("click", () => {
       state.activePatternId = button.dataset.patternId;
@@ -816,6 +829,7 @@ function renderProfile() {
           </div>
         </div>
       </section>
+      ${renderTeamsWithNotes()}
     </section>
   `;
 }
@@ -867,6 +881,45 @@ function renderPatternBadges(signals) {
         <span class="${signal.signalKind === "warning" ? "is-warning" : ""}">${patternTypeLabels[signal.patternType]}</span>
       `).join("")}
     </div>
+  `;
+}
+
+function renderTeamNoteLog(note) {
+  const entries = note.entries || [];
+  return `
+    <div class="team-note-log">
+      <h4>Журнал заметок</h4>
+      ${entries.length ? entries.slice(0, 4).map((entry) => `
+        <span>
+          <b>${formatDateTime(entry.createdAt)}</b>
+          <small>${escapeHtml(entry.note || "Без текста")}</small>
+          ${(entry.tags || []).length ? `<small>${entry.tags.map(escapeHtml).join(" · ")}</small>` : ""}
+        </span>
+      `).join("") : "<span><b>Пока пусто</b><small>Сохраните текущую заметку, чтобы добавить запись.</small></span>"}
+    </div>
+  `;
+}
+
+function renderTeamsWithNotes() {
+  const rows = getTeamsWithNotes();
+  return `
+    <section class="panel notes-overview">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Личные наблюдения</p>
+          <h2>Команды с заметками</h2>
+        </div>
+        <span class="count-pill">${rows.length}</span>
+      </div>
+      <div class="notes-overview-list">
+        ${rows.length ? rows.map((row) => `
+          <span>
+            <b>${escapeHtml(row.name)}</b>
+            <small>${row.noteCount} записей · ${escapeHtml((row.tags || []).join(", ") || "без тегов")}${row.importantMatch ? " · важный матч" : ""}</small>
+          </span>
+        `).join("") : "<span><b>Заметок пока нет</b><small>Откройте профиль команды и сохраните наблюдение.</small></span>"}
+      </div>
+    </section>
   `;
 }
 
@@ -1082,6 +1135,12 @@ function renderTeamProfile(selection) {
           <div class="team-tags">
             ${(note.tags || []).map((tag) => `<span>${escapeHtml(tag)}</span>`).join("") || "<span>Тегов пока нет</span>"}
           </div>
+          <label class="switch field-row">
+            <input type="checkbox" data-team-important="${profile.id}" ${note.importantMatch ? "checked" : ""}>
+            <span>Важный матч</span>
+          </label>
+          <button class="ghost-button" type="button" data-save-team-note="${profile.id}">Сохранить в журнал заметок</button>
+          ${renderTeamNoteLog(note)}
         </article>
         <article>
           <h3>Сигналы команды</h3>
@@ -1381,6 +1440,42 @@ function updateTeamNote(teamId, patch) {
     updatedAt: new Date().toISOString()
   };
   writeTeamNotes();
+}
+
+function saveTeamNoteSnapshot(teamId) {
+  const current = getTeamNote(teamId);
+  const entry = {
+    id: `${teamId}-${Date.now()}`,
+    note: current.note || "",
+    tags: current.tags || [],
+    importantMatch: Boolean(current.importantMatch),
+    createdAt: new Date().toISOString()
+  };
+  updateTeamNote(teamId, {
+    entries: [entry, ...(current.entries || [])].slice(0, 20)
+  });
+}
+
+function getTeamsWithNotes() {
+  return Object.entries(state.teamNotes)
+    .filter(([, note]) => note.note || note.importantMatch || (note.tags || []).length || (note.entries || []).length)
+    .map(([teamId, note]) => ({
+      teamId,
+      name: getTeamNameById(teamId),
+      noteCount: (note.entries || []).length,
+      tags: note.tags || [],
+      importantMatch: Boolean(note.importantMatch),
+      updatedAt: note.updatedAt
+    }))
+    .sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+}
+
+function getTeamNameById(teamId) {
+  const match = state.matches.find((item) => item.homeTeamId === teamId || item.awayTeamId === teamId);
+  if (match?.homeTeamId === teamId) return match.homeTeam;
+  if (match?.awayTeamId === teamId) return match.awayTeam;
+  const providerProfile = footballProvider.getTeamProfile?.(teamId);
+  return providerProfile?.name || teamId;
 }
 
 function getPatternStats(pattern, events) {

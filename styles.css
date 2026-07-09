@@ -731,6 +731,42 @@ h2 {
   font-weight: 800;
 }
 
+.team-note-log,
+.notes-overview-list {
+  display: grid;
+  gap: 8px;
+}
+
+.team-note-log h4 {
+  margin: 2px 0 0;
+  font-size: 13px;
+}
+
+.team-note-log span,
+.notes-overview-list span {
+  border-top: 1px solid var(--border-soft);
+  padding-top: 8px;
+}
+
+.team-note-log b,
+.team-note-log small,
+.notes-overview-list b,
+.notes-overview-list small {
+  display: block;
+}
+
+.team-note-log small,
+.notes-overview-list small {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.notes-overview {
+  margin-top: 16px;
+}
+
 .team-profile-sections {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
