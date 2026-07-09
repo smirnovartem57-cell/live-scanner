@@ -79,6 +79,8 @@ const mockPatterns = [
       { label: "Счет", field: "scoreTotal", operator: "==", value: 0 },
       { label: "Опасные атаки", field: "dangerousAttacks", operator: ">=", value: 50 },
       { label: "Удары", field: "shotsTotal", operator: ">=", value: 8 },
+      { label: "В створ", field: "shotsOnTarget", operator: ">=", value: 2 },
+      { label: "Угловые", field: "corners", operator: ">=", value: 3 },
       { label: "Индекс давления", field: "pressureScore", operator: ">=", value: 70 }
     ]
   },
@@ -92,6 +94,7 @@ const mockPatterns = [
       { label: "Минута", field: "minute", operator: ">=", value: 65 },
       { label: "Разница счета", field: "scoreDiff", operator: "<=", value: 1 },
       { label: "Опасные атаки", field: "dangerousAttacks", operator: ">=", value: 45 },
+      { label: "Удары", field: "shotsTotal", operator: ">=", value: 7 },
       { label: "Индекс давления", field: "pressureScore", operator: ">=", value: 65 }
     ]
   },

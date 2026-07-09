@@ -238,6 +238,9 @@ function bindPageEvents() {
     button.addEventListener("click", () => {
       delete state.patternSettings[button.dataset.resetPatternSettings];
       writePatternSettings();
+      state.signals = evaluateCurrentMatches();
+      syncActiveSignalsToJournal();
+      syncSignalResults();
       render();
     });
   });
@@ -380,7 +383,7 @@ function renderPatterns() {
         <p class="muted">${activePattern.description}</p>
         <div class="pattern-profile-note ${isCustomized ? "is-custom" : ""}">
           <strong>${isCustomized ? "Локальный профиль условий изменен" : "Базовый профиль условий"}</strong>
-          <span>Пороговые значения сохраняются локально. Подключение этих настроек к механизму поиска сигналов будет следующим шагом.</span>
+          <span>Пороговые значения сохраняются локально и сразу влияют на поиск сигналов в текущем браузере.</span>
         </div>
         <div class="threshold-list">
           ${customizedRules.map((rule, index) => renderThresholdControl(activePattern, rule, index)).join("")}
@@ -1815,7 +1818,7 @@ function bumpStats(stats) {
 }
 
 function evaluateCurrentMatches() {
-  return patternEngine.evaluateAllMatches(state.matches, state.snapshots, state.patterns);
+  return patternEngine.evaluateAllMatches(state.matches, state.snapshots, getEffectivePatterns());
 }
 
 function getSnapshot(matchId) {
@@ -1858,6 +1861,16 @@ function updatePatternRuleSetting(patternId, ruleIndex, value) {
     rules
   };
   writePatternSettings();
+  state.signals = evaluateCurrentMatches();
+  syncActiveSignalsToJournal();
+  syncSignalResults();
+}
+
+function getEffectivePatterns() {
+  return state.patterns.map((pattern) => ({
+    ...pattern,
+    rules: getPatternRules(pattern)
+  }));
 }
 
 function formatResult(value) {

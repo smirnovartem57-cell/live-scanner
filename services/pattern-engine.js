@@ -62,43 +62,44 @@ function evaluatePattern(match, snapshot, pattern, side) {
   const teamIsLosing = side === "home" ? match.scoreHome < match.scoreAway : match.scoreAway < match.scoreHome;
   const recent = snapshot.last10?.[side] || snapshot.recent?.[side] || team;
   const previous = snapshot.previous10?.[side] || snapshot.previous?.[side] || team;
+  const rules = getRuleValues(pattern);
 
   const checks = {
     pressure_without_goal:
-      match.minute >= 25 &&
-      match.minute <= 70 &&
-      match.scoreHome + match.scoreAway === 0 &&
-      team.dangerousAttacks >= 50 &&
-      team.shotsTotal >= 8 &&
-      team.shotsOnTarget >= 2 &&
-      team.corners >= 3 &&
-      pressureScore >= 70,
+      match.minute >= getRuleValue(rules, "minute", ">=", 25) &&
+      match.minute <= getRuleValue(rules, "minute", "<=", 70) &&
+      match.scoreHome + match.scoreAway === getRuleValue(rules, "scoreTotal", "==", 0) &&
+      team.dangerousAttacks >= getRuleValue(rules, "dangerousAttacks", ">=", 50) &&
+      team.shotsTotal >= getRuleValue(rules, "shotsTotal", ">=", 8) &&
+      team.shotsOnTarget >= getRuleValue(rules, "shotsOnTarget", ">=", 2) &&
+      team.corners >= getRuleValue(rules, "corners", ">=", 3) &&
+      pressureScore >= getRuleValue(rules, "pressureScore", ">=", 70),
     late_goal:
-      match.minute >= 65 &&
-      scoreDifference <= 1 &&
-      team.dangerousAttacks >= 45 &&
-      team.shotsTotal >= 7 &&
-      pressureScore >= 65,
+      match.minute >= getRuleValue(rules, "minute", ">=", 65) &&
+      scoreDifference <= getRuleValue(rules, "scoreDiff", "<=", 1) &&
+      team.dangerousAttacks >= getRuleValue(rules, "dangerousAttacks", ">=", 45) &&
+      team.shotsTotal >= getRuleValue(rules, "shotsTotal", ">=", 7) &&
+      pressureScore >= getRuleValue(rules, "pressureScore", ">=", 65),
     favorite_losing_but_pressing:
       teamIsLosing &&
-      team.dangerousAttacks >= opponent.dangerousAttacks * 1.6 &&
-      team.shotsTotal >= opponent.shotsTotal * 1.4 &&
-      pressureScore >= 65,
+      team.dangerousAttacks >= opponent.dangerousAttacks * getRuleValue(rules, "dangerousRatio", ">=", 1.6) &&
+      team.shotsTotal >= opponent.shotsTotal * getRuleValue(rules, "shotsRatio", ">=", 1.4) &&
+      pressureScore >= getRuleValue(rules, "pressureScore", ">=", 65),
     match_woke_up:
-      match.minute >= 30 &&
-      recent.dangerousAttacks >= previous.dangerousAttacks * 1.7 &&
-      recent.shotsTotal >= 2 &&
-      pressureScore >= 60,
+      match.minute >= getRuleValue(rules, "minute", ">=", 30) &&
+      recent.dangerousAttacks >= previous.dangerousAttacks * getRuleValue(rules, "dangerousAttacks", ">=", 1.7, "last_10") &&
+      recent.shotsTotal >= getRuleValue(rules, "shotsTotal", ">=", 2, "last_10") &&
+      pressureScore >= getRuleValue(rules, "pressureScore", ">=", 60),
     corner_pressure:
-      match.minute >= 20 &&
-      team.attacks >= 60 &&
-      team.dangerousAttacks >= 40 &&
-      team.corners >= 4,
+      match.minute >= getRuleValue(rules, "minute", ">=", 20) &&
+      team.attacks >= getRuleValue(rules, "attacks", ">=", 60) &&
+      team.dangerousAttacks >= getRuleValue(rules, "dangerousAttacks", ">=", 40) &&
+      team.corners >= getRuleValue(rules, "corners", ">=", 4),
     empty_pressure:
-      team.attacks >= 70 &&
-      team.dangerousAttacks >= 45 &&
-      team.shotsOnTarget <= 1 &&
-      team.corners <= 2
+      team.attacks >= getRuleValue(rules, "attacks", ">=", 70) &&
+      team.dangerousAttacks >= getRuleValue(rules, "dangerousAttacks", ">=", 45) &&
+      team.shotsOnTarget <= getRuleValue(rules, "shotsOnTarget", "<=", 1) &&
+      team.corners <= getRuleValue(rules, "corners", "<=", 2)
   };
 
   if (!checks[pattern.type]) {
@@ -124,6 +125,28 @@ function evaluatePattern(match, snapshot, pattern, side) {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
+}
+
+function getRuleValues(pattern) {
+  return (pattern.rules || []).map((rule) => ({
+    ...rule,
+    numericValue: parseRuleNumber(rule.value)
+  }));
+}
+
+function getRuleValue(rules, field, operator, fallback, period = null) {
+  const rule = rules.find((item) =>
+    item.field === field &&
+    item.operator === operator &&
+    (period ? item.period === period : !item.period)
+  );
+  return Number.isFinite(rule?.numericValue) ? rule.numericValue : fallback;
+}
+
+function parseRuleNumber(value) {
+  if (typeof value === "number") return value;
+  const clean = String(value).replace(",", ".").match(/-?\d+(\.\d+)?/);
+  return clean ? Number(clean[0]) : null;
 }
 
 function hasDuplicateSignal(signals, candidate) {
