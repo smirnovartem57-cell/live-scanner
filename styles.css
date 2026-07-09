@@ -943,6 +943,78 @@ h2 {
   font-weight: 700;
 }
 
+.pattern-profile-note {
+  display: grid;
+  gap: 4px;
+  margin: 16px 0;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+}
+
+.pattern-profile-note.is-custom {
+  border-color: var(--border-green);
+  background: rgba(53, 240, 108, 0.06);
+}
+
+.pattern-profile-note strong {
+  color: var(--text-main);
+}
+
+.pattern-profile-note span {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.threshold-list {
+  display: grid;
+  gap: 10px;
+}
+
+.threshold-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.35fr);
+  gap: 12px;
+  align-items: center;
+  border-top: 1px solid var(--border-soft);
+  padding-top: 10px;
+}
+
+.threshold-row b,
+.threshold-row small {
+  display: block;
+}
+
+.threshold-row small {
+  margin-top: 3px;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.threshold-row input {
+  min-height: 38px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-main);
+  padding: 0 10px;
+  font: inherit;
+  font-weight: 800;
+}
+
+.builder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.builder-actions .ghost-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .ghost-button,
 .primary-button {
   border: 1px solid var(--border-blue);
@@ -1702,6 +1774,10 @@ input[type="text"] {
   }
 
   .profile-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .threshold-row {
     grid-template-columns: 1fr;
   }
 

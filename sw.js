@@ -1,4 +1,4 @@
-const CACHE_NAME = "football-pattern-lab-v18";
+const CACHE_NAME = "football-pattern-lab-v19";
 const ASSETS = [
   "./",
   "./index.html",

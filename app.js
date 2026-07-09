@@ -1,5 +1,6 @@
 const SERVICE_META_KEY = "football-pattern-lab-service-meta";
 const PATTERN_EVENTS_KEY = "football-pattern-lab-pattern-events";
+const PATTERN_SETTINGS_KEY = "football-pattern-lab-pattern-settings";
 const footballProvider = window.FootballDataProvider.createFootballProvider("mock");
 const patternEngine = window.FootballPatternEngine;
 const signalResultEngine = window.FootballSignalResultEngine;
@@ -24,6 +25,7 @@ const state = {
   patternSort: "quality",
   activePatternId: "pressure_without_goal",
   settings: readSettings(),
+  patternSettings: readPatternSettings(),
   patterns: [],
   matches: [],
   snapshots: [],
@@ -226,6 +228,20 @@ function bindPageEvents() {
     });
   });
 
+  root.querySelectorAll("[data-rule-setting]").forEach((input) => {
+    input.addEventListener("input", () => {
+      updatePatternRuleSetting(input.dataset.rulePattern, Number(input.dataset.ruleIndex), input.value);
+    });
+  });
+
+  root.querySelectorAll("[data-reset-pattern-settings]").forEach((button) => {
+    button.addEventListener("click", () => {
+      delete state.patternSettings[button.dataset.resetPatternSettings];
+      writePatternSettings();
+      render();
+    });
+  });
+
   const telegramToggle = root.querySelector("#telegramEnabled");
   if (telegramToggle) {
     telegramToggle.addEventListener("change", () => {
@@ -330,6 +346,8 @@ function renderSignals() {
 function renderPatterns() {
   const activePattern = state.patterns.find((pattern) => pattern.id === state.activePatternId) || state.patterns[0];
   const stats = getPatternStats(activePattern, state.history);
+  const customizedRules = getPatternRules(activePattern);
+  const isCustomized = Boolean(state.patternSettings[activePattern.id]);
 
   return `
     <section class="pattern-layout">
@@ -360,9 +378,16 @@ function renderPatterns() {
           </label>
         </div>
         <p class="muted">${activePattern.description}</p>
-        <div class="rule-grid">
-          ${activePattern.rules.map((rule) => `<span class="rule-chip">${formatRule(rule)}</span>`).join("")}
-          <button class="ghost-button" type="button">+ Добавить условие</button>
+        <div class="pattern-profile-note ${isCustomized ? "is-custom" : ""}">
+          <strong>${isCustomized ? "Локальный профиль условий изменен" : "Базовый профиль условий"}</strong>
+          <span>Пороговые значения сохраняются локально. Подключение этих настроек к механизму поиска сигналов будет следующим шагом.</span>
+        </div>
+        <div class="threshold-list">
+          ${customizedRules.map((rule, index) => renderThresholdControl(activePattern, rule, index)).join("")}
+        </div>
+        <div class="builder-actions">
+          <button class="ghost-button" type="button" data-reset-pattern-settings="${activePattern.id}">Сбросить условия</button>
+          <button class="ghost-button" type="button" disabled>Сохранить как мой профиль</button>
         </div>
       </section>
 
@@ -787,6 +812,27 @@ function renderPatternBadges(signals) {
         <span class="${signal.signalKind === "warning" ? "is-warning" : ""}">${patternTypeLabels[signal.patternType]}</span>
       `).join("")}
     </div>
+  `;
+}
+
+function renderThresholdControl(pattern, rule, index) {
+  const numericValue = typeof rule.value === "number";
+  const value = numericValue ? rule.value : String(rule.value);
+  return `
+    <label class="threshold-row">
+      <span>
+        <b>${rule.label || rule.field}</b>
+        <small>${formatRuleContext(rule)}</small>
+      </span>
+      <input
+        type="${numericValue ? "number" : "text"}"
+        value="${escapeHtml(value)}"
+        data-rule-setting
+        data-rule-pattern="${pattern.id}"
+        data-rule-index="${index}"
+        ${numericValue ? "step=\"1\"" : ""}
+      >
+    </label>
   `;
 }
 
@@ -1781,6 +1827,39 @@ function formatRule(rule) {
   return `${rule.label || rule.field}${period} ${rule.operator} ${rule.value}`;
 }
 
+function formatRuleContext(rule) {
+  const period = rule.period && rule.period !== "total" ? ` · ${rule.period.replace("_", " ")}` : "";
+  return `${rule.field} ${rule.operator}${period}`;
+}
+
+function getPatternRules(pattern) {
+  const stored = state.patternSettings[pattern.id];
+  if (!stored?.rules) {
+    return pattern.rules;
+  }
+
+  return pattern.rules.map((rule, index) => ({
+    ...rule,
+    value: stored.rules[index]?.value ?? rule.value
+  }));
+}
+
+function updatePatternRuleSetting(patternId, ruleIndex, value) {
+  const pattern = state.patterns.find((item) => item.id === patternId);
+  if (!pattern) return;
+
+  const rules = getPatternRules(pattern).map((rule) => ({ value: rule.value }));
+  const baseRule = pattern.rules[ruleIndex];
+  rules[ruleIndex] = {
+    value: typeof baseRule.value === "number" ? Number(value) : value
+  };
+  state.patternSettings[patternId] = {
+    updatedAt: new Date().toISOString(),
+    rules
+  };
+  writePatternSettings();
+}
+
 function formatResult(value) {
   const result = value?.result || value || {};
   if (result.manualOutcome === "win") return "Закрыто вручную: Win";
@@ -1893,6 +1972,18 @@ function readSettings() {
 
 function writeSettings() {
   localStorage.setItem("football-pattern-lab-settings", JSON.stringify(state.settings));
+}
+
+function readPatternSettings() {
+  try {
+    return JSON.parse(localStorage.getItem(PATTERN_SETTINGS_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function writePatternSettings() {
+  localStorage.setItem(PATTERN_SETTINGS_KEY, JSON.stringify(state.patternSettings));
 }
 
 function escapeHtml(value) {
