@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#050b12">
+    <title>Football Pattern Lab</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="desktop-sidebar" aria-label="Разделы приложения">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">F</div>
+          <div>
+            <strong>Лаборатория паттернов</strong>
+            <span>Лайв-сканер</span>
+          </div>
+        </div>
+        <nav class="side-nav" id="desktopNav"></nav>
+      </aside>
+
+      <div class="app-main">
+        <header class="topbar">
+          <div class="mobile-title">
+            <div class="brand-mark" aria-hidden="true">F</div>
+            <div>
+              <p class="eyebrow">Лаборатория футбольных паттернов</p>
+              <h1 id="pageTitle">Лайв-сканер</h1>
+            </div>
+          </div>
+          <div class="topbar-actions">
+            <button class="icon-button" id="refreshButton" type="button" title="Обновить данные" aria-label="Обновить данные">R</button>
+            <button class="icon-button" type="button" title="Профиль" aria-label="Профиль">P</button>
+          </div>
+        </header>
+
+        <main class="page" id="pageRoot"></main>
+      </div>
+
+      <nav class="mobile-bottom-nav" id="mobileNav" aria-label="Нижняя навигация"></nav>
+    </div>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>

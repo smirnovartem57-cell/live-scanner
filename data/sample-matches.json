@@ -1,0 +1,195 @@
+[
+  {
+    "id": "match-001",
+    "league": "Portugal Liga 2",
+    "status": "live",
+    "minute": 64,
+    "home": "Leiria",
+    "away": "Tondela",
+    "score": {
+      "home": 0,
+      "away": 0
+    },
+    "signal": "high",
+    "primaryPattern": "pressure_no_goal",
+    "stats": {
+      "shots": {
+        "home": 15,
+        "away": 4
+      },
+      "onTarget": {
+        "home": 6,
+        "away": 1
+      },
+      "attacks": {
+        "home": 78,
+        "away": 39
+      },
+      "dangerous": {
+        "home": 47,
+        "away": 13
+      },
+      "corners": {
+        "home": 9,
+        "away": 2
+      },
+      "xg": {
+        "home": 1.62,
+        "away": 0.28
+      }
+    },
+    "patterns": [
+      {
+        "type": "pressure_no_goal",
+        "reason": "Команда хозяев создала 15 ударов и 47 опасных атак, но счет остается 0:0."
+      },
+      {
+        "type": "one_side_pressure",
+        "reason": "Разница по опасным атакам больше чем в три раза, преимущество устойчивое."
+      }
+    ]
+  },
+  {
+    "id": "match-002",
+    "league": "Sweden Superettan",
+    "status": "live",
+    "minute": 73,
+    "home": "Orebro",
+    "away": "Vasteras",
+    "score": {
+      "home": 1,
+      "away": 1
+    },
+    "signal": "medium",
+    "primaryPattern": "tempo_after_break",
+    "stats": {
+      "shots": {
+        "home": 9,
+        "away": 11
+      },
+      "onTarget": {
+        "home": 3,
+        "away": 5
+      },
+      "attacks": {
+        "home": 61,
+        "away": 67
+      },
+      "dangerous": {
+        "home": 29,
+        "away": 36
+      },
+      "corners": {
+        "home": 4,
+        "away": 6
+      },
+      "xg": {
+        "home": 0.98,
+        "away": 1.21
+      }
+    },
+    "patterns": [
+      {
+        "type": "tempo_after_break",
+        "reason": "После 46-й минуты выросли удары, угловые и количество опасных атак у обеих команд."
+      }
+    ]
+  },
+  {
+    "id": "match-003",
+    "league": "Brazil Serie B",
+    "status": "halftime",
+    "minute": 45,
+    "home": "Avai",
+    "away": "Goias",
+    "score": {
+      "home": 0,
+      "away": 1
+    },
+    "signal": "low",
+    "primaryPattern": "one_side_pressure",
+    "stats": {
+      "shots": {
+        "home": 3,
+        "away": 8
+      },
+      "onTarget": {
+        "home": 1,
+        "away": 4
+      },
+      "attacks": {
+        "home": 31,
+        "away": 48
+      },
+      "dangerous": {
+        "home": 11,
+        "away": 26
+      },
+      "corners": {
+        "home": 1,
+        "away": 5
+      },
+      "xg": {
+        "home": 0.22,
+        "away": 0.91
+      }
+    },
+    "patterns": [
+      {
+        "type": "one_side_pressure",
+        "reason": "Гости ведут по счету и продолжают удерживать преимущество по ключевым метрикам."
+      }
+    ]
+  },
+  {
+    "id": "match-004",
+    "league": "Japan J2 League",
+    "status": "live",
+    "minute": 82,
+    "home": "Kofu",
+    "away": "Iwaki",
+    "score": {
+      "home": 1,
+      "away": 2
+    },
+    "signal": "high",
+    "primaryPattern": "late_push",
+    "stats": {
+      "shots": {
+        "home": 13,
+        "away": 7
+      },
+      "onTarget": {
+        "home": 5,
+        "away": 3
+      },
+      "attacks": {
+        "home": 86,
+        "away": 52
+      },
+      "dangerous": {
+        "home": 51,
+        "away": 21
+      },
+      "corners": {
+        "home": 10,
+        "away": 3
+      },
+      "xg": {
+        "home": 1.58,
+        "away": 0.77
+      }
+    },
+    "patterns": [
+      {
+        "type": "late_push",
+        "reason": "После 75-й минуты хозяева резко увеличили давление: угловые, удары и опасные атаки идут серией."
+      },
+      {
+        "type": "pressure_no_goal",
+        "reason": "Несмотря на сильный отрезок, счет пока не изменился в пользу атакующей команды."
+      }
+    ]
+  }
+]
+

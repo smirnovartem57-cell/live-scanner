@@ -1,0 +1,18 @@
+{
+  "name": "Football Pattern Lab",
+  "short_name": "Live Scanner",
+  "description": "Закрытый PWA-сканер игровых паттернов в live-футболе.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#050b12",
+  "theme_color": "#050b12",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

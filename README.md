@@ -1,0 +1,141 @@
+# Football Pattern Lab / Live Scanner
+
+Закрытое PWA/веб-приложение для личного анализа live-статистики футбольных матчей.
+
+Приложение не принимает ставки, не дает букмекерские рекомендации и не содержит ссылок на внешние сервисы. Оно показывает нейтральные аналитические сигналы: давление, темп, активность и найденные игровые паттерны.
+
+## Что реализовано в mock MVP
+
+- Экран `Лайв-сканер` с карточками live-матчей.
+- Внутренняя навигация: `Лайв`, `Сигналы`, `Паттерны`, `История`, `Статистика`, `Настройки`.
+- Темная premium sports analytics тема.
+- Mobile bottom navigation и desktop sidebar.
+- Расчет индекса давления.
+- Pattern engine для 6 MVP-паттернов:
+  - `Давят без гола`
+  - `Поздний гол`
+  - `Матч ожил`
+  - `Проигрывает, но давит`
+  - `Давление на угловой`
+  - `Пустое давление`
+- Защита от дублей по `matchId + patternId + teamSide + time bucket`.
+- История сигналов и простая статистика по паттернам.
+- UI-заглушка Telegram-уведомлений.
+- PWA manifest и service worker.
+
+## Как открыть
+
+Откройте файл:
+
+```text
+C:\ChatGPT\live-scanner\index.html
+```
+
+Проект сделан как статический SPA, поэтому для текущей версии сборка не нужна.
+
+Если нужен локальный сервер:
+
+```powershell
+cd "C:\ChatGPT\live-scanner"
+python -m http.server 4173
+```
+
+После этого откройте:
+
+```text
+http://localhost:4173
+```
+
+После отдельной публикации на GitHub Pages проект должен быть доступен на отдельном поддомене:
+
+```text
+https://live-scanner.smirart.ru/
+```
+
+## Где лежит логика
+
+Сейчас MVP собран без зависимостей, чтобы его можно было открыть сразу:
+
+```text
+index.html      оболочка приложения
+styles.css      темная тема, desktop и mobile layout
+app.js          mock data, pattern engine, экраны и настройки
+manifest.webmanifest
+sw.js
+icons/icon.svg
+```
+
+Внутри `app.js` есть отдельные логические блоки:
+
+- `calculatePressureScore(stats)`
+- `getSignalStrength(score)`
+- `evaluatePattern(match, snapshot, pattern, side)`
+- `evaluateAllMatches()`
+- mock-данные матчей, snapshot-ов, паттернов и истории
+
+## Формула индекса давления
+
+```text
+pressure_score =
+  dangerousAttacks * 0.8
++ shotsTotal * 3
++ shotsOnTarget * 6
++ corners * 4
++ xg * 15
+```
+
+Результат ограничивается диапазоном `0-100`.
+
+Градации:
+
+```text
+LOW: 0-49
+MED: 50-74
+HIGH: 75-100
+```
+
+## Как добавлять паттерны
+
+Добавьте новый объект в массив `getMockPatterns()` в `app.js`, затем добавьте проверку в `evaluatePattern()`.
+
+Минимальная структура:
+
+```js
+{
+  id: "new_pattern",
+  name: "Название",
+  description: "Описание",
+  enabled: true,
+  type: "new_pattern",
+  rules: []
+}
+```
+
+## Подготовка под реальный API
+
+В текущем MVP используется mock mode. При переходе к API стоит вынести слой данных в интерфейс:
+
+```ts
+interface FootballDataProvider {
+  getLiveMatches(): Promise<Match[]>;
+  getMatchStats(matchId: string): Promise<MatchStatsSnapshot>;
+  getMatchEvents?(matchId: string): Promise<any[]>;
+}
+```
+
+Планируемые реализации:
+
+```text
+MockFootballProvider
+RealFootballProvider
+```
+
+## Env на будущее
+
+```text
+VITE_DATA_MODE=mock
+VITE_FOOTBALL_API_PROVIDER=mock
+VITE_FOOTBALL_API_KEY=
+VITE_TELEGRAM_BOT_TOKEN=
+VITE_TELEGRAM_CHAT_ID=
+```
