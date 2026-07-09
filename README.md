@@ -15,12 +15,12 @@
 - Расчет индекса давления.
 - Pattern engine для 6 MVP-паттернов:
   - `Давят без гола`
-  - `Поздняя активность`
+  - `Поздний гол`
   - `Матч ожил`
   - `Проигрывает, но давит`
   - `Давление на угловой`
   - `Пустое давление`
-- Защита от дублей по `matchId + patternId + teamSide + time bucket`.
+- Защита от дублей по `matchId + patternId + teamSide` за последние 10 минут.
 - История сигналов, ручное закрытие Win/Lose, комментарии и статистика по паттернам.
 - Фильтры истории: `Все`, `Win`, `Lose`, `В процессе`.
 - Периоды статистики: `Сегодня`, `7 дней`, `Всё время`.
@@ -79,6 +79,8 @@ services/football-provider.js
                 слой данных, который позже заменяется на реальный API
 services/pattern-engine.js
                 pressure score, оценка матчей и создание сигналов
+src/services/patternEngine/
+                TypeScript-структура Pattern Engine для будущей сборки
 services/telegram-service.js
                 Telegram-заглушка без внешней отправки
 manifest.webmanifest
@@ -94,6 +96,16 @@ Pattern Engine вынесен в `services/pattern-engine.js`:
 - `evaluateAllMatches()`
 - `evaluateMatch(match, snapshot, patterns)`
 - `evaluatePattern(match, snapshot, pattern, side)`
+
+Для будущего перехода на TypeScript добавлена структура:
+
+```text
+src/services/patternEngine/calculatePressureScore.ts
+src/services/patternEngine/getSignalStrength.ts
+src/services/patternEngine/evaluatePattern.ts
+src/services/patternEngine/evaluateMatch.ts
+src/services/patternEngine/getPatternStatus.ts
+```
 
 Внутри `app.js` остались экранная логика, журнал событий и расчёт Win/Lose.
 

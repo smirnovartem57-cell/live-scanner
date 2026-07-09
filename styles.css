@@ -469,6 +469,29 @@ h2 {
   font-weight: 700;
 }
 
+.pattern-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.pattern-badges span {
+  border: 1px solid rgba(53, 240, 108, 0.2);
+  border-radius: 999px;
+  background: rgba(53, 240, 108, 0.08);
+  color: var(--green);
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.pattern-badges .is-warning {
+  border-color: rgba(255, 192, 87, 0.24);
+  background: rgba(255, 192, 87, 0.08);
+  color: var(--yellow);
+}
+
 .signal-score {
   display: grid;
   justify-items: end;
@@ -949,13 +972,13 @@ h2 {
 }
 
 .history-table {
-  min-width: 1120px;
+  min-width: 1280px;
 }
 
 .table-head,
 .table-row {
   display: grid;
-  grid-template-columns: 1.35fr 1fr 0.45fr 0.5fr 0.85fr minmax(180px, 1fr) 118px;
+  grid-template-columns: 1.35fr 0.95fr 0.75fr 0.42fr 0.45fr 0.55fr 0.85fr minmax(180px, 1fr) 118px;
   gap: 12px;
   padding: 12px 0;
 }

@@ -3,7 +3,7 @@ function team(attacks, dangerousAttacks, shotsTotal, shotsOnTarget, corners, pos
 }
 
 function snapshot(id, matchId, minute, home, away, recentHome, previousHome) {
-  return {
+  const result = {
     id,
     matchId,
     minute,
@@ -35,6 +35,11 @@ function snapshot(id, matchId, minute, home, away, recentHome, previousHome) {
       }
     }
   };
+
+  result.last10 = result.recent;
+  result.previous10 = result.previous;
+
+  return result;
 }
 
 function history(match, league, minute, patternId, patternType, score, status, result) {
@@ -79,7 +84,7 @@ const mockPatterns = [
   },
   {
     id: "late_goal",
-    name: "Поздняя активность",
+    name: "Поздний гол",
     description: "После 65-й минуты давление растет при небольшой разнице в счете.",
     enabled: true,
     type: "late_goal",
@@ -157,7 +162,7 @@ const mockSnapshots = [
   snapshot("s2", "m2", 73, team(61, 29, 9, 3, 4, 49, 0.98), team(67, 36, 11, 5, 6, 51, 1.21), team(12, 10, 3, 1, 2, 48, 0.32), team(7, 5, 1, 1, 1, 52, 0.14)),
   snapshot("s3", "m3", 45, team(31, 11, 3, 1, 1, 45, 0.22), team(48, 26, 8, 4, 5, 55, 0.91), team(6, 3, 1, 0, 0, 45, 0.05), team(8, 5, 2, 1, 1, 55, 0.18)),
   snapshot("s4", "m4", 82, team(86, 51, 13, 5, 10, 57, 1.58), team(52, 21, 7, 3, 3, 43, 0.77), team(24, 18, 5, 2, 4, 59, 0.58), team(9, 4, 1, 0, 1, 41, 0.11)),
-  snapshot("s5", "m5", 68, team(74, 52, 10, 3, 5, 54, 1.06), team(34, 17, 5, 1, 2, 46, 0.36), team(17, 14, 3, 1, 2, 54, 0.3), team(8, 5, 1, 0, 1, 46, 0.09))
+  snapshot("s5", "m5", 68, team(74, 52, 10, 1, 2, 54, 1.06), team(34, 17, 5, 1, 2, 46, 0.36), team(17, 14, 3, 1, 1, 54, 0.3), team(8, 5, 1, 0, 1, 46, 0.09))
 ];
 
 const mockHistory = [
@@ -221,7 +226,7 @@ const mockTeamProfiles = [
     secondHalfAverages: { dangerousAttacks: 22, shotsTotal: 6.4, shotsOnTarget: 2.2, corners: 2.7, pressureScore: 36 },
     characteristicPatterns: [
       teamPattern("valencia", "empty_pressure", "Пустое давление", 9, 1, 2, 67, 58, "weak"),
-      teamPattern("valencia", "late_goal", "Поздняя активность", 7, 2, 3, 74, 64, "normal")
+      teamPattern("valencia", "late_goal", "Поздний гол", 7, 2, 3, 74, 64, "normal")
     ],
     importantMatches: [
       { matchId: "tm-val-1", date: "2026-07-05", opponent: "Barcelona", score: "0:2", tournament: "Spain LaLiga", importanceLevel: "high", importanceReason: "top_opponent", teamStats: team(46, 21, 7, 2, 3, 38, 0.62), triggeredPatterns: ["Пустое давление"] }
@@ -256,8 +261,8 @@ const mockTeamProfiles = [
     averages: { matchesCount: 10, wins: 4, draws: 4, losses: 2, goalsFor: 1.3, goalsAgainst: 1.0, shotsTotal: 11.8, shotsOnTarget: 4.1, corners: 4.9, attacks: 68, dangerousAttacks: 42, pressureScore: 65 },
     firstHalfAverages: { dangerousAttacks: 18, shotsTotal: 4.7, shotsOnTarget: 1.6, corners: 2, pressureScore: 31 },
     secondHalfAverages: { dangerousAttacks: 24, shotsTotal: 7.1, shotsOnTarget: 2.5, corners: 2.9, pressureScore: 40 },
-    characteristicPatterns: [teamPattern("lazio", "late_goal", "Поздняя активность", 11, 3, 5, 76, 66, "normal")],
-    importantMatches: [{ matchId: "tm-laz-1", date: "2026-07-04", opponent: "Atalanta", score: "2:2", tournament: "Italy Serie A", importanceLevel: "high", importanceReason: "top_opponent", teamStats: team(69, 44, 12, 5, 5, 47, 1.12), triggeredPatterns: ["Поздняя активность"] }],
+    characteristicPatterns: [teamPattern("lazio", "late_goal", "Поздний гол", 11, 3, 5, 76, 66, "normal")],
+    importantMatches: [{ matchId: "tm-laz-1", date: "2026-07-04", opponent: "Atalanta", score: "2:2", tournament: "Italy Serie A", importanceLevel: "high", importanceReason: "top_opponent", teamStats: team(69, 44, 12, 5, 5, 47, 1.12), triggeredPatterns: ["Поздний гол"] }],
     updatedAt: "2026-07-09T10:00:00.000Z"
   },
   {

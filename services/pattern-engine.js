@@ -1,15 +1,16 @@
 const SIGNAL_BUCKET_MINUTES = 10;
 
 function calculatePressureScore(stats) {
-  const xgScore = typeof stats.xg === "number" ? stats.xg * 15 : 0;
+  const xg = typeof stats.xG === "number" ? stats.xG : stats.xg;
+  const xgScore = typeof xg === "number" ? xg * 15 : 0;
   const score =
-    stats.dangerousAttacks * 0.8 +
-    stats.shotsTotal * 3 +
-    stats.shotsOnTarget * 6 +
-    stats.corners * 4 +
+    (stats.dangerousAttacks || 0) * 0.8 +
+    (stats.shotsTotal || 0) * 3 +
+    (stats.shotsOnTarget || 0) * 6 +
+    (stats.corners || 0) * 4 +
     xgScore;
 
-  return Math.min(100, Math.round(score));
+  return Math.max(0, Math.min(100, Math.round(score)));
 }
 
 function getSignalStrength(score) {
@@ -22,13 +23,13 @@ function getPatternStatus(patternType) {
   return patternType === "empty_pressure" ? "new" : "in_progress";
 }
 
-function evaluateMatch(match, snapshot, patterns) {
+function evaluateMatch(match, snapshot, patterns, existingSignals = []) {
   const signals = [];
 
   patterns.filter((pattern) => pattern.enabled).forEach((pattern) => {
     ["home", "away"].forEach((side) => {
       const signal = evaluatePattern(match, snapshot, pattern, side);
-      if (signal && !hasDuplicateSignal(signals, signal)) {
+      if (signal && !hasDuplicateSignal([...signals, ...existingSignals], signal)) {
         signals.push(signal);
       }
     });
@@ -37,14 +38,14 @@ function evaluateMatch(match, snapshot, patterns) {
   return signals;
 }
 
-function evaluateAllMatches(matches, snapshots, patterns) {
+function evaluateAllMatches(matches, snapshots, patterns, existingSignals = []) {
   const signals = [];
 
   matches.filter((match) => match.status === "live" || match.status === "halftime").forEach((match) => {
     const snapshot = snapshots.find((item) => item.matchId === match.id);
     if (!snapshot) return;
-    evaluateMatch(match, snapshot, patterns).forEach((signal) => {
-      if (!hasDuplicateSignal(signals, signal)) {
+    evaluateMatch(match, snapshot, patterns, [...existingSignals, ...signals]).forEach((signal) => {
+      if (!hasDuplicateSignal([...existingSignals, ...signals], signal)) {
         signals.push(signal);
       }
     });
@@ -59,8 +60,8 @@ function evaluatePattern(match, snapshot, pattern, side) {
   const pressureScore = calculatePressureScore(team);
   const scoreDifference = Math.abs(match.scoreHome - match.scoreAway);
   const teamIsLosing = side === "home" ? match.scoreHome < match.scoreAway : match.scoreAway < match.scoreHome;
-  const recent = snapshot.recent?.[side] || team;
-  const previous = snapshot.previous?.[side] || team;
+  const recent = snapshot.last10?.[side] || snapshot.recent?.[side] || team;
+  const previous = snapshot.previous10?.[side] || snapshot.previous?.[side] || team;
 
   const checks = {
     pressure_without_goal:
@@ -117,6 +118,7 @@ function evaluatePattern(match, snapshot, pattern, side) {
     pressureScore,
     strength: getSignalStrength(pressureScore),
     status: getPatternStatus(pattern.type),
+    signalKind: pattern.type === "empty_pressure" ? "warning" : "signal",
     statsAtSignal: { ...team },
     explanation: buildSignalExplanation(pattern.type, match, team, opponent, side, pressureScore, recent, previous),
     createdAt: new Date().toISOString(),
@@ -129,7 +131,7 @@ function hasDuplicateSignal(signals, candidate) {
     signal.matchId === candidate.matchId &&
     signal.patternId === candidate.patternId &&
     signal.teamSide === candidate.teamSide &&
-    Math.floor(signal.minute / SIGNAL_BUCKET_MINUTES) === Math.floor(candidate.minute / SIGNAL_BUCKET_MINUTES)
+    Math.abs(Number(signal.minute || 0) - Number(candidate.minute || 0)) < SIGNAL_BUCKET_MINUTES
   );
 }
 

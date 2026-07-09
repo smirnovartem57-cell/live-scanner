@@ -42,7 +42,7 @@ const profileButton = document.querySelector("#profileButton");
 
 const patternTypeLabels = {
   pressure_without_goal: "Давят без гола",
-  late_goal: "Поздняя активность",
+  late_goal: "Поздний гол",
   favorite_losing_but_pressing: "Проигрывает, но давит",
   match_woke_up: "Матч ожил",
   corner_pressure: "Давление на угловой",
@@ -402,14 +402,16 @@ function renderHistory() {
       ${renderHistoryControls(filteredStats)}
       <div class="history-table">
         <div class="table-head">
-          <span>Матч</span><span>Паттерн</span><span>Минута</span><span>Счет</span><span>Статус</span><span>Комментарий</span><span>Действия</span>
+          <span>Матч</span><span>Паттерн</span><span>Команда</span><span>Минута</span><span>Счет</span><span>Pressure</span><span>Статус</span><span>Комментарий</span><span>Действия</span>
         </div>
         ${filteredHistory.map((item) => `
           <div class="table-row">
             <span><strong>${item.match}</strong><small>${item.league}</small></span>
             <span>${patternTypeLabels[item.patternType]}</span>
+            <span>${getEventTeamName(item)}</span>
             <span>${item.minute}'</span>
             <span>${item.score}</span>
+            <span>${item.pressureScore || "—"}</span>
             <span><b class="status-dot ${item.status}"></b>${statusLabels[item.status]}<small>${formatResult(item)}</small></span>
             <span>
               <textarea class="comment-field" data-comment-event="${item.id}" placeholder="Комментарий">${escapeHtml(item.comment || "")}</textarea>
@@ -678,6 +680,16 @@ function renderIdeaCard(item) {
   `;
 }
 
+function renderPatternBadges(signals) {
+  return `
+    <div class="pattern-badges">
+      ${signals.map((signal) => `
+        <span class="${signal.signalKind === "warning" ? "is-warning" : ""}">${patternTypeLabels[signal.patternType]}</span>
+      `).join("")}
+    </div>
+  `;
+}
+
 function renderSettings() {
   const telegramStatus = state.settings.lastTelegramTest
     ? `<p class="telegram-status">${escapeHtml(state.settings.lastTelegramTest.message)}<span>${escapeHtml(state.settings.lastTelegramTest.channel)} · ${formatDateTime(state.settings.lastTelegramTest.createdAt)}</span></p>`
@@ -801,6 +813,7 @@ function renderMatchCard(match) {
           <small class="signal-caption">${mainSignal ? "Обнаружен паттерн" : "Наблюдение"}</small>
           <p>${mainSignal ? patternTypeLabels[mainSignal.patternType] : "Паттерн не обнаружен"}</p>
           <span>${mainSignal ? mainSignal.explanation : "Идет наблюдение"}</span>
+          ${signals.length > 1 ? renderPatternBadges(signals) : ""}
         </div>
         <div class="signal-score">
           <span class="strength ${mainSignal ? mainSignal.strength.toLowerCase() : patternEngine.getSignalStrength(pressure).toLowerCase()}">${mainSignal ? mainSignal.strength : patternEngine.getSignalStrength(pressure)}</span>
@@ -1348,7 +1361,7 @@ function writePatternEvents() {
 function syncActiveSignalsToJournal() {
   let changed = false;
   state.signals.forEach((signal) => {
-    if (state.history.some((event) => event.id === signal.id)) {
+    if (hasRecentJournalSignal(signal)) {
       return;
     }
     state.history.unshift(signalToJournalEvent(signal));
@@ -1359,6 +1372,15 @@ function syncActiveSignalsToJournal() {
     state.history = state.history.map(normalizePatternEvent).sort(sortEventsByTime);
     writePatternEvents();
   }
+}
+
+function hasRecentJournalSignal(signal) {
+  return state.history.some((event) =>
+    event.matchId === signal.matchId &&
+    event.patternId === signal.patternId &&
+    event.teamSide === signal.teamSide &&
+    Math.abs(Number(event.minute || 0) - Number(signal.minute || 0)) < 10
+  );
 }
 
 function signalToJournalEvent(signal) {
@@ -1388,6 +1410,7 @@ function signalToJournalEvent(signal) {
     comment: "",
     pressureScore: signal.pressureScore,
     strength: signal.strength,
+    signalKind: signal.signalKind || "signal",
     statsAtSignal: signal.statsAtSignal || getSignalStats(signal),
     explanation: signal.explanation,
     createdAt: signal.createdAt,
@@ -1418,6 +1441,7 @@ function normalizePatternEvent(event) {
     comment: event.comment || "",
     pressureScore: event.pressureScore || null,
     strength: event.strength || null,
+    signalKind: event.signalKind || (event.patternType === "empty_pressure" ? "warning" : "signal"),
     statsAtSignal: event.statsAtSignal || null,
     explanation: event.explanation || "Событие добавлено в журнал до появления подробных объяснений.",
     createdAt: event.createdAt || event.occurredAt || state.serviceMeta.startedAt,
