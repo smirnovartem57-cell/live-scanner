@@ -24,6 +24,7 @@ const state = {
   snapshots: [],
   signals: [],
   history: [],
+  selectedTeam: null,
   serviceMeta: readServiceMeta()
 };
 
@@ -152,6 +153,24 @@ function bindPageEvents() {
     });
   });
 
+  root.querySelectorAll("[data-team-profile]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedTeam = {
+        matchId: button.dataset.matchId,
+        side: button.dataset.teamSide,
+        name: button.dataset.teamProfile
+      };
+      render();
+    });
+  });
+
+  root.querySelectorAll("[data-close-team-profile]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedTeam = null;
+      render();
+    });
+  });
+
   root.querySelectorAll("[data-pattern-id]").forEach((button) => {
     button.addEventListener("click", () => {
       state.activePatternId = button.dataset.patternId;
@@ -221,6 +240,7 @@ function renderLive() {
 
     ${renderSummary(stats)}
     ${renderFilterChips()}
+    ${state.selectedTeam ? renderTeamProfile(state.selectedTeam) : ""}
 
     <section class="live-grid">
       <div class="match-feed">
@@ -273,7 +293,11 @@ function renderPatterns() {
   const activePattern = state.patterns.find((pattern) => pattern.id === state.activePatternId) || state.patterns[0];
   const patternSignals = state.signals.filter((signal) => signal.patternId === activePattern.id);
   const history = state.history.filter((item) => item.patternId === activePattern.id);
-  const successRate = history.length ? Math.round((history.filter((item) => item.status === "success").length / history.length) * 100) : 0;
+  const win = history.filter((item) => getOutcome(item) === "win").length;
+  const lose = history.filter((item) => getOutcome(item) === "lose").length;
+  const closed = win + lose;
+  const successRate = closed ? Math.round((win / closed) * 100) : 0;
+  const quality = getPatternQuality({ closed, rate: successRate, open: history.filter((item) => getOutcome(item) === "open").length });
 
   return `
     <section class="pattern-layout">
@@ -317,6 +341,10 @@ function renderPatterns() {
           ${metric("Гол до 10 мин", `${history.filter((item) => item.result.goalWithin10).length}`)}
           ${metric("Гол до 15 мин", `${history.filter((item) => item.result.goalWithin15).length}`)}
           ${metric("Эффективность", `${successRate}%`)}
+        </div>
+        <div class="quality-note ${quality.level}">
+          <strong>${quality.label}</strong>
+          <span>${quality.reason}</span>
         </div>
         <div class="sparkline" aria-hidden="true">
           <span style="height: 28%"></span><span style="height: 44%"></span><span style="height: 52%"></span><span style="height: 61%"></span><span style="height: 48%"></span><span style="height: 72%"></span>
@@ -437,7 +465,8 @@ function renderStats() {
     const open = history.filter((item) => getOutcome(item) === "open").length;
     const closed = win + lose;
     const rate = closed ? Math.round((win / closed) * 100) : 0;
-    return { pattern, history, active, win, lose, open, rate };
+    const quality = getPatternQuality({ closed, rate, open });
+    return { pattern, history, active, win, lose, open, rate, quality };
   });
 
   return `
@@ -459,10 +488,11 @@ function renderStats() {
           </div>
         </div>
         ${patternRows.map((row) => `
-          <div class="stat-line">
+          <div class="stat-line ${row.quality.level}">
             <div>
-              <strong>${row.pattern.name}</strong>
+              <strong>${row.pattern.name} <span class="quality-badge ${row.quality.level}">${row.quality.label}</span></strong>
               <span>${row.history.length} событий · win ${row.win} · lose ${row.lose} · в процессе ${row.open}</span>
+              <small>${row.quality.reason}</small>
             </div>
             <div class="progress"><span style="width: ${row.rate}%"></span></div>
             <b>${row.rate}%</b>
@@ -520,7 +550,19 @@ function renderSettings() {
         <pre class="code-block">FootballDataProvider
   getLiveMatches()
   getMatchStats(matchId)
-  getMatchEvents(matchId)</pre>
+  getMatchEvents(matchId)
+  getTeamProfile(teamId)</pre>
+        <p class="muted">Интерфейс оставлен независимым от поставщика данных, чтобы позже заменить demo-данные на реальный football API.</p>
+      </div>
+
+      <div class="panel">
+        <h2>Профиль пользователя</h2>
+        <div class="readiness-list">
+          <span><b>Готово</b> локальная история сигналов</span>
+          <span><b>Готово</b> экспорт журнала</span>
+          <span><b>Дальше</b> вход и личный профиль</span>
+          <span><b>Дальше</b> сохранение настроек в облаке</span>
+        </div>
       </div>
     </section>
   `;
@@ -571,9 +613,9 @@ function renderMatchCard(match) {
         <span>${match.league}</span>
       </div>
       <div class="scoreboard">
-        <strong>${match.homeTeam}</strong>
+        <button class="team-link" type="button" data-team-profile="${escapeHtml(match.homeTeam)}" data-match-id="${match.id}" data-team-side="home">${match.homeTeam}</button>
         <b>${match.scoreHome}:${match.scoreAway}</b>
-        <strong>${match.awayTeam}</strong>
+        <button class="team-link" type="button" data-team-profile="${escapeHtml(match.awayTeam)}" data-match-id="${match.id}" data-team-side="away">${match.awayTeam}</button>
       </div>
       <div class="pattern-callout">
         <div>
@@ -594,6 +636,48 @@ function renderMatchCard(match) {
         <span class="strength ${mainSignal ? mainSignal.strength.toLowerCase() : "low"}">${mainSignal ? strengthLabels[mainSignal.strength] : strengthLabels.LOW}</span>
       </div>
     </article>
+  `;
+}
+
+function renderTeamProfile(selection) {
+  const profile = getTeamProfile(selection);
+  if (!profile) {
+    return "";
+  }
+
+  return `
+    <section class="team-profile-panel">
+      <div class="team-profile-header">
+        <div>
+          <p class="eyebrow">Профиль команды</p>
+          <h2>${profile.name}</h2>
+          <span>${profile.match.homeTeam} - ${profile.match.awayTeam} · ${profile.match.league}</span>
+        </div>
+        <button class="mini-action" type="button" data-close-team-profile>Закрыть</button>
+      </div>
+      <div class="team-profile-grid">
+        ${metric("Pressure score", profile.pressureScore)}
+        ${metric("Опасные атаки", profile.stats.dangerousAttacks)}
+        ${metric("Удары", profile.stats.shotsTotal)}
+        ${metric("xG", profile.stats.xg.toFixed(2))}
+      </div>
+      <div class="team-profile-body">
+        <article>
+          <h3>Текущий контекст</h3>
+          <p>${profile.summary}</p>
+        </article>
+        <article>
+          <h3>Сигналы команды</h3>
+          ${profile.signals.length ? profile.signals.map((signal) => `
+            <span class="profile-signal">${patternTypeLabels[signal.patternType]} · ${signal.minute}' · ${strengthLabels[signal.strength]}</span>
+          `).join("") : "<p class=\"muted\">Активных сигналов по команде нет.</p>"}
+        </article>
+        <article>
+          <h3>История</h3>
+          <p>${profile.history.total} событий · Win ${profile.history.win} · Lose ${profile.history.lose} · в процессе ${profile.history.open}</p>
+        </article>
+      </div>
+    </section>
   `;
 }
 
@@ -674,6 +758,69 @@ function getDashboardStats() {
     activeSignals: state.signals.length,
     highSignals: state.signals.filter((signal) => signal.strength === "HIGH").length,
     averagePressure
+  };
+}
+
+function getTeamProfile(selection) {
+  const match = state.matches.find((item) => item.id === selection.matchId);
+  const snapshot = match ? getSnapshot(match.id) : null;
+  if (!match || !snapshot) return null;
+
+  const side = selection.side === "away" ? "away" : "home";
+  const opponentSide = side === "home" ? "away" : "home";
+  const teamName = side === "home" ? match.homeTeam : match.awayTeam;
+  const opponentName = side === "home" ? match.awayTeam : match.homeTeam;
+  const stats = snapshot[side];
+  const opponent = snapshot[opponentSide];
+  const pressureScore = calculatePressureScore(stats);
+  const signals = state.signals.filter((signal) => signal.matchId === match.id && signal.teamSide === side);
+  const teamEvents = state.history.filter((event) => event.match?.includes(teamName));
+  const history = getJournalStats(teamEvents);
+  const pressureGap = pressureScore - calculatePressureScore(opponent);
+  const trend = snapshot.recent?.[side]?.dangerousAttacks >= snapshot.previous?.[side]?.dangerousAttacks
+    ? "темп растет"
+    : "темп стабильный или ниже";
+
+  return {
+    name: teamName,
+    match,
+    stats,
+    signals,
+    history,
+    pressureScore,
+    summary: `${teamName} против ${opponentName}: ${stats.dangerousAttacks} опасных атак, ${stats.shotsTotal} ударов, ${stats.shotsOnTarget} в створ, ${stats.corners} угловых. Разница pressure score с соперником: ${pressureGap > 0 ? "+" : ""}${pressureGap}, ${trend}.`
+  };
+}
+
+function getPatternQuality({ closed, rate, open }) {
+  if (closed < 3) {
+    return {
+      level: "sample",
+      label: "Мало данных",
+      reason: `Закрыто ${closed} событий. Нужна история, чтобы честно оценить паттерн.`
+    };
+  }
+
+  if (rate < 40) {
+    return {
+      level: "weak",
+      label: "Слабый",
+      reason: `Win rate ${rate}%. Паттерн стоит пересмотреть или ужесточить условия.`
+    };
+  }
+
+  if (rate < 58 || open > closed) {
+    return {
+      level: "watch",
+      label: "Наблюдать",
+      reason: `Win rate ${rate}%, открытых событий ${open}. Паттерн требует наблюдения.`
+    };
+  }
+
+  return {
+    level: "strong",
+    label: "Стабильный",
+    reason: `Win rate ${rate}%. Паттерн пока выглядит устойчиво.`
   };
 }
 

@@ -414,6 +414,22 @@ h2 {
   line-height: 1.15;
 }
 
+.team-link {
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-main);
+  cursor: pointer;
+  padding: 0;
+  text-align: inherit;
+  font-size: 18px;
+  font-weight: 850;
+}
+
+.team-link:hover {
+  color: var(--green);
+}
+
 .scoreboard b {
   min-width: 70px;
   color: var(--text-main);
@@ -526,6 +542,74 @@ h2 {
 
 .panel {
   padding: 20px;
+}
+
+.team-profile-panel {
+  margin-bottom: 16px;
+  border: 1px solid rgba(68, 230, 132, 0.28);
+  border-radius: 20px;
+  background: rgba(10, 17, 25, 0.92);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+.team-profile-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.team-profile-header span {
+  display: block;
+  margin-top: 5px;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.team-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.team-profile-grid .metric-card {
+  min-height: 82px;
+  box-shadow: none;
+}
+
+.team-profile-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr) minmax(200px, 0.65fr);
+  gap: 12px;
+}
+
+.team-profile-body article {
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 14px;
+}
+
+.team-profile-body h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.team-profile-body p {
+  margin-bottom: 0;
+  color: var(--text-muted);
+}
+
+.profile-signal {
+  display: block;
+  border-top: 1px solid var(--border-soft);
+  padding: 8px 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 750;
 }
 
 .panel-heading,
@@ -811,6 +895,65 @@ h2 {
   border-top: 1px solid var(--border-soft);
 }
 
+.stat-line small {
+  display: block;
+  margin-top: 5px;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.quality-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  margin-left: 6px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 900;
+  vertical-align: middle;
+}
+
+.quality-badge.strong,
+.quality-note.strong {
+  color: var(--green);
+}
+
+.quality-badge.watch,
+.quality-note.watch {
+  color: var(--yellow);
+}
+
+.quality-badge.weak,
+.quality-note.weak {
+  color: var(--red);
+}
+
+.quality-badge.sample,
+.quality-note.sample {
+  color: var(--blue);
+}
+
+.quality-note {
+  margin-top: 14px;
+  border: 1px solid currentColor;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+}
+
+.quality-note strong,
+.quality-note span {
+  display: block;
+}
+
+.quality-note span {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
 .progress {
   height: 9px;
   border-radius: 999px;
@@ -836,6 +979,24 @@ h2 {
   border-top: 1px solid var(--border-soft);
   padding: 11px 0;
   color: var(--text-muted);
+}
+
+.readiness-list {
+  display: grid;
+  gap: 10px;
+}
+
+.readiness-list span {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--border-soft);
+  padding-top: 10px;
+  color: var(--text-muted);
+}
+
+.readiness-list b {
+  color: var(--green);
 }
 
 .telegram-card {
@@ -936,6 +1097,11 @@ input[type="text"] {
     position: static;
   }
 
+  .team-profile-body,
+  .team-profile-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .history-table {
     overflow-x: auto;
   }
@@ -986,8 +1152,14 @@ input[type="text"] {
     flex-direction: column;
   }
 
-  .scoreboard b {
+  .scoreboard b,
+  .team-link {
     text-align: left;
+  }
+
+  .team-profile-body,
+  .team-profile-grid {
+    grid-template-columns: 1fr;
   }
 
   .stat-grid.compact {
