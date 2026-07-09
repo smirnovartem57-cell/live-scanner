@@ -1,19 +1,19 @@
 :root {
   color-scheme: dark;
-  --bg-main: #05080d;
-  --bg-panel: #0a1119;
-  --bg-card: rgba(12, 20, 29, 0.88);
-  --bg-card-soft: rgba(18, 29, 40, 0.72);
-  --border-soft: rgba(220, 238, 255, 0.1);
-  --border-green: rgba(68, 230, 132, 0.46);
-  --border-blue: rgba(91, 166, 255, 0.38);
-  --text-main: #f6f8fb;
-  --text-muted: #9aa9bb;
-  --text-soft: #6d7d8f;
-  --green: #44e684;
-  --green-soft: #25b968;
-  --blue: #5ba6ff;
-  --cyan: #56d6ff;
+  --bg-main: #050b12;
+  --bg-panel: #0b1620;
+  --bg-card: rgba(14, 27, 40, 0.86);
+  --bg-card-soft: rgba(18, 34, 48, 0.72);
+  --border-soft: rgba(255, 255, 255, 0.08);
+  --border-green: rgba(42, 255, 105, 0.45);
+  --border-blue: rgba(48, 167, 255, 0.45);
+  --text-main: #f4f7fb;
+  --text-muted: #93a4b7;
+  --text-soft: #637386;
+  --green: #35f06c;
+  --green-soft: #1fbf57;
+  --blue: #2ea8ff;
+  --cyan: #31d7ff;
   --purple: #9b5cff;
   --orange: #ff8a3d;
   --red: #ff4d4f;
@@ -453,11 +453,27 @@ h2 {
   font-weight: 800;
 }
 
+.signal-caption {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--cyan);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .pattern-callout span,
 .stat-metric span {
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 700;
+}
+
+.signal-score {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  flex: 0 0 auto;
 }
 
 .pressure-badge {
@@ -531,6 +547,22 @@ h2 {
   margin-top: 14px;
   color: var(--text-muted);
   font-size: 13px;
+}
+
+.trend-indicator {
+  font-weight: 800;
+}
+
+.trend-indicator.up {
+  color: var(--green);
+}
+
+.trend-indicator.down {
+  color: var(--orange);
+}
+
+.trend-indicator.flat {
+  color: var(--blue);
 }
 
 .strength {

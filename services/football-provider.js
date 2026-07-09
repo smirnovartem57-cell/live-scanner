@@ -21,8 +21,18 @@ function createMockFootballProvider() {
     getPatterns() {
       return cloneData(data.patterns);
     },
+    getSeedSignals() {
+      return cloneData(data.signals || []);
+    },
     getSeedHistory() {
       return cloneData(data.history);
+    },
+    getTeamProfile(teamId) {
+      return cloneData((data.teamProfiles || []).find((team) => team.id === teamId) || null);
+    },
+    getTeamRecentMatches(teamId) {
+      const profile = (data.teamProfiles || []).find((team) => team.id === teamId);
+      return cloneData(profile?.recentMatches || []);
     }
   };
 }
@@ -30,4 +40,3 @@ function createMockFootballProvider() {
 window.FootballDataProvider = {
   createMockFootballProvider
 };
-

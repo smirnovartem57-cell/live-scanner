@@ -157,6 +157,7 @@ function bindPageEvents() {
     button.addEventListener("click", () => {
       state.selectedTeam = {
         matchId: button.dataset.matchId,
+        teamId: button.dataset.teamId,
         side: button.dataset.teamSide,
         name: button.dataset.teamProfile
       };
@@ -585,7 +586,10 @@ function renderFilterChips() {
     ["scoreless", "0:0"],
     ["late", "60+"],
     ["top", "Топ лиги"],
-    ["mine", "Мои"]
+    ["mine", "Мои"],
+    ["HIGH", "HIGH"],
+    ["MED", "MED"],
+    ["LOW", "LOW"]
   ];
 
   return `
@@ -613,16 +617,20 @@ function renderMatchCard(match) {
         <span>${match.league}</span>
       </div>
       <div class="scoreboard">
-        <button class="team-link" type="button" data-team-profile="${escapeHtml(match.homeTeam)}" data-match-id="${match.id}" data-team-side="home">${match.homeTeam}</button>
+        <button class="team-link" type="button" data-team-profile="${escapeHtml(match.homeTeam)}" data-team-id="${match.homeTeamId || ""}" data-match-id="${match.id}" data-team-side="home">${match.homeTeam}</button>
         <b>${match.scoreHome}:${match.scoreAway}</b>
-        <button class="team-link" type="button" data-team-profile="${escapeHtml(match.awayTeam)}" data-match-id="${match.id}" data-team-side="away">${match.awayTeam}</button>
+        <button class="team-link" type="button" data-team-profile="${escapeHtml(match.awayTeam)}" data-team-id="${match.awayTeamId || ""}" data-match-id="${match.id}" data-team-side="away">${match.awayTeam}</button>
       </div>
       <div class="pattern-callout">
         <div>
+          <small class="signal-caption">${mainSignal ? "Обнаружен паттерн" : "Наблюдение"}</small>
           <p>${mainSignal ? patternTypeLabels[mainSignal.patternType] : "Паттерн не обнаружен"}</p>
           <span>${mainSignal ? mainSignal.explanation : "Идет наблюдение"}</span>
         </div>
-        <span class="pressure-badge ${getSignalStrength(pressure).toLowerCase()}">${pressure}</span>
+        <div class="signal-score">
+          <span class="strength ${mainSignal ? mainSignal.strength.toLowerCase() : getSignalStrength(pressure).toLowerCase()}">${mainSignal ? mainSignal.strength : getSignalStrength(pressure)}</span>
+          <span class="pressure-badge ${getSignalStrength(pressure).toLowerCase()}">${pressure}</span>
+        </div>
       </div>
       <div class="stat-grid compact">
         ${statMetric("Опасные", snapshot.home.dangerousAttacks, snapshot.away.dangerousAttacks)}
@@ -632,7 +640,7 @@ function renderMatchCard(match) {
         ${statMetric("xG", snapshot.home.xg.toFixed(2), snapshot.away.xg.toFixed(2))}
       </div>
       <div class="trend-row">
-        <span>Тренд: ${snapshot.recent.home.dangerousAttacks >= snapshot.previous.home.dangerousAttacks ? "хозяева добавляют" : "темп ниже"}</span>
+        <span class="trend-indicator ${getTrendDirection(snapshot.recent.home, snapshot.previous.home)}">Тренд: ${formatTrend(snapshot.recent.home, snapshot.previous.home)}</span>
         <span class="strength ${mainSignal ? mainSignal.strength.toLowerCase() : "low"}">${mainSignal ? strengthLabels[mainSignal.strength] : strengthLabels.LOW}</span>
       </div>
     </article>
@@ -732,6 +740,20 @@ function statMetric(label, home, away) {
   `;
 }
 
+function getTrendDirection(recent, previous) {
+  if (!recent || !previous) return "flat";
+  if (recent.dangerousAttacks > previous.dangerousAttacks * 1.25) return "up";
+  if (recent.dangerousAttacks < previous.dangerousAttacks * 0.85) return "down";
+  return "flat";
+}
+
+function formatTrend(recent, previous) {
+  const direction = getTrendDirection(recent, previous);
+  const arrow = direction === "up" ? "↑" : direction === "down" ? "↓" : "→";
+  const label = direction === "up" ? "темп растет" : direction === "down" ? "темп снижается" : "темп ровный";
+  return `${arrow} ${label}`;
+}
+
 function renderEmpty(text) {
   return `<div class="empty-state">${text}</div>`;
 }
@@ -742,6 +764,9 @@ function getFilteredMatches() {
     if (state.activeFilter === "late") return match.minute >= 60;
     if (state.activeFilter === "top") return match.isTopLeague;
     if (state.activeFilter === "mine") return state.settings.favoriteLeagues.includes(match.league);
+    if (["HIGH", "MED", "LOW"].includes(state.activeFilter)) {
+      return state.signals.some((signal) => signal.matchId === match.id && signal.strength === state.activeFilter);
+    }
     return true;
   });
 }
@@ -770,6 +795,8 @@ function getTeamProfile(selection) {
   const opponentSide = side === "home" ? "away" : "home";
   const teamName = side === "home" ? match.homeTeam : match.awayTeam;
   const opponentName = side === "home" ? match.awayTeam : match.homeTeam;
+  const teamId = selection.teamId || (side === "home" ? match.homeTeamId : match.awayTeamId);
+  const providerProfile = footballProvider.getTeamProfile?.(teamId);
   const stats = snapshot[side];
   const opponent = snapshot[opponentSide];
   const pressureScore = calculatePressureScore(stats);
@@ -782,6 +809,8 @@ function getTeamProfile(selection) {
     : "темп стабильный или ниже";
 
   return {
+    ...(providerProfile || {}),
+    id: teamId,
     name: teamName,
     match,
     stats,
@@ -1235,7 +1264,7 @@ function readSettings() {
     mockMode: true,
     telegramEnabled: false,
     telegramChannel: "",
-    favoriteLeagues: ["Portugal Liga 2", "Japan J2 League", "Sweden Superettan"]
+    favoriteLeagues: ["Spain LaLiga", "Italy Serie A", "Portugal Primeira"]
   };
 
   try {
