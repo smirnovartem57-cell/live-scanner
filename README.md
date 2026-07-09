@@ -26,7 +26,9 @@
 - Периоды статистики: `Сегодня`, `7 дней`, `Всё время`.
 - Экспорт истории в `JSON` и `CSV`.
 - Профиль команды при клике по названию в карточке матча.
-- Пометки качества паттернов: `Стабильный`, `Наблюдать`, `Слабый`, `Мало данных`.
+- Pattern Analytics с таблицей сигналов, подтверждений до 5/10/15 минут, средним pressure score, средней минутой и статусами.
+- Статусы паттернов: `new`, `promising`, `working`, `weak`, `ineffective`, `testing`.
+- Профиль команды показывает последние матчи, средние значения, средние по таймам, характерные паттерны и важные матчи.
 - Экран настроек подготовлен к будущему real football API и личному профилю.
 - UI-заглушка Telegram-уведомлений.
 - PWA manifest и service worker.
@@ -102,6 +104,19 @@ statsAtSignal,
 createdAt, updatedAt,
 result.goalWithin5, result.goalWithin10, result.goalWithin15,
 result.goalMinute, result.goalTeam, result.finalComment
+```
+
+## Pattern Analytics
+
+Статусы считаются по MVP-логике:
+
+```text
+сигналов < 30 -> new
+30-99 и successRate15 >= 35% -> promising
+>= 100 и successRate15 >= 35% -> working
+>= 100 и successRate15 >= 20% и < 35% -> weak
+>= 100 и successRate15 < 20% -> ineffective
+ручное изменение -> testing
 ```
 
 ## Формула индекса давления

@@ -56,6 +56,15 @@ const strengthLabels = {
   HIGH: "Сильный"
 };
 
+const patternStatusLabels = {
+  new: "Новый",
+  promising: "Перспективный",
+  working: "Рабочий",
+  weak: "Слабый",
+  ineffective: "Неэффективный",
+  testing: "Тестируется"
+};
+
 function init() {
   state.patterns = footballProvider.getPatterns();
   state.matches = footballProvider.getLiveMatches();
@@ -295,13 +304,7 @@ function renderSignals() {
 
 function renderPatterns() {
   const activePattern = state.patterns.find((pattern) => pattern.id === state.activePatternId) || state.patterns[0];
-  const patternSignals = state.signals.filter((signal) => signal.patternId === activePattern.id);
-  const history = state.history.filter((item) => item.patternId === activePattern.id);
-  const win = history.filter((item) => getOutcome(item) === "win").length;
-  const lose = history.filter((item) => getOutcome(item) === "lose").length;
-  const closed = win + lose;
-  const successRate = closed ? Math.round((win / closed) * 100) : 0;
-  const quality = getPatternQuality({ closed, rate: successRate, open: history.filter((item) => getOutcome(item) === "open").length });
+  const stats = getPatternStats(activePattern, state.history);
 
   return `
     <section class="pattern-layout">
@@ -341,15 +344,18 @@ function renderPatterns() {
       <aside class="panel">
         <h2>Статистика паттерна</h2>
         <div class="mini-stats">
-          ${metric("Срабатываний", patternSignals.length + history.length)}
-          ${metric("Гол до 10 мин", `${history.filter((item) => item.result.goalWithin10).length}`)}
-          ${metric("Гол до 15 мин", `${history.filter((item) => item.result.goalWithin15).length}`)}
-          ${metric("Эффективность", `${successRate}%`)}
+          ${metric("Срабатываний", stats.totalSignals)}
+          ${metric("До 5 мин", stats.successWithin5)}
+          ${metric("До 10 мин", stats.successWithin10)}
+          ${metric("До 15 мин", stats.successWithin15)}
+          ${metric("В процессе", stats.pendingSignals)}
+          ${metric("Средняя минута", stats.averageSignalMinute)}
         </div>
-        <div class="quality-note ${quality.level}">
-          <strong>${quality.label}</strong>
-          <span>${quality.reason}</span>
+        <div class="quality-note ${stats.status}">
+          <strong>${patternStatusLabels[stats.status]}</strong>
+          <span>${getPatternStatusReason(stats)}</span>
         </div>
+        ${renderPatternAnalyticsDetails(stats)}
         <div class="sparkline" aria-hidden="true">
           <span style="height: 28%"></span><span style="height: 44%"></span><span style="height: 52%"></span><span style="height: 61%"></span><span style="height: 48%"></span><span style="height: 72%"></span>
         </div>
@@ -461,17 +467,7 @@ function renderStats() {
   const totals = getDashboardStats();
   const periodHistory = getHistoryByPeriod(state.history, state.statsPeriod);
   const journalStats = getJournalStats(periodHistory);
-  const patternRows = state.patterns.map((pattern) => {
-    const history = periodHistory.filter((item) => item.patternId === pattern.id);
-    const active = state.signals.filter((signal) => signal.patternId === pattern.id).length;
-    const win = history.filter((item) => getOutcome(item) === "win").length;
-    const lose = history.filter((item) => getOutcome(item) === "lose").length;
-    const open = history.filter((item) => getOutcome(item) === "open").length;
-    const closed = win + lose;
-    const rate = closed ? Math.round((win / closed) * 100) : 0;
-    const quality = getPatternQuality({ closed, rate, open });
-    return { pattern, history, active, win, lose, open, rate, quality };
-  });
+  const patternRows = state.patterns.map((pattern) => getPatternStats(pattern, periodHistory));
 
   return `
     ${renderSummary(totals)}
@@ -488,30 +484,79 @@ function renderStats() {
         <div class="panel-heading">
           <div>
             <p class="eyebrow">Аналитика</p>
-            <h2>Паттерны и лиги</h2>
+            <h2>Pattern Analytics</h2>
           </div>
         </div>
-        ${patternRows.map((row) => `
-          <div class="stat-line ${row.quality.level}">
-            <div>
-              <strong>${row.pattern.name} <span class="quality-badge ${row.quality.level}">${row.quality.label}</span></strong>
-              <span>${row.history.length} событий · win ${row.win} · lose ${row.lose} · в процессе ${row.open}</span>
-              <small>${row.quality.reason}</small>
-            </div>
-            <div class="progress"><span style="width: ${row.rate}%"></span></div>
-            <b>${row.rate}%</b>
+        <div class="analytics-table">
+          <div class="analytics-head">
+            <span>Паттерн</span><span>Сигналов</span><span>До 5</span><span>До 10</span><span>До 15</span><span>Не подтверждено</span><span>Pressure</span><span>Минута</span><span>Статус</span>
           </div>
-        `).join("")}
+          ${patternRows.map((row) => `
+            <div class="analytics-row ${row.status}">
+              <span><strong>${row.pattern.name}</strong><small>${getPatternStatusReason(row)}</small></span>
+              <span>${row.totalSignals}</span>
+              <span>${row.successWithin5}</span>
+              <span>${row.successWithin10}</span>
+              <span>${row.successWithin15}</span>
+              <span>${row.failedSignals}</span>
+              <span>${row.averagePressureScore}</span>
+              <span>${row.averageSignalMinute}'</span>
+              <span><b class="quality-badge ${row.status}">${patternStatusLabels[row.status]}</b></span>
+            </div>
+          `).join("")}
+        </div>
       </div>
       <aside class="panel">
-        <h2>Качество лиг</h2>
-        <div class="league-list">
-          <span>Portugal Liga 2 <b>чистые сигналы</b></span>
-          <span>Japan J2 League <b>поздняя активность</b></span>
-          <span>Brazil Serie B <b>много шума</b></span>
-        </div>
+        <h2>Сводка по статусам</h2>
+        ${renderPatternStatusSummary(patternRows)}
       </aside>
     </section>
+  `;
+}
+
+function renderPatternAnalyticsDetails(stats) {
+  return `
+    <div class="pattern-analytics-details">
+      <div>
+        <h3>Эффективность</h3>
+        <span>До 5 минут <b>${stats.successRate5}%</b></span>
+        <span>До 10 минут <b>${stats.successRate10}%</b></span>
+        <span>До 15 минут <b>${stats.successRate15}%</b></span>
+        <span>Средний pressure score <b>${stats.averagePressureScore}</b></span>
+      </div>
+      <div>
+        <h3>Лиги</h3>
+        ${renderMiniGroup("Лучшие", stats.bestLeagues)}
+        ${renderMiniGroup("Слабые", stats.weakLeagues)}
+      </div>
+      <div>
+        <h3>Команды</h3>
+        ${renderMiniGroup("Лучшие", stats.bestTeams)}
+        ${renderMiniGroup("Слабые", stats.weakTeams)}
+      </div>
+      <div>
+        <h3>Последние сигналы</h3>
+        ${stats.history.slice(0, 50).map((event) => `<span>${event.match} · ${event.minute}' · ${formatOutcome(event)}</span>`).join("") || "<span>Пока нет событий</span>"}
+      </div>
+    </div>
+  `;
+}
+
+function renderMiniGroup(label, rows) {
+  return `
+    <p class="mini-group-title">${label}</p>
+    ${rows.length ? rows.map((row) => `<span>${row.name} <b>${row.rate15}%</b></span>`).join("") : "<span>Недостаточно данных</span>"}
+  `;
+}
+
+function renderPatternStatusSummary(rows) {
+  const statuses = Object.keys(patternStatusLabels);
+  return `
+    <div class="readiness-list">
+      ${statuses.map((status) => `
+        <span><b>${patternStatusLabels[status]}</b>${rows.filter((row) => row.status === status).length}</span>
+      `).join("")}
+    </div>
   `;
 }
 
@@ -655,14 +700,17 @@ function renderTeamProfile(selection) {
   if (!profile) {
     return "";
   }
+  const averages = profile.averages || {};
 
   return `
     <section class="team-profile-panel">
       <div class="team-profile-header">
+        <div class="team-logo" aria-hidden="true">${profile.logo || profile.name.slice(0, 3).toUpperCase()}</div>
         <div>
           <p class="eyebrow">Профиль команды</p>
           <h2>${profile.name}</h2>
-          <span>${profile.match.homeTeam} - ${profile.match.awayTeam} · ${profile.match.league}</span>
+          <span>${profile.country || "Страна не указана"} · ${profile.league || profile.match.league}</span>
+          <small>Последние ${averages.matchesCount || profile.recentMatches?.length || 0} матчей: ${averages.wins || 0} побед · ${averages.draws || 0} ничьих · ${averages.losses || 0} поражений</small>
         </div>
         <button class="mini-action" type="button" data-close-team-profile>Закрыть</button>
       </div>
@@ -688,6 +736,13 @@ function renderTeamProfile(selection) {
           <p>${profile.history.total} событий · Win ${profile.history.win} · Lose ${profile.history.lose} · в процессе ${profile.history.open}</p>
         </article>
       </div>
+      <div class="team-profile-sections">
+        ${renderTeamAverages(profile)}
+        ${renderTeamPeriodAverages(profile)}
+        ${renderTeamPatterns(profile)}
+        ${renderTeamRecentMatches(profile)}
+        ${renderImportantMatches(profile)}
+      </div>
     </section>
   `;
 }
@@ -702,6 +757,103 @@ function renderCompactSignal(signal) {
         <small>${signal.explanation}</small>
       </div>
       <span class="strength ${signal.strength.toLowerCase()}">${strengthLabels[signal.strength]}</span>
+    </article>
+  `;
+}
+
+function renderTeamAverages(profile) {
+  const averages = profile.averages;
+  if (!averages) return "";
+
+  return `
+    <article class="team-section">
+      <h3>Средние значения</h3>
+      <div class="mini-stats">
+        ${metric("Голы", averages.goalsFor)}
+        ${metric("Пропущенные", averages.goalsAgainst)}
+        ${metric("Удары", averages.shotsTotal)}
+        ${metric("В створ", averages.shotsOnTarget)}
+        ${metric("Угловые", averages.corners)}
+        ${metric("Атаки", averages.attacks)}
+        ${metric("Опасные атаки", averages.dangerousAttacks)}
+        ${metric("Pressure score", averages.pressureScore)}
+      </div>
+    </article>
+  `;
+}
+
+function renderTeamPeriodAverages(profile) {
+  if (!profile.firstHalfAverages && !profile.secondHalfAverages) return "";
+  const rows = [
+    ["1 тайм", profile.firstHalfAverages],
+    ["2 тайм", profile.secondHalfAverages]
+  ].filter(([, stats]) => stats);
+
+  return `
+    <article class="team-section">
+      <h3>Средние по таймам</h3>
+      <div class="team-mini-table period-table">
+        <div><b>Период</b><b>Опасные</b><b>Удары</b><b>В створ</b><b>Угловые</b><b>Pressure</b></div>
+        ${rows.map(([label, stats]) => `
+          <div><span>${label}</span><span>${stats.dangerousAttacks}</span><span>${stats.shotsTotal}</span><span>${stats.shotsOnTarget}</span><span>${stats.corners}</span><span>${stats.pressureScore}</span></div>
+        `).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function renderTeamPatterns(profile) {
+  const patterns = profile.characteristicPatterns || [];
+  return `
+    <article class="team-section">
+      <h3>Характерные паттерны команды</h3>
+      <div class="team-mini-table pattern-table">
+        <div><b>Паттерн</b><b>Сигналов</b><b>До 10</b><b>До 15</b><b>Минута</b><b>Pressure</b><b>Label</b></div>
+        ${patterns.map((pattern) => `
+          <div>
+            <span>${pattern.patternName}</span>
+            <span>${pattern.totalSignals}</span>
+            <span>${pattern.successRate10}%</span>
+            <span>${pattern.successRate15}%</span>
+            <span>${pattern.averageMinute}'</span>
+            <span>${pattern.averagePressureScore}</span>
+            <span><b class="team-pattern-label ${pattern.label}">${formatTeamPatternLabel(pattern.label)}</b></span>
+          </div>
+        `).join("") || "<div><span>Недостаточно данных</span></div>"}
+      </div>
+    </article>
+  `;
+}
+
+function renderTeamRecentMatches(profile) {
+  const matches = profile.recentMatches || [];
+  return `
+    <article class="team-section wide">
+      <h3>Последние матчи</h3>
+      <div class="team-mini-table recent-table">
+        <div><b>Дата</b><b>Соперник</b><b>Счет</b><b>Турнир</b><b>Статус</b><b>Важность</b></div>
+        ${matches.map((match) => `
+          <div><span>${formatDate(match.date)}</span><span>${match.opponent}</span><span>${match.score}</span><span>${match.tournament}</span><span>${formatMatchResult(match.status)}</span><span>${formatImportance(match.importanceReason)}</span></div>
+        `).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function renderImportantMatches(profile) {
+  const matches = profile.importantMatches || [];
+  return `
+    <article class="team-section wide">
+      <h3>Важные матчи</h3>
+      <div class="important-list">
+        ${matches.map((match) => `
+          <div>
+            <strong>${formatDate(match.date)} · ${match.opponent} · ${match.score}</strong>
+            <span>${match.tournament} · ${formatImportance(match.importanceReason)} · ${match.importanceLevel}</span>
+            <small>${match.triggeredPatterns.join(", ")}</small>
+          </div>
+        `).join("") || "<p class=\"muted\">Важных матчей пока нет.</p>"}
+      </div>
     </article>
   `;
 }
@@ -824,36 +976,105 @@ function getTeamProfile(selection) {
   };
 }
 
-function getPatternQuality({ closed, rate, open }) {
-  if (closed < 3) {
-    return {
-      level: "sample",
-      label: "Мало данных",
-      reason: `Закрыто ${closed} событий. Нужна история, чтобы честно оценить паттерн.`
-    };
-  }
-
-  if (rate < 40) {
-    return {
-      level: "weak",
-      label: "Слабый",
-      reason: `Win rate ${rate}%. Паттерн стоит пересмотреть или ужесточить условия.`
-    };
-  }
-
-  if (rate < 58 || open > closed) {
-    return {
-      level: "watch",
-      label: "Наблюдать",
-      reason: `Win rate ${rate}%, открытых событий ${open}. Паттерн требует наблюдения.`
-    };
-  }
+function getPatternStats(pattern, events) {
+  const history = events.filter((item) => item.patternId === pattern.id);
+  const totalSignals = history.length;
+  const successWithin5 = history.filter((item) => item.result.goalWithin5).length;
+  const successWithin10 = history.filter((item) => item.result.goalWithin10).length;
+  const successWithin15 = history.filter((item) => item.result.goalWithin15).length;
+  const failedSignals = history.filter((item) => getOutcome(item) === "lose").length;
+  const pendingSignals = history.filter((item) => getOutcome(item) === "open").length;
+  const successRate5 = getRate(successWithin5, totalSignals);
+  const successRate10 = getRate(successWithin10, totalSignals);
+  const successRate15 = getRate(successWithin15, totalSignals);
+  const averageSignalMinute = getAverage(history.map((item) => item.minute));
+  const averagePressureScore = getAverage(history.map((item) => item.pressureScore).filter(Boolean));
+  const status = getPatternAnalyticsStatus({ pattern, totalSignals, successRate15 });
 
   return {
-    level: "strong",
-    label: "Стабильный",
-    reason: `Win rate ${rate}%. Паттерн пока выглядит устойчиво.`
+    pattern,
+    history,
+    totalSignals,
+    successWithin5,
+    successWithin10,
+    successWithin15,
+    failedSignals,
+    pendingSignals,
+    successRate5,
+    successRate10,
+    successRate15,
+    averageSignalMinute,
+    averagePressureScore,
+    bestLeagues: getGroupedPatternStats(history, "league", "best"),
+    weakLeagues: getGroupedPatternStats(history, "league", "weak"),
+    bestTeams: getTeamPatternGroups(history, "best"),
+    weakTeams: getTeamPatternGroups(history, "weak"),
+    status,
+    updatedAt: new Date().toISOString()
   };
+}
+
+function getPatternAnalyticsStatus({ pattern, totalSignals, successRate15 }) {
+  if (pattern.analyticsStatus === "testing") return "testing";
+  if (totalSignals < 30) return "new";
+  if (totalSignals < 100 && successRate15 >= 35) return "promising";
+  if (totalSignals >= 100 && successRate15 >= 35) return "working";
+  if (totalSignals >= 100 && successRate15 >= 20) return "weak";
+  if (totalSignals >= 100 && successRate15 < 20) return "ineffective";
+  return "testing";
+}
+
+function getPatternStatusReason(stats) {
+  if (stats.status === "new") return `Сигналов ${stats.totalSignals}. Нужна большая выборка.`;
+  if (stats.status === "promising") return `До 15 минут ${stats.successRate15}%, выборка растет.`;
+  if (stats.status === "working") return `До 15 минут ${stats.successRate15}%, выборка ${stats.totalSignals}.`;
+  if (stats.status === "weak") return `До 15 минут ${stats.successRate15}%, стоит наблюдать условия.`;
+  if (stats.status === "ineffective") return `До 15 минут ${stats.successRate15}%, паттерн требует пересмотра.`;
+  return "Паттерн изменен или находится в ручной проверке.";
+}
+
+function getRate(value, total) {
+  return total ? Math.round((value / total) * 100) : 0;
+}
+
+function getAverage(values) {
+  const clean = values.filter((value) => Number.isFinite(value));
+  return clean.length ? Math.round(clean.reduce((sum, value) => sum + value, 0) / clean.length) : 0;
+}
+
+function getGroupedPatternStats(events, key, mode) {
+  const groups = new Map();
+  events.forEach((event) => {
+    const name = event[key] || "Не указано";
+    const group = groups.get(name) || { name, total: 0, successWithin15: 0, rate15: 0 };
+    group.total += 1;
+    if (event.result.goalWithin15) group.successWithin15 += 1;
+    group.rate15 = getRate(group.successWithin15, group.total);
+    groups.set(name, group);
+  });
+  const sorted = [...groups.values()].sort((a, b) => mode === "best" ? b.rate15 - a.rate15 : a.rate15 - b.rate15);
+  return sorted.slice(0, 3);
+}
+
+function getTeamPatternGroups(events, mode) {
+  const groups = new Map();
+  events.forEach((event) => {
+    const name = getEventTeamName(event);
+    const group = groups.get(name) || { name, total: 0, successWithin15: 0, rate15: 0 };
+    group.total += 1;
+    if (event.result.goalWithin15) group.successWithin15 += 1;
+    group.rate15 = getRate(group.successWithin15, group.total);
+    groups.set(name, group);
+  });
+  const sorted = [...groups.values()].sort((a, b) => mode === "best" ? b.rate15 - a.rate15 : a.rate15 - b.rate15);
+  return sorted.slice(0, 3);
+}
+
+function getEventTeamName(event) {
+  const match = state.matches.find((item) => item.id === event.matchId);
+  if (match && event.teamSide === "home") return match.homeTeam;
+  if (match && event.teamSide === "away") return match.awayTeam;
+  return event.match?.split(" - ")[0] || "Команда";
 }
 
 function getFilteredHistory() {
@@ -1182,6 +1403,39 @@ function formatResult(value) {
   if (result.goalWithin10) return "Гол до 10 мин";
   if (result.goalWithin15) return "Гол до 15 мин";
   return "Гола нет";
+}
+
+function formatMatchResult(status) {
+  const labels = {
+    win: "Победа",
+    draw: "Ничья",
+    loss: "Поражение"
+  };
+  return labels[status] || status;
+}
+
+function formatImportance(reason) {
+  const labels = {
+    playoff: "плей-офф",
+    final: "финал",
+    derby: "дерби",
+    top_opponent: "сильный соперник",
+    must_win: "важный матч",
+    relegation_race: "борьба внизу",
+    title_race: "борьба за верх",
+    manual: "отмечено вручную"
+  };
+  return labels[reason] || reason;
+}
+
+function formatTeamPatternLabel(label) {
+  const labels = {
+    strong: "strong",
+    normal: "normal",
+    weak: "weak",
+    not_enough_data: "not enough data"
+  };
+  return labels[label] || label;
 }
 
 function formatDate(value) {
