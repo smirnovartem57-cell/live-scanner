@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#050b12">
     <title>Football Pattern Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="stylesheet" href="styles.css">
   </head>
@@ -12,10 +15,10 @@
     <div class="app-shell">
       <aside class="desktop-sidebar" aria-label="Разделы приложения">
         <div class="brand">
-          <div class="brand-mark" aria-hidden="true">F</div>
+          <div class="brand-mark" aria-hidden="true">FL</div>
           <div>
             <strong>Лаборатория паттернов</strong>
-            <span>Лайв-сканер</span>
+            <span>Сканер матчей</span>
           </div>
         </div>
         <nav class="side-nav" id="desktopNav"></nav>
@@ -24,15 +27,20 @@
       <div class="app-main">
         <header class="topbar">
           <div class="mobile-title">
-            <div class="brand-mark" aria-hidden="true">F</div>
+            <div class="brand-mark" aria-hidden="true">FL</div>
             <div>
               <p class="eyebrow">Лаборатория футбольных паттернов</p>
-              <h1 id="pageTitle">Лайв-сканер</h1>
+              <h1 id="pageTitle">Сканер матчей</h1>
             </div>
           </div>
           <div class="topbar-actions">
-            <button class="icon-button" id="refreshButton" type="button" title="Обновить данные" aria-label="Обновить данные">R</button>
-            <button class="icon-button" type="button" title="Профиль" aria-label="Профиль">P</button>
+            <button class="topbar-button" id="refreshButton" type="button" title="Обновить данные" aria-label="Обновить данные">
+              <span aria-hidden="true">↻</span>
+              Обновить
+            </button>
+            <button class="topbar-button ghost" type="button" title="Профиль" aria-label="Профиль">
+              Профиль
+            </button>
           </div>
         </header>
 

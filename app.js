@@ -2,7 +2,7 @@ const DATA_MODE = "mock";
 const SIGNAL_BUCKET_MINUTES = 10;
 
 const navItems = [
-  { id: "live", label: "Лайв", title: "Лайв-сканер" },
+  { id: "live", label: "Матчи", title: "Сканер матчей" },
   { id: "signals", label: "Сигналы", title: "Активные сигналы" },
   { id: "patterns", label: "Паттерны", title: "Лаборатория паттернов" },
   { id: "history", label: "История", title: "История сигналов" },
@@ -30,7 +30,7 @@ const refreshButton = document.querySelector("#refreshButton");
 
 const patternTypeLabels = {
   pressure_without_goal: "Давят без гола",
-  late_goal: "Поздний гол",
+  late_goal: "Поздняя активность",
   favorite_losing_but_pressing: "Проигрывает, но давит",
   match_woke_up: "Матч ожил",
   corner_pressure: "Давление на угловой",
@@ -45,9 +45,9 @@ const statusLabels = {
 };
 
 const strengthLabels = {
-  LOW: "НИЗК",
-  MED: "СРЕД",
-  HIGH: "ВЫС"
+  LOW: "Низкий",
+  MED: "Средний",
+  HIGH: "Сильный"
 };
 
 function init() {
@@ -174,8 +174,8 @@ function renderLive() {
   return `
     <section class="hero-strip">
       <div>
-        <p class="eyebrow">Демо-режим: ${DATA_MODE}</p>
-        <h2>Онлайн-паттерны по live-статистике</h2>
+        <p class="eyebrow">Демо-данные</p>
+        <h2>Сканер матчей по текущей статистике</h2>
       </div>
       <div class="refresh-note">Обновлено ${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</div>
     </section>
@@ -367,7 +367,7 @@ function renderSettings() {
         <h2>Режим данных</h2>
         <label class="switch field-row">
           <input id="mockMode" type="checkbox" ${state.settings.mockMode ? "checked" : ""}>
-          <span>Демо-режим</span>
+          <span>Демо-данные</span>
         </label>
         <p class="muted">Слой данных подготовлен под MockFootballProvider и будущий RealFootballProvider.</p>
       </div>
@@ -408,7 +408,7 @@ function renderSettings() {
 function renderSummary(stats) {
   return `
     <section class="summary-grid">
-      ${metric("Лайв-матчи", stats.liveMatches)}
+      ${metric("Матчи онлайн", stats.liveMatches)}
       ${metric("Активные сигналы", stats.activeSignals)}
       ${metric("Высокие сигналы", stats.highSignals)}
       ${metric("Средний индекс давления", stats.averagePressure)}
@@ -445,7 +445,7 @@ function renderMatchCard(match) {
   return `
     <article class="match-card">
       <div class="card-topline">
-        <span class="live-pill">${match.status === "halftime" ? "Перерыв" : "Лайв"}</span>
+        <span class="live-pill">${match.status === "halftime" ? "Перерыв" : "Онлайн"}</span>
         <span>${match.minute}'</span>
         <span>${match.league}</span>
       </div>
@@ -457,7 +457,7 @@ function renderMatchCard(match) {
       <div class="pattern-callout">
         <div>
           <p>${mainSignal ? patternTypeLabels[mainSignal.patternType] : "Паттерн не обнаружен"}</p>
-          <span>${mainSignal ? "Обнаружен паттерн" : "Идет наблюдение"}</span>
+        <span>${mainSignal ? "Найден игровой паттерн" : "Идет наблюдение"}</span>
         </div>
         <span class="pressure-badge ${getSignalStrength(pressure).toLowerCase()}">${pressure}</span>
       </div>
@@ -469,7 +469,7 @@ function renderMatchCard(match) {
         ${statMetric("xG", snapshot.home.xg.toFixed(2), snapshot.away.xg.toFixed(2))}
       </div>
       <div class="trend-row">
-        <span>Тренд: ${snapshot.recent.home.dangerousAttacks >= snapshot.previous.home.dangerousAttacks ? "рост активности хозяев" : "спокойнее"}</span>
+        <span>Тренд: ${snapshot.recent.home.dangerousAttacks >= snapshot.previous.home.dangerousAttacks ? "хозяева добавляют" : "темп ниже"}</span>
         <span class="strength ${mainSignal ? mainSignal.strength.toLowerCase() : "low"}">${mainSignal ? strengthLabels[mainSignal.strength] : strengthLabels.LOW}</span>
       </div>
     </article>
@@ -484,7 +484,7 @@ function renderCompactSignal(signal) {
         <strong>${patternTypeLabels[signal.patternType]}</strong>
         <span>${match.homeTeam} - ${match.awayTeam}, ${signal.minute}'</span>
       </div>
-      <span class="strength ${signal.strength.toLowerCase()}">${signal.strength}</span>
+      <span class="strength ${signal.strength.toLowerCase()}">${strengthLabels[signal.strength]}</span>
     </article>
   `;
 }
@@ -752,7 +752,7 @@ function getMockPatterns() {
     },
     {
       id: "late_goal",
-      name: "Поздний гол",
+      name: "Поздняя активность",
       description: "После 65-й минуты давление растет при небольшой разнице в счете.",
       enabled: true,
       type: "late_goal",
