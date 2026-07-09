@@ -290,11 +290,87 @@ const mockTeamProfiles = [
   }
 ];
 
+const mockUserProfile = {
+  id: "user-artem-demo",
+  displayName: "Artem",
+  handle: "artem-lab",
+  role: "Личный аналитический профиль",
+  accessLevel: "private_mvp",
+  joinedAt: "2026-07-09T10:00:00.000Z",
+  publicProfileReady: false,
+  avatar: "AR",
+  bio: "Собирает live-сигналы, проверяет паттерны и ведет честную историю результатов.",
+  socialTrust: {
+    score: 62,
+    level: "Ранний профиль",
+    verifiedSignals: 42,
+    reviewedIdeas: 6,
+    sharedReports: 0,
+    notes: [
+      "История сигналов хранится локально",
+      "Публичная страница профиля пока не включена",
+      "Репутация будет расти от проверенных аналитических действий"
+    ]
+  },
+  permissions: [
+    { key: "view_live", label: "Просмотр live-матчей", status: "active" },
+    { key: "edit_patterns", label: "Редактирование паттернов", status: "active" },
+    { key: "public_profile", label: "Публичный профиль", status: "planned" },
+    { key: "team_notes", label: "Заметки по командам", status: "planned" }
+  ],
+  futureFields: ["authProvider", "profileSlug", "publicStats", "followers", "trustedBy"]
+};
+
+const mockFeedbackItems = [
+  {
+    id: "idea-team-notes",
+    type: "idea",
+    title: "Заметки по командам",
+    description: "Добавить личные заметки в профиль команды и показывать их рядом с характерными паттернами.",
+    status: "planned",
+    priority: "high",
+    votes: 12,
+    createdAt: "2026-07-09T10:20:00.000Z"
+  },
+  {
+    id: "idea-signal-review",
+    type: "idea",
+    title: "Разбор сигнала после матча",
+    description: "После закрытия события показывать короткий разбор: какие условия подтвердились, какие были слабее.",
+    status: "in_review",
+    priority: "high",
+    votes: 9,
+    createdAt: "2026-07-09T10:25:00.000Z"
+  },
+  {
+    id: "feedback-mobile-table",
+    type: "feedback",
+    title: "Упростить таблицу истории на телефоне",
+    description: "На узком экране оставить главные поля, а подробности раскрывать по нажатию.",
+    status: "next",
+    priority: "medium",
+    votes: 5,
+    createdAt: "2026-07-09T10:28:00.000Z"
+  },
+  {
+    id: "idea-api-monitor",
+    type: "idea",
+    title: "Монитор качества источника данных",
+    description: "Показывать задержку обновления матчей, полноту статистики и время последнего снимка.",
+    status: "planned",
+    priority: "medium",
+    votes: 7,
+    createdAt: "2026-07-09T10:31:00.000Z"
+  }
+];
+
 window.FootballMockData = {
   matches: mockMatches,
   snapshots: mockSnapshots,
   signals: mockSignals,
   patterns: mockPatterns,
   history: mockHistory,
-  teamProfiles: mockTeamProfiles
+  teamProfiles: mockTeamProfiles,
+  userProfile: mockUserProfile,
+  feedbackItems: mockFeedbackItems
 };

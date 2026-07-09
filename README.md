@@ -32,6 +32,8 @@
 - Экран настроек подготовлен к будущему real football API и личному профилю.
 - FootballDataProvider с контрактом, MockFootballProvider и RealFootballProvider-заглушкой.
 - UI Telegram-уведомлений и service-заглушка для тестового сообщения и отправки аналитического сигнала.
+- Раздел `Профиль` с mock-архитектурой пользователя, будущего публичного профиля и социального доверия.
+- Раздел `Идеи` с mock-данными для идей, feedback, статусов и приоритетов.
 - PWA manifest и service worker.
 
 ## Как открыть
@@ -72,7 +74,7 @@ index.html      оболочка приложения
 styles.css      темная тема, desktop и mobile layout
 app.js          экранная логика, журнал, pattern engine
 data/mock-data.js
-                mock-матчи, статистика, сигналы, паттерны, команды и стартовая история
+                mock-матчи, статистика, сигналы, паттерны, команды, пользователь, идеи и стартовая история
 services/football-provider.js
                 слой данных, который позже заменяется на реальный API
 services/pattern-engine.js
@@ -172,6 +174,8 @@ interface FootballDataProvider {
   getPatterns(): Promise<Pattern[]>;
   getTeamProfile(teamId: string): Promise<TeamProfile | null>;
   getTeamRecentMatches(teamId: string): Promise<TeamMatch[]>;
+  getUserProfile(): Promise<UserProfile | null>;
+  getFeedbackItems(): Promise<FeedbackItem[]>;
 }
 ```
 
@@ -201,6 +205,15 @@ buildSignalMessage(signal)
 ```
 
 Сервис пока работает в mock-режиме: готовит текст аналитического уведомления и возвращает статус без внешней отправки.
+
+## Пользователи и Ideas / Feedback
+
+Задачи 9-10 подготовлены на mock-данных:
+
+- `userProfile` хранит личный профиль, будущий публичный профиль, права доступа и social trust.
+- `feedbackItems` хранит идеи, feedback, приоритет, статус, количество голосов и дату создания.
+- Кнопка `Профиль` в верхней панели открывает раздел профиля.
+- Раздел `Идеи` показывает roadmap/feedback без подключения сервера.
 
 ## Env на будущее
 

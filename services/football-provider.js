@@ -15,7 +15,9 @@ const footballDataProviderContract = [
   "getSeedSignals",
   "getSeedHistory",
   "getTeamProfile",
-  "getTeamRecentMatches"
+  "getTeamRecentMatches",
+  "getUserProfile",
+  "getFeedbackItems"
 ];
 
 function createMockFootballProvider() {
@@ -47,6 +49,12 @@ function createMockFootballProvider() {
     getTeamRecentMatches(teamId) {
       const profile = (data.teamProfiles || []).find((team) => team.id === teamId);
       return cloneData(profile?.recentMatches || []);
+    },
+    getUserProfile() {
+      return cloneData(data.userProfile || null);
+    },
+    getFeedbackItems() {
+      return cloneData(data.feedbackItems || []);
     }
   };
 }
@@ -76,6 +84,12 @@ function createRealFootballProvider() {
       return null;
     },
     getTeamRecentMatches() {
+      return [];
+    },
+    getUserProfile() {
+      return null;
+    },
+    getFeedbackItems() {
       return [];
     }
   };

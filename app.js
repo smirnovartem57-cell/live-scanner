@@ -10,6 +10,8 @@ const navItems = [
   { id: "patterns", label: "Паттерны", title: "Лаборатория паттернов" },
   { id: "history", label: "История", title: "История паттернов" },
   { id: "stats", label: "Статистика", title: "Статистика" },
+  { id: "profile", label: "Профиль", title: "Профиль аналитика" },
+  { id: "ideas", label: "Идеи", title: "Идеи и обратная связь" },
   { id: "settings", label: "Настройки", title: "Настройки" }
 ];
 
@@ -25,6 +27,8 @@ const state = {
   snapshots: [],
   signals: [],
   history: [],
+  userProfile: null,
+  feedbackItems: [],
   selectedTeam: null,
   serviceMeta: readServiceMeta()
 };
@@ -34,6 +38,7 @@ const title = document.querySelector("#pageTitle");
 const desktopNav = document.querySelector("#desktopNav");
 const mobileNav = document.querySelector("#mobileNav");
 const refreshButton = document.querySelector("#refreshButton");
+const profileButton = document.querySelector("#profileButton");
 
 const patternTypeLabels = {
   pressure_without_goal: "Давят без гола",
@@ -71,11 +76,17 @@ function init() {
   state.matches = footballProvider.getLiveMatches();
   state.snapshots = footballProvider.getMatchStats();
   state.history = readPatternEvents(footballProvider.getSeedHistory());
+  state.userProfile = footballProvider.getUserProfile?.();
+  state.feedbackItems = footballProvider.getFeedbackItems?.() || [];
   state.signals = evaluateCurrentMatches();
   syncActiveSignalsToJournal();
 
   bindNavigation();
   refreshButton.addEventListener("click", refreshMockData);
+  profileButton.addEventListener("click", () => {
+    state.view = "profile";
+    render();
+  });
   render();
 }
 
@@ -115,6 +126,8 @@ function render() {
     patterns: renderPatterns,
     history: renderHistory,
     stats: renderStats,
+    profile: renderProfile,
+    ideas: renderIdeas,
     settings: renderSettings
   };
 
@@ -560,6 +573,111 @@ function renderPatternStatusSummary(rows) {
   `;
 }
 
+function renderProfile() {
+  const profile = state.userProfile;
+  const journalStats = getJournalStats(state.history);
+  const trust = profile?.socialTrust || {};
+
+  if (!profile) {
+    return renderEmpty("Профиль пока не подготовлен.");
+  }
+
+  return `
+    <section class="profile-layout">
+      <div class="profile-hero panel">
+        <div class="profile-avatar" aria-hidden="true">${escapeHtml(profile.avatar)}</div>
+        <div>
+          <p class="eyebrow">Закрытый MVP-профиль</p>
+          <h2>${escapeHtml(profile.displayName)}</h2>
+          <span>@${escapeHtml(profile.handle)} · ${escapeHtml(profile.role)}</span>
+          <p>${escapeHtml(profile.bio)}</p>
+        </div>
+      </div>
+
+      <section class="summary-grid">
+        ${metric("Событий в журнале", journalStats.total)}
+        ${metric("Win", journalStats.win)}
+        ${metric("Lose", journalStats.lose)}
+        ${metric("Уровень доверия", trust.score || 0)}
+      </section>
+
+      <section class="section-grid">
+        <div class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Социальное доверие</h2>
+              <p>${escapeHtml(trust.level || "Профиль в подготовке")}</p>
+            </div>
+            <span class="count-pill">${trust.score || 0}/100</span>
+          </div>
+          <div class="trust-meter"><span style="width: ${Math.min(100, trust.score || 0)}%"></span></div>
+          <div class="readiness-list">
+            <span><b>${trust.verifiedSignals || 0}</b> проверенных сигналов</span>
+            <span><b>${trust.reviewedIdeas || 0}</b> разобранных идей</span>
+            <span><b>${trust.sharedReports || 0}</b> публичных отчетов</span>
+          </div>
+          <div class="note-list">
+            ${(trust.notes || []).map((note) => `<span>${escapeHtml(note)}</span>`).join("")}
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Права и будущие модули</h2>
+          <div class="readiness-list">
+            ${profile.permissions.map((item) => `
+              <span><b>${profilePermissionLabel(item.status)}</b>${escapeHtml(item.label)}</span>
+            `).join("")}
+          </div>
+          <div class="quality-note sample">
+            <strong>Архитектурная заготовка</strong>
+            <span>${profile.futureFields.map(escapeHtml).join(" · ")}</span>
+          </div>
+        </div>
+      </section>
+    </section>
+  `;
+}
+
+function renderIdeas() {
+  const items = state.feedbackItems;
+  const ideaCount = items.filter((item) => item.type === "idea").length;
+  const feedbackCount = items.filter((item) => item.type === "feedback").length;
+  const highPriority = items.filter((item) => item.priority === "high").length;
+
+  return `
+    <section>
+      <section class="summary-grid">
+        ${metric("Идей", ideaCount)}
+        ${metric("Отклики", feedbackCount)}
+        ${metric("Высокий приоритет", highPriority)}
+        ${metric("Всего голосов", items.reduce((sum, item) => sum + item.votes, 0))}
+      </section>
+
+      <div class="ideas-grid">
+        ${items.map(renderIdeaCard).join("") || renderEmpty("Идей пока нет.")}
+      </div>
+    </section>
+  `;
+}
+
+function renderIdeaCard(item) {
+  return `
+    <article class="idea-card panel">
+      <div class="idea-card-top">
+        <span class="quality-badge ${item.status}">${feedbackStatusLabel(item.status)}</span>
+        <span class="count-pill">${feedbackTypeLabel(item.type)}</span>
+      </div>
+      <h2>${escapeHtml(item.title)}</h2>
+      <p>${escapeHtml(item.description)}</p>
+      <div class="idea-meta">
+        <span>Приоритет: ${feedbackPriorityLabel(item.priority)}</span>
+        <span>${item.votes} голосов</span>
+        <span>${formatDate(item.createdAt)}</span>
+      </div>
+    </article>
+  `;
+}
+
 function renderSettings() {
   const telegramStatus = state.settings.lastTelegramTest
     ? `<p class="telegram-status">${escapeHtml(state.settings.lastTelegramTest.message)}<span>${escapeHtml(state.settings.lastTelegramTest.channel)} · ${formatDateTime(state.settings.lastTelegramTest.createdAt)}</span></p>`
@@ -607,7 +725,9 @@ function renderSettings() {
   getMatchEvents(matchId)
   getPatterns()
   getTeamProfile(teamId)
-  getTeamRecentMatches(teamId)</pre>
+  getTeamRecentMatches(teamId)
+  getUserProfile()
+  getFeedbackItems()</pre>
         <p class="muted">Интерфейс оставлен независимым от поставщика данных: сейчас работает MockFootballProvider, дальше подключается RealFootballProvider.</p>
       </div>
 
@@ -1443,6 +1563,40 @@ function formatTeamPatternLabel(label) {
     not_enough_data: "not enough data"
   };
   return labels[label] || label;
+}
+
+function profilePermissionLabel(status) {
+  const labels = {
+    active: "Готово",
+    planned: "Дальше"
+  };
+  return labels[status] || status;
+}
+
+function feedbackStatusLabel(status) {
+  const labels = {
+    planned: "Запланировано",
+    in_review: "На разборе",
+    next: "Следующее"
+  };
+  return labels[status] || status;
+}
+
+function feedbackTypeLabel(type) {
+  const labels = {
+    idea: "Идея",
+    feedback: "Отклик"
+  };
+  return labels[type] || type;
+}
+
+function feedbackPriorityLabel(priority) {
+  const labels = {
+    high: "высокий",
+    medium: "средний",
+    low: "низкий"
+  };
+  return labels[priority] || priority;
 }
 
 function formatDate(value) {

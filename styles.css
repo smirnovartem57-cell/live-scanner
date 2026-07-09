@@ -1099,7 +1099,10 @@ h2 {
 .quality-badge.sample,
 .quality-note.sample,
 .quality-badge.new,
-.quality-note.new {
+.quality-note.new,
+.quality-badge.planned,
+.quality-badge.in_review,
+.quality-badge.next {
   color: var(--blue);
 }
 
@@ -1233,6 +1236,117 @@ h2 {
   color: var(--green);
 }
 
+.profile-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.profile-hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.profile-hero h2 {
+  margin: 0 0 4px;
+  font-size: 34px;
+}
+
+.profile-hero span,
+.profile-hero p {
+  color: var(--text-muted);
+}
+
+.profile-hero p:last-child {
+  max-width: 760px;
+  margin-top: 10px;
+  line-height: 1.55;
+}
+
+.profile-avatar {
+  width: 74px;
+  height: 74px;
+  border: 1px solid rgba(91, 166, 255, 0.28);
+  border-radius: 18px;
+  background: rgba(91, 166, 255, 0.12);
+  color: var(--cyan);
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.trust-meter {
+  height: 12px;
+  margin: 14px 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.trust-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue), var(--green));
+}
+
+.note-list,
+.ideas-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.note-list {
+  margin-top: 14px;
+}
+
+.note-list span {
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ideas-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.idea-card {
+  min-height: 218px;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.idea-card-top,
+.idea-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.idea-card h2 {
+  margin: 0;
+}
+
+.idea-card p {
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.idea-meta {
+  margin-top: 4px;
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .telegram-card {
   border-color: rgba(53, 240, 108, 0.22);
 }
@@ -1341,6 +1455,7 @@ input[type="text"] {
   .live-grid,
   .section-grid,
   .settings-grid,
+  .ideas-grid,
   .pattern-layout {
     grid-template-columns: 1fr;
   }
@@ -1417,7 +1532,12 @@ input[type="text"] {
 
   .team-profile-body,
   .team-profile-grid,
-  .team-profile-sections {
+  .team-profile-sections,
+  .ideas-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-hero {
     grid-template-columns: 1fr;
   }
 
