@@ -64,14 +64,14 @@ function init() {
 
 function bindNavigation() {
   const navHtml = navItems.map((item) => `
-    <button class="nav-item" type="button" data-view="${item.id}">
+    <button class="nav-item" type="button" data-view="${item.id}" aria-label="${item.label}">
       <span>${item.label}</span>
     </button>
   `).join("");
 
   desktopNav.innerHTML = navHtml;
   mobileNav.innerHTML = navItems.slice(0, 5).map((item) => `
-    <button class="nav-item" type="button" data-view="${item.id}">
+    <button class="nav-item" type="button" data-view="${item.id}" aria-label="${item.label}">
       <span>${item.label}</span>
     </button>
   `).join("");
