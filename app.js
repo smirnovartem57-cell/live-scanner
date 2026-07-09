@@ -406,17 +406,19 @@ function renderHistory() {
       ${renderHistoryControls(filteredStats)}
       <div class="history-table">
         <div class="table-head">
-          <span>Матч</span><span>Паттерн</span><span>Команда</span><span>Минута</span><span>Счет</span><span>Pressure</span><span>Статус</span><span>Комментарий</span><span>Действия</span>
+          <span>Матч</span><span>Паттерн</span><span>Команда</span><span>Минута</span><span>Счет</span><span>Pressure</span><span>Статус</span><span>Источник</span><span>Детали</span><span>Комментарий</span><span>Действия</span>
         </div>
         ${filteredHistory.map((item) => `
-          <div class="table-row">
+          <div class="table-row ${item.signalKind === "warning" ? "is-warning" : ""}">
             <span><strong>${item.match}</strong><small>${item.league}</small></span>
-            <span>${patternTypeLabels[item.patternType]}</span>
+            <span>${patternTypeLabels[item.patternType]}${item.signalKind === "warning" ? "<small class=\"warning-label\">Предупреждение</small>" : ""}</span>
             <span>${getEventTeamName(item)}</span>
             <span>${item.minute}'</span>
             <span>${item.score}</span>
             <span>${item.pressureScore || "—"}</span>
             <span><b class="status-dot ${item.status}"></b>${statusLabels[item.status]}<small>${formatResult(item)}</small></span>
+            <span><b class="source-pill ${item.resultSource}">${formatResultSource(item)}</b></span>
+            <span>${renderStatsAtSignal(item)}</span>
             <span>
               <textarea class="comment-field" data-comment-event="${item.id}" placeholder="Комментарий">${escapeHtml(item.comment || "")}</textarea>
             </span>
@@ -457,6 +459,24 @@ function renderHistoryControls(stats) {
         <button class="ghost-button" type="button" data-export-history="csv">CSV</button>
       </div>
     </div>
+  `;
+}
+
+function renderStatsAtSignal(event) {
+  const stats = event.statsAtSignal;
+  if (!stats) {
+    return "<small>Нет снимка</small>";
+  }
+
+  return `
+    <details class="signal-details">
+      <summary>Статистика</summary>
+      <span>Опасные атаки <b>${stats.dangerousAttacks ?? "—"}</b></span>
+      <span>Удары <b>${stats.shotsTotal ?? "—"}</b></span>
+      <span>В створ <b>${stats.shotsOnTarget ?? "—"}</b></span>
+      <span>Угловые <b>${stats.corners ?? "—"}</b></span>
+      <span>xG <b>${typeof stats.xg === "number" ? stats.xg.toFixed(2) : "—"}</b></span>
+    </details>
   `;
 }
 
@@ -1336,6 +1356,7 @@ function closePatternEvent(id, outcome) {
   const isWin = outcome === "win";
   updatePatternEvent(id, {
     status: isWin ? "success" : "failed",
+    resultSource: "manual",
     result: {
       goalWithin5: false,
       goalWithin10: isWin,
@@ -1360,7 +1381,7 @@ function exportHistory(format) {
 }
 
 function historyToCsv(events) {
-  const headers = ["id", "matchId", "teamId", "match", "league", "minute", "pattern", "scoreHome", "scoreAway", "pressureScore", "strength", "outcome", "status", "goalWithin5", "goalWithin10", "goalWithin15", "goalMinute", "goalTeam", "finalComment", "createdAt", "updatedAt", "closedAt"];
+  const headers = ["id", "matchId", "teamId", "match", "league", "minute", "pattern", "signalKind", "resultSource", "scoreHome", "scoreAway", "pressureScore", "strength", "outcome", "status", "goalWithin5", "goalWithin10", "goalWithin15", "goalMinute", "goalTeam", "finalComment", "createdAt", "updatedAt", "closedAt"];
   const rows = events.map((event) => [
     event.id,
     event.matchId,
@@ -1369,6 +1390,8 @@ function historyToCsv(events) {
     event.league,
     event.minute,
     patternTypeLabels[event.patternType] || event.patternType,
+    event.signalKind || "",
+    formatResultSource(event),
     event.scoreHome,
     event.scoreAway,
     event.pressureScore,
@@ -1466,6 +1489,7 @@ function syncSignalResults() {
     const nextEvent = normalizePatternEvent({
       ...event,
       status: evaluated.status,
+      resultSource: ["success", "failed"].includes(evaluated.status) ? "auto" : event.resultSource,
       result: nextResult,
       updatedAt: new Date().toISOString(),
       closedAt: ["success", "failed"].includes(evaluated.status) ? event.closedAt || new Date().toISOString() : event.closedAt
@@ -1527,6 +1551,7 @@ function signalToJournalEvent(signal) {
     pressureScore: signal.pressureScore,
     strength: signal.strength,
     signalKind: signal.signalKind || "signal",
+    resultSource: ["success", "failed"].includes(evaluated.status) ? "auto" : "auto",
     statsAtSignal: signal.statsAtSignal || getSignalStats(signal),
     explanation: signal.explanation,
     createdAt: signal.createdAt,
@@ -1558,6 +1583,7 @@ function normalizePatternEvent(event) {
     pressureScore: event.pressureScore || null,
     strength: event.strength || null,
     signalKind: event.signalKind || (event.patternType === "empty_pressure" ? "warning" : "signal"),
+    resultSource: event.resultSource || (event.result?.manualOutcome ? "manual" : event.matchId ? "auto" : "seed"),
     statsAtSignal: event.statsAtSignal || null,
     explanation: event.explanation || "Событие добавлено в журнал до появления подробных объяснений.",
     createdAt: event.createdAt || event.occurredAt || state.serviceMeta.startedAt,
@@ -1616,6 +1642,12 @@ function formatOutcome(event) {
   if (outcome === "win") return "Win";
   if (outcome === "lose") return "Lose";
   return "В процессе";
+}
+
+function formatResultSource(event) {
+  if (event.resultSource === "manual" || event.result?.manualOutcome) return "Вручную";
+  if (event.resultSource === "auto") return "Авто";
+  return "Старт";
 }
 
 function sortEventsByTime(a, b) {
