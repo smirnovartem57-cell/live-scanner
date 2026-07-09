@@ -1202,13 +1202,13 @@ h2 {
 }
 
 .analytics-table {
-  min-width: 980px;
+  min-width: 1080px;
 }
 
 .analytics-head,
 .analytics-row {
   display: grid;
-  grid-template-columns: minmax(210px, 1.3fr) repeat(7, minmax(70px, 0.55fr)) minmax(120px, 0.8fr);
+  grid-template-columns: minmax(210px, 1.25fr) repeat(7, minmax(70px, 0.5fr)) minmax(88px, 0.62fr) minmax(120px, 0.75fr);
   gap: 10px;
   align-items: center;
   border-top: 1px solid var(--border-soft);
@@ -1227,6 +1227,40 @@ h2 {
   display: block;
   margin-top: 4px;
   color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.analytics-sort {
+  margin: 12px 0 4px;
+}
+
+.watchlist {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.watchlist h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.watchlist span {
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 11px;
+}
+
+.watchlist b,
+.watchlist small {
+  display: block;
+}
+
+.watchlist small {
+  margin-top: 4px;
+  color: var(--text-muted);
   font-size: 12px;
   line-height: 1.35;
 }

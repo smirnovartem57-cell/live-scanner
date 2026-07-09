@@ -21,6 +21,7 @@ const state = {
   activeFilter: "all",
   historyFilter: "all",
   statsPeriod: "all",
+  patternSort: "quality",
   activePatternId: "pressure_without_goal",
   settings: readSettings(),
   patterns: [],
@@ -157,6 +158,13 @@ function bindPageEvents() {
   root.querySelectorAll("[data-stats-period]").forEach((button) => {
     button.addEventListener("click", () => {
       state.statsPeriod = button.dataset.statsPeriod;
+      render();
+    });
+  });
+
+  root.querySelectorAll("[data-pattern-sort]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.patternSort = button.dataset.patternSort;
       render();
     });
   });
@@ -507,7 +515,8 @@ function renderStats() {
   const dataQuality = getDataQualityStats();
   const periodHistory = getHistoryByPeriod(state.history, state.statsPeriod);
   const journalStats = getJournalStats(periodHistory);
-  const patternRows = state.patterns.map((pattern) => getPatternStats(pattern, periodHistory));
+  const patternRows = sortPatternRows(state.patterns.map((pattern) => getPatternStats(pattern, periodHistory)));
+  const weakRows = getWeakPatternRows(patternRows);
 
   return `
     ${renderSummary(totals)}
@@ -527,9 +536,10 @@ function renderStats() {
             <h2>Pattern Analytics</h2>
           </div>
         </div>
+        ${renderPatternSortControls()}
         <div class="analytics-table">
           <div class="analytics-head">
-            <span>Паттерн</span><span>Сигналов</span><span>До 5</span><span>До 10</span><span>До 15</span><span>Не подтверждено</span><span>Pressure</span><span>Минута</span><span>Статус</span>
+            <span>Паттерн</span><span>Сигналов</span><span>До 5</span><span>До 10</span><span>До 15</span><span>Не подтверждено</span><span>Pressure</span><span>Минута</span><span>Оценка</span><span>Статус</span>
           </div>
           ${patternRows.map((row) => `
             <div class="analytics-row ${row.status}">
@@ -541,6 +551,7 @@ function renderStats() {
               <span>${row.failedSignals}</span>
               <span>${row.averagePressureScore}</span>
               <span>${row.averageSignalMinute}'</span>
+              <span><b>${row.qualityScore}/100</b><small>${getPatternQualityLabel(row)}</small></span>
               <span><b class="quality-badge ${row.status}">${patternStatusLabels[row.status]}</b></span>
             </div>
           `).join("")}
@@ -549,6 +560,7 @@ function renderStats() {
       <aside class="panel">
         <h2>Сводка по статусам</h2>
         ${renderPatternStatusSummary(patternRows)}
+        ${renderWeakPatternWatchlist(weakRows)}
       </aside>
     </section>
     ${renderDataQualityPanel(dataQuality)}
@@ -597,6 +609,37 @@ function renderPatternStatusSummary(rows) {
       ${statuses.map((status) => `
         <span><b>${patternStatusLabels[status]}</b>${rows.filter((row) => row.status === status).length}</span>
       `).join("")}
+    </div>
+  `;
+}
+
+function renderPatternSortControls() {
+  const controls = [
+    ["quality", "По оценке"],
+    ["weak", "Слабые"],
+    ["sample", "Выборка"],
+    ["pressure", "Индекс"]
+  ];
+
+  return `
+    <div class="filter-chips compact analytics-sort">
+      ${controls.map(([id, label]) => `
+        <button class="chip ${state.patternSort === id ? "is-active" : ""}" type="button" data-pattern-sort="${id}">${label}</button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderWeakPatternWatchlist(rows) {
+  return `
+    <div class="watchlist">
+      <h3>Требуют внимания</h3>
+      ${rows.length ? rows.map((row) => `
+        <span>
+          <b>${row.pattern.name}</b>
+          <small>${getPatternStatusReason(row)} Оценка ${row.qualityScore}/100.</small>
+        </span>
+      `).join("") : "<span><b>Нет явных слабых мест</b><small>Продолжаем собирать выборку.</small></span>"}
     </div>
   `;
 }
@@ -1228,6 +1271,13 @@ function getPatternStats(pattern, events) {
   const averageSignalMinute = getAverage(history.map((item) => item.minute));
   const averagePressureScore = getAverage(history.map((item) => item.pressureScore).filter(Boolean));
   const status = getPatternAnalyticsStatus({ pattern, totalSignals, successRate15 });
+  const qualityScore = getPatternQualityScore({
+    totalSignals,
+    successRate15,
+    failedSignals,
+    pendingSignals,
+    averagePressureScore
+  });
 
   return {
     pattern,
@@ -1248,8 +1298,44 @@ function getPatternStats(pattern, events) {
     bestTeams: getTeamPatternGroups(history, "best"),
     weakTeams: getTeamPatternGroups(history, "weak"),
     status,
+    qualityScore,
     updatedAt: new Date().toISOString()
   };
+}
+
+function sortPatternRows(rows) {
+  const sorted = [...rows];
+  const sorters = {
+    quality: (a, b) => b.qualityScore - a.qualityScore || b.successRate15 - a.successRate15,
+    weak: (a, b) => a.qualityScore - b.qualityScore || b.failedSignals - a.failedSignals,
+    sample: (a, b) => b.totalSignals - a.totalSignals,
+    pressure: (a, b) => b.averagePressureScore - a.averagePressureScore
+  };
+  return sorted.sort(sorters[state.patternSort] || sorters.quality);
+}
+
+function getWeakPatternRows(rows) {
+  return rows
+    .filter((row) => ["weak", "ineffective", "testing"].includes(row.status) || row.qualityScore < 45)
+    .sort((a, b) => a.qualityScore - b.qualityScore)
+    .slice(0, 4);
+}
+
+function getPatternQualityScore(stats) {
+  const sampleScore = Math.min(100, stats.totalSignals * 3);
+  const confirmationScore = stats.successRate15;
+  const pressureScore = Math.min(100, stats.averagePressureScore || 0);
+  const failedPenalty = stats.totalSignals ? Math.round((stats.failedSignals / stats.totalSignals) * 35) : 0;
+  const pendingPenalty = stats.totalSignals ? Math.round((stats.pendingSignals / stats.totalSignals) * 12) : 0;
+  const score = Math.round((confirmationScore * 0.5) + (sampleScore * 0.25) + (pressureScore * 0.25) - failedPenalty - pendingPenalty);
+  return Math.max(0, Math.min(100, score));
+}
+
+function getPatternQualityLabel(row) {
+  if (row.totalSignals < 10) return "малая выборка";
+  if (row.qualityScore >= 70) return "сильный профиль";
+  if (row.qualityScore >= 45) return "нужно наблюдать";
+  return "слабый профиль";
 }
 
 function getPatternAnalyticsStatus({ pattern, totalSignals, successRate15 }) {
