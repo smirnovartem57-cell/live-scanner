@@ -309,6 +309,11 @@ h2 {
   padding-bottom: 2px;
 }
 
+.filter-chips.compact,
+.stats-periods {
+  margin-bottom: 0;
+}
+
 .chip,
 .ghost-button,
 .primary-button {
@@ -702,13 +707,13 @@ h2 {
 }
 
 .history-table {
-  min-width: 900px;
+  min-width: 1120px;
 }
 
 .table-head,
 .table-row {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 0.55fr 1.1fr 0.55fr 0.8fr 1fr;
+  grid-template-columns: 1.35fr 1fr 0.45fr 0.5fr 0.85fr minmax(180px, 1fr) 118px;
   gap: 12px;
   padding: 12px 0;
 }
@@ -722,6 +727,80 @@ h2 {
 
 .table-row {
   border-top: 1px solid var(--border-soft);
+}
+
+.table-row strong,
+.table-row small {
+  display: block;
+}
+
+.table-row small {
+  margin-top: 4px;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.history-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.toolbar-stats,
+.export-actions,
+.event-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar-stats {
+  flex-wrap: wrap;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.export-actions .ghost-button {
+  min-height: 36px;
+}
+
+.comment-field {
+  width: 100%;
+  min-height: 42px;
+  resize: vertical;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-main);
+  padding: 9px 10px;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.mini-action {
+  min-height: 34px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.mini-action.is-win {
+  border-color: var(--border-green);
+  color: var(--green);
+}
+
+.mini-action.is-lose {
+  border-color: rgba(255, 77, 79, 0.48);
+  color: var(--red);
 }
 
 .stat-line {
@@ -859,6 +938,15 @@ input[type="text"] {
 
   .history-table {
     overflow-x: auto;
+  }
+
+  .history-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar-stats,
+  .export-actions {
+    justify-content: flex-start;
   }
 
   .journal-summary {

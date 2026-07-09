@@ -15,6 +15,8 @@ const navItems = [
 const state = {
   view: "live",
   activeFilter: "all",
+  historyFilter: "all",
+  statsPeriod: "all",
   activePatternId: "pressure_without_goal",
   settings: readSettings(),
   patterns: [],
@@ -114,6 +116,39 @@ function bindPageEvents() {
     button.addEventListener("click", () => {
       state.activeFilter = button.dataset.filter;
       render();
+    });
+  });
+
+  root.querySelectorAll("[data-history-filter]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.historyFilter = button.dataset.historyFilter;
+      render();
+    });
+  });
+
+  root.querySelectorAll("[data-stats-period]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.statsPeriod = button.dataset.statsPeriod;
+      render();
+    });
+  });
+
+  root.querySelectorAll("[data-close-event]").forEach((button) => {
+    button.addEventListener("click", () => {
+      closePatternEvent(button.dataset.closeEvent, button.dataset.outcome);
+      render();
+    });
+  });
+
+  root.querySelectorAll("[data-comment-event]").forEach((input) => {
+    input.addEventListener("input", () => {
+      updatePatternEvent(input.dataset.commentEvent, { comment: input.value });
+    });
+  });
+
+  root.querySelectorAll("[data-export-history]").forEach((button) => {
+    button.addEventListener("click", () => {
+      exportHistory(button.dataset.exportHistory);
     });
   });
 
@@ -292,7 +327,9 @@ function renderPatterns() {
 }
 
 function renderHistory() {
-  const journalStats = getJournalStats();
+  const filteredHistory = getFilteredHistory();
+  const journalStats = getJournalStats(state.history);
+  const filteredStats = getJournalStats(filteredHistory);
   return `
     <section class="summary-grid journal-summary">
       ${metric("Сервис запущен", formatDate(journalStats.startedAt))}
@@ -309,33 +346,91 @@ function renderHistory() {
           <p class="eyebrow">Архив</p>
           <h2>История всех паттернов</h2>
         </div>
-        <span class="count-pill">${state.history.length}</span>
+        <span class="count-pill">${filteredHistory.length}</span>
       </div>
+      ${renderHistoryControls(filteredStats)}
       <div class="history-table">
         <div class="table-head">
-          <span>Матч</span><span>Лига</span><span>Минута</span><span>Паттерн</span><span>Счет</span><span>Статус</span><span>Результат</span>
+          <span>Матч</span><span>Паттерн</span><span>Минута</span><span>Счет</span><span>Статус</span><span>Комментарий</span><span>Действия</span>
         </div>
-        ${state.history.map((item) => `
+        ${filteredHistory.map((item) => `
           <div class="table-row">
-            <span>${item.match}</span>
-            <span>${item.league}</span>
-            <span>${item.minute}'</span>
+            <span><strong>${item.match}</strong><small>${item.league}</small></span>
             <span>${patternTypeLabels[item.patternType]}</span>
+            <span>${item.minute}'</span>
             <span>${item.score}</span>
-            <span><b class="status-dot ${item.status}"></b>${statusLabels[item.status]}</span>
-            <span>${formatOutcome(item)} · ${formatResult(item.result)}</span>
+            <span><b class="status-dot ${item.status}"></b>${statusLabels[item.status]}<small>${formatResult(item)}</small></span>
+            <span>
+              <textarea class="comment-field" data-comment-event="${item.id}" placeholder="Комментарий">${escapeHtml(item.comment || "")}</textarea>
+            </span>
+            <span class="event-actions">
+              <button class="mini-action ${getOutcome(item) === "win" ? "is-win" : ""}" type="button" data-close-event="${item.id}" data-outcome="win">Win</button>
+              <button class="mini-action ${getOutcome(item) === "lose" ? "is-lose" : ""}" type="button" data-close-event="${item.id}" data-outcome="lose">Lose</button>
+            </span>
           </div>
-        `).join("")}
+        `).join("") || renderEmpty("Событий по этому фильтру нет.")}
       </div>
     </section>
   `;
 }
 
+function renderHistoryControls(stats) {
+  const filters = [
+    ["all", "Все"],
+    ["win", "Win"],
+    ["lose", "Lose"],
+    ["open", "В процессе"]
+  ];
+
+  return `
+    <div class="history-toolbar">
+      <div class="filter-chips compact">
+        ${filters.map(([id, label]) => `
+          <button class="chip ${state.historyFilter === id ? "is-active" : ""}" type="button" data-history-filter="${id}">${label}</button>
+        `).join("")}
+      </div>
+      <div class="toolbar-stats">
+        <span>В выборке: ${stats.total}</span>
+        <span>Win: ${stats.win}</span>
+        <span>Lose: ${stats.lose}</span>
+        <span>Открыто: ${stats.open}</span>
+      </div>
+      <div class="export-actions">
+        <button class="ghost-button" type="button" data-export-history="json">JSON</button>
+        <button class="ghost-button" type="button" data-export-history="csv">CSV</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderPeriodControls() {
+  const periods = [
+    ["today", "Сегодня"],
+    ["7d", "7 дней"],
+    ["all", "Всё время"]
+  ];
+
+  return `
+    <div class="filter-chips stats-periods">
+      ${periods.map(([id, label]) => `
+        <button class="chip ${state.statsPeriod === id ? "is-active" : ""}" type="button" data-stats-period="${id}">${label}</button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function getPeriodMetricLabel() {
+  if (state.statsPeriod === "today") return "Событий сегодня";
+  if (state.statsPeriod === "7d") return "Событий за 7 дней";
+  return "Событий за всё время";
+}
+
 function renderStats() {
   const totals = getDashboardStats();
-  const journalStats = getJournalStats();
+  const periodHistory = getHistoryByPeriod(state.history, state.statsPeriod);
+  const journalStats = getJournalStats(periodHistory);
   const patternRows = state.patterns.map((pattern) => {
-    const history = state.history.filter((item) => item.patternId === pattern.id);
+    const history = periodHistory.filter((item) => item.patternId === pattern.id);
     const active = state.signals.filter((signal) => signal.patternId === pattern.id).length;
     const win = history.filter((item) => getOutcome(item) === "win").length;
     const lose = history.filter((item) => getOutcome(item) === "lose").length;
@@ -347,8 +442,9 @@ function renderStats() {
 
   return `
     ${renderSummary(totals)}
+    ${renderPeriodControls()}
     <section class="summary-grid journal-summary">
-      ${metric("Событий за все время", journalStats.total)}
+      ${metric(getPeriodMetricLabel(), journalStats.total)}
       ${metric("Win", journalStats.win)}
       ${metric("Lose", journalStats.lose)}
       ${metric("В процессе", journalStats.open)}
@@ -581,6 +677,93 @@ function getDashboardStats() {
   };
 }
 
+function getFilteredHistory() {
+  return state.history.filter((event) => {
+    if (state.historyFilter === "win") return getOutcome(event) === "win";
+    if (state.historyFilter === "lose") return getOutcome(event) === "lose";
+    if (state.historyFilter === "open") return getOutcome(event) === "open";
+    return true;
+  });
+}
+
+function getHistoryByPeriod(events, period) {
+  if (period === "all") return events;
+
+  const now = new Date();
+  const start = new Date(now);
+
+  if (period === "today") {
+    start.setHours(0, 0, 0, 0);
+  } else if (period === "7d") {
+    start.setDate(start.getDate() - 7);
+  }
+
+  return events.filter((event) => new Date(event.createdAt).getTime() >= start.getTime());
+}
+
+function updatePatternEvent(id, patch) {
+  state.history = state.history.map((event) => event.id === id ? normalizePatternEvent({ ...event, ...patch }) : event);
+  writePatternEvents();
+}
+
+function closePatternEvent(id, outcome) {
+  const isWin = outcome === "win";
+  updatePatternEvent(id, {
+    status: isWin ? "success" : "failed",
+    result: {
+      goalWithin5: false,
+      goalWithin10: isWin,
+      goalWithin15: isWin,
+      manualOutcome: outcome
+    },
+    closedAt: new Date().toISOString()
+  });
+}
+
+function exportHistory(format) {
+  const events = getFilteredHistory();
+  const timestamp = new Date().toISOString().slice(0, 19).replaceAll(":", "-");
+  const filename = `football-pattern-history-${state.historyFilter}-${timestamp}.${format}`;
+  const content = format === "csv" ? historyToCsv(events) : JSON.stringify(events, null, 2);
+  const type = format === "csv" ? "text/csv;charset=utf-8" : "application/json;charset=utf-8";
+  downloadFile(filename, content, type);
+}
+
+function historyToCsv(events) {
+  const headers = ["id", "match", "league", "minute", "pattern", "score", "outcome", "status", "comment", "createdAt", "closedAt"];
+  const rows = events.map((event) => [
+    event.id,
+    event.match,
+    event.league,
+    event.minute,
+    patternTypeLabels[event.patternType] || event.patternType,
+    event.score,
+    getOutcome(event),
+    event.status,
+    event.comment || "",
+    event.createdAt,
+    event.closedAt || ""
+  ]);
+
+  return `\ufeff${[headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\n")}`;
+}
+
+function csvCell(value) {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
+function downloadFile(filename, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 function readServiceMeta() {
   const fallback = { startedAt: new Date().toISOString() };
   try {
@@ -642,6 +825,7 @@ function signalToJournalEvent(signal) {
     score: `${signal.scoreHome}:${signal.scoreAway}`,
     status: signal.status,
     result: { goalWithin5: false, goalWithin10: false, goalWithin15: false },
+    comment: "",
     pressureScore: signal.pressureScore,
     strength: signal.strength,
     explanation: signal.explanation,
@@ -663,6 +847,7 @@ function normalizePatternEvent(event) {
     score: event.score,
     status: event.status,
     result: event.result || { goalWithin5: false, goalWithin10: false, goalWithin15: false },
+    comment: event.comment || "",
     pressureScore: event.pressureScore || null,
     strength: event.strength || null,
     explanation: event.explanation || "Событие добавлено в журнал до появления подробных объяснений.",
@@ -673,11 +858,11 @@ function normalizePatternEvent(event) {
   return normalized;
 }
 
-function getJournalStats() {
-  const total = state.history.length;
-  const win = state.history.filter((event) => getOutcome(event) === "win").length;
-  const lose = state.history.filter((event) => getOutcome(event) === "lose").length;
-  const open = state.history.filter((event) => getOutcome(event) === "open").length;
+function getJournalStats(events = state.history) {
+  const total = events.length;
+  const win = events.filter((event) => getOutcome(event) === "win").length;
+  const lose = events.filter((event) => getOutcome(event) === "lose").length;
+  const open = events.filter((event) => getOutcome(event) === "open").length;
   const closed = win + lose;
 
   return {
@@ -880,7 +1065,10 @@ function formatRule(rule) {
   return `${rule.label || rule.field}${period} ${rule.operator} ${rule.value}`;
 }
 
-function formatResult(result) {
+function formatResult(value) {
+  const result = value?.result || value || {};
+  if (result.manualOutcome === "win") return "Закрыто вручную: Win";
+  if (result.manualOutcome === "lose") return "Закрыто вручную: Lose";
   if (result.goalWithin5) return "Гол до 5 мин";
   if (result.goalWithin10) return "Гол до 10 мин";
   if (result.goalWithin15) return "Гол до 15 мин";
