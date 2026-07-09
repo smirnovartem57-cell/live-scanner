@@ -1,11 +1,13 @@
 const DATA_MODE = "mock";
 const SIGNAL_BUCKET_MINUTES = 10;
+const SERVICE_META_KEY = "football-pattern-lab-service-meta";
+const PATTERN_EVENTS_KEY = "football-pattern-lab-pattern-events";
 
 const navItems = [
   { id: "live", label: "Матчи", title: "Сканер матчей" },
   { id: "signals", label: "Сигналы", title: "Активные сигналы" },
   { id: "patterns", label: "Паттерны", title: "Лаборатория паттернов" },
-  { id: "history", label: "История", title: "История сигналов" },
+  { id: "history", label: "История", title: "История паттернов" },
   { id: "stats", label: "Статистика", title: "Статистика" },
   { id: "settings", label: "Настройки", title: "Настройки" }
 ];
@@ -19,7 +21,8 @@ const state = {
   matches: [],
   snapshots: [],
   signals: [],
-  history: []
+  history: [],
+  serviceMeta: readServiceMeta()
 };
 
 const root = document.querySelector("#pageRoot");
@@ -54,8 +57,9 @@ function init() {
   state.patterns = getMockPatterns();
   state.matches = getMockMatches();
   state.snapshots = getMockSnapshots();
-  state.history = getMockHistory();
+  state.history = readPatternEvents(getMockHistory());
   state.signals = evaluateAllMatches();
+  syncActiveSignalsToJournal();
 
   bindNavigation();
   refreshButton.addEventListener("click", refreshMockData);
@@ -288,12 +292,22 @@ function renderPatterns() {
 }
 
 function renderHistory() {
+  const journalStats = getJournalStats();
   return `
+    <section class="summary-grid journal-summary">
+      ${metric("Сервис запущен", formatDate(journalStats.startedAt))}
+      ${metric("Всего событий", journalStats.total)}
+      ${metric("Win", journalStats.win)}
+      ${metric("Lose", journalStats.lose)}
+      ${metric("В процессе", journalStats.open)}
+      ${metric("Win rate", `${journalStats.winRate}%`)}
+    </section>
+
     <section class="panel wide-panel">
       <div class="panel-heading">
         <div>
           <p class="eyebrow">Архив</p>
-          <h2>История сигналов</h2>
+          <h2>История всех паттернов</h2>
         </div>
         <span class="count-pill">${state.history.length}</span>
       </div>
@@ -309,7 +323,7 @@ function renderHistory() {
             <span>${patternTypeLabels[item.patternType]}</span>
             <span>${item.score}</span>
             <span><b class="status-dot ${item.status}"></b>${statusLabels[item.status]}</span>
-            <span>${formatResult(item.result)}</span>
+            <span>${formatOutcome(item)} · ${formatResult(item.result)}</span>
           </div>
         `).join("")}
       </div>
@@ -319,16 +333,27 @@ function renderHistory() {
 
 function renderStats() {
   const totals = getDashboardStats();
+  const journalStats = getJournalStats();
   const patternRows = state.patterns.map((pattern) => {
     const history = state.history.filter((item) => item.patternId === pattern.id);
     const active = state.signals.filter((signal) => signal.patternId === pattern.id).length;
-    const success = history.filter((item) => item.status === "success").length;
-    const rate = history.length ? Math.round((success / history.length) * 100) : 0;
-    return { pattern, history, active, rate };
+    const win = history.filter((item) => getOutcome(item) === "win").length;
+    const lose = history.filter((item) => getOutcome(item) === "lose").length;
+    const open = history.filter((item) => getOutcome(item) === "open").length;
+    const closed = win + lose;
+    const rate = closed ? Math.round((win / closed) * 100) : 0;
+    return { pattern, history, active, win, lose, open, rate };
   });
 
   return `
     ${renderSummary(totals)}
+    <section class="summary-grid journal-summary">
+      ${metric("Событий за все время", journalStats.total)}
+      ${metric("Win", journalStats.win)}
+      ${metric("Lose", journalStats.lose)}
+      ${metric("В процессе", journalStats.open)}
+      ${metric("Общий win rate", `${journalStats.winRate}%`)}
+    </section>
     <section class="section-grid">
       <div class="panel wide-panel">
         <div class="panel-heading">
@@ -341,7 +366,7 @@ function renderStats() {
           <div class="stat-line">
             <div>
               <strong>${row.pattern.name}</strong>
-              <span>${row.history.length} в истории, ${row.active} активно</span>
+              <span>${row.history.length} событий · win ${row.win} · lose ${row.lose} · в процессе ${row.open}</span>
             </div>
             <div class="progress"><span style="width: ${row.rate}%"></span></div>
             <b>${row.rate}%</b>
@@ -457,7 +482,7 @@ function renderMatchCard(match) {
       <div class="pattern-callout">
         <div>
           <p>${mainSignal ? patternTypeLabels[mainSignal.patternType] : "Паттерн не обнаружен"}</p>
-        <span>${mainSignal ? "Найден игровой паттерн" : "Идет наблюдение"}</span>
+          <span>${mainSignal ? mainSignal.explanation : "Идет наблюдение"}</span>
         </div>
         <span class="pressure-badge ${getSignalStrength(pressure).toLowerCase()}">${pressure}</span>
       </div>
@@ -483,6 +508,7 @@ function renderCompactSignal(signal) {
       <div>
         <strong>${patternTypeLabels[signal.patternType]}</strong>
         <span>${match.homeTeam} - ${match.awayTeam}, ${signal.minute}'</span>
+        <small>${signal.explanation}</small>
       </div>
       <span class="strength ${signal.strength.toLowerCase()}">${strengthLabels[signal.strength]}</span>
     </article>
@@ -496,6 +522,7 @@ function renderSignalRow(signal) {
       <div>
         <strong>${patternTypeLabels[signal.patternType]}</strong>
         <span>${match.homeTeam} - ${match.awayTeam} · ${match.league}</span>
+        <small>${signal.explanation}</small>
       </div>
       <span>${signal.minute}'</span>
       <span>${signal.scoreHome}:${signal.scoreAway}</span>
@@ -554,6 +581,132 @@ function getDashboardStats() {
   };
 }
 
+function readServiceMeta() {
+  const fallback = { startedAt: new Date().toISOString() };
+  try {
+    const stored = JSON.parse(localStorage.getItem(SERVICE_META_KEY) || "null");
+    if (stored?.startedAt) {
+      return stored;
+    }
+    localStorage.setItem(SERVICE_META_KEY, JSON.stringify(fallback));
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function readPatternEvents(seedEvents) {
+  try {
+    const stored = JSON.parse(localStorage.getItem(PATTERN_EVENTS_KEY) || "null");
+    if (Array.isArray(stored) && stored.length > 0) {
+      return stored.map(normalizePatternEvent).sort(sortEventsByTime);
+    }
+  } catch {}
+
+  const seeded = seedEvents.map(normalizePatternEvent).sort(sortEventsByTime);
+  localStorage.setItem(PATTERN_EVENTS_KEY, JSON.stringify(seeded));
+  return seeded;
+}
+
+function writePatternEvents() {
+  localStorage.setItem(PATTERN_EVENTS_KEY, JSON.stringify(state.history));
+}
+
+function syncActiveSignalsToJournal() {
+  let changed = false;
+  state.signals.forEach((signal) => {
+    if (state.history.some((event) => event.id === signal.id)) {
+      return;
+    }
+    state.history.unshift(signalToJournalEvent(signal));
+    changed = true;
+  });
+
+  if (changed) {
+    state.history = state.history.map(normalizePatternEvent).sort(sortEventsByTime);
+    writePatternEvents();
+  }
+}
+
+function signalToJournalEvent(signal) {
+  const match = state.matches.find((item) => item.id === signal.matchId);
+  return {
+    id: signal.id,
+    match: `${match.homeTeam} - ${match.awayTeam}`,
+    matchId: signal.matchId,
+    league: match.league,
+    minute: signal.minute,
+    patternId: signal.patternId,
+    patternType: signal.patternType,
+    teamSide: signal.teamSide,
+    score: `${signal.scoreHome}:${signal.scoreAway}`,
+    status: signal.status,
+    result: { goalWithin5: false, goalWithin10: false, goalWithin15: false },
+    pressureScore: signal.pressureScore,
+    strength: signal.strength,
+    explanation: signal.explanation,
+    createdAt: signal.createdAt,
+    closedAt: null
+  };
+}
+
+function normalizePatternEvent(event) {
+  const normalized = {
+    id: event.id || `${event.match}-${event.patternId}-${event.minute}-${event.score}`.replaceAll(" ", "-"),
+    match: event.match,
+    matchId: event.matchId || "",
+    league: event.league,
+    minute: event.minute,
+    patternId: event.patternId,
+    patternType: event.patternType,
+    teamSide: event.teamSide || "both",
+    score: event.score,
+    status: event.status,
+    result: event.result || { goalWithin5: false, goalWithin10: false, goalWithin15: false },
+    pressureScore: event.pressureScore || null,
+    strength: event.strength || null,
+    explanation: event.explanation || "Событие добавлено в журнал до появления подробных объяснений.",
+    createdAt: event.createdAt || event.occurredAt || state.serviceMeta.startedAt,
+    closedAt: event.closedAt || null
+  };
+
+  return normalized;
+}
+
+function getJournalStats() {
+  const total = state.history.length;
+  const win = state.history.filter((event) => getOutcome(event) === "win").length;
+  const lose = state.history.filter((event) => getOutcome(event) === "lose").length;
+  const open = state.history.filter((event) => getOutcome(event) === "open").length;
+  const closed = win + lose;
+
+  return {
+    startedAt: state.serviceMeta.startedAt,
+    total,
+    win,
+    lose,
+    open,
+    winRate: closed ? Math.round((win / closed) * 100) : 0
+  };
+}
+
+function getOutcome(event) {
+  if (event.status === "success") return "win";
+  if (event.status === "failed") return "lose";
+  return "open";
+}
+
+function formatOutcome(event) {
+  const outcome = getOutcome(event);
+  if (outcome === "win") return "Win";
+  if (outcome === "lose") return "Lose";
+  return "В процессе";
+}
+
+function sortEventsByTime(a, b) {
+  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+}
+
 function refreshMockData() {
   state.matches = state.matches.map((match) => ({
     ...match,
@@ -567,6 +720,7 @@ function refreshMockData() {
     away: bumpStats(snapshot.away)
   }));
   state.signals = evaluateAllMatches();
+  syncActiveSignalsToJournal();
   render();
 }
 
@@ -659,6 +813,7 @@ function evaluatePattern(match, snapshot, pattern, side) {
     pressureScore,
     strength: getSignalStrength(pressureScore),
     status: pattern.type === "empty_pressure" ? "new" : "in_progress",
+    explanation: buildSignalExplanation(pattern.type, match, team, opponent, side, pressureScore, recent, previous),
     createdAt: new Date().toISOString()
   };
 }
@@ -690,6 +845,32 @@ function getSignalStrength(score) {
   return "LOW";
 }
 
+function buildSignalExplanation(type, match, team, opponent, side, pressureScore, recent, previous) {
+  const teamName = side === "home" ? match.homeTeam : match.awayTeam;
+  const opponentName = side === "home" ? match.awayTeam : match.homeTeam;
+  const score = `${match.scoreHome}:${match.scoreAway}`;
+  const dangerousRatio = opponent.dangerousAttacks ? (team.dangerousAttacks / opponent.dangerousAttacks).toFixed(1) : "∞";
+  const shotsRatio = opponent.shotsTotal ? (team.shotsTotal / opponent.shotsTotal).toFixed(1) : "∞";
+  const recentGrowth = previous.dangerousAttacks ? Math.round((recent.dangerousAttacks / previous.dangerousAttacks) * 100) : 0;
+
+  const explanations = {
+    pressure_without_goal:
+      `${teamName}: счет ${score}, ${team.dangerousAttacks} опасных атак, ${team.shotsTotal} ударов, ${team.corners} угловых, индекс давления ${pressureScore}. Давление есть, голов пока нет.`,
+    late_goal:
+      `${teamName}: ${match.minute}-я минута, разница в счете не больше одного мяча, ${team.dangerousAttacks} опасных атак и индекс давления ${pressureScore}. Матч остается активным в поздней фазе.`,
+    favorite_losing_but_pressing:
+      `${teamName} уступает в счете, но давит сильнее ${opponentName}: опасные атаки x${dangerousRatio}, удары x${shotsRatio}, индекс давления ${pressureScore}.`,
+    match_woke_up:
+      `${teamName}: последние 10 минут заметно активнее предыдущего отрезка, рост опасных атак до ${recentGrowth}%, ударов за отрезок ${recent.shotsTotal}, индекс давления ${pressureScore}.`,
+    corner_pressure:
+      `${teamName}: ${team.attacks} атак, ${team.dangerousAttacks} опасных атак и ${team.corners} угловых. Команда регулярно доводит атаки до давления у ворот.`,
+    empty_pressure:
+      `${teamName}: атак много (${team.attacks}), опасных атак ${team.dangerousAttacks}, но ударов в створ ${team.shotsOnTarget} и угловых ${team.corners}. Давление может быть низкого качества.`
+  };
+
+  return explanations[type] || `${teamName}: найдено совпадение с условиями паттерна, индекс давления ${pressureScore}.`;
+}
+
 function getSnapshot(matchId) {
   return state.snapshots.find((snapshot) => snapshot.matchId === matchId);
 }
@@ -704,6 +885,14 @@ function formatResult(result) {
   if (result.goalWithin10) return "Гол до 10 мин";
   if (result.goalWithin15) return "Гол до 15 мин";
   return "Гола нет";
+}
+
+function formatDate(value) {
+  return new Date(value).toLocaleDateString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit"
+  });
 }
 
 function readSettings() {
