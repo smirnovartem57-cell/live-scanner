@@ -530,7 +530,7 @@ function renderHistory() {
       ${metric("Win", journalStats.win)}
       ${metric("Lose", journalStats.lose)}
       ${metric("В процессе", journalStats.open)}
-      ${metric("Win rate", `${journalStats.winRate}%`)}
+      ${metric("Доля Win", `${journalStats.winRate}%`)}
     </section>
 
     <section class="panel wide-panel">
@@ -692,7 +692,7 @@ function renderStats() {
       ${metric("Win", journalStats.win)}
       ${metric("Lose", journalStats.lose)}
       ${metric("В процессе", journalStats.open)}
-      ${metric("Общий win rate", `${journalStats.winRate}%`)}
+      ${metric("Доля Win", `${journalStats.winRate}%`)}
     </section>
     <section class="section-grid">
       <div class="panel wide-panel">
@@ -705,7 +705,7 @@ function renderStats() {
         ${renderPatternSortControls()}
         <div class="analytics-table">
           <div class="analytics-head">
-            <span>Паттерн</span><span>Сигналов</span><span>До 5</span><span>До 10</span><span>До 15</span><span>Не подтверждено</span><span>Pressure</span><span>Минута</span><span>Оценка</span><span>Статус</span>
+            <span>Паттерн</span><span>Сигналов</span><span>До 5</span><span>До 10</span><span>До 15</span><span>Не подтверждено</span><span>Индекс</span><span>Минута</span><span>Оценка</span><span>Статус</span>
           </div>
           ${patternRows.map((row) => `
             <div class="analytics-row ${row.status}">
@@ -1500,7 +1500,7 @@ function renderTeamPatterns(profile) {
     <article class="team-section">
       <h3>Характерные паттерны команды</h3>
       <div class="team-mini-table pattern-table">
-        <div><b>Паттерн</b><b>Сигналов</b><b>До 10</b><b>До 15</b><b>Минута</b><b>Pressure</b><b>Label</b></div>
+        <div><b>Паттерн</b><b>Сигналов</b><b>До 10</b><b>До 15</b><b>Минута</b><b>Индекс</b><b>Оценка</b></div>
         ${patterns.map((pattern) => `
           <div>
             <span>${pattern.patternName}</span>
