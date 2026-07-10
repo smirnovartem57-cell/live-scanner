@@ -1,3 +1,4 @@
+(function () {
 const SIGNAL_BUCKET_MINUTES = 10;
 
 function calculatePressureScore(stats) {
@@ -192,3 +193,4 @@ window.FootballPatternEngine = {
   getSignalStrength,
   getPatternStatus
 };
+})();

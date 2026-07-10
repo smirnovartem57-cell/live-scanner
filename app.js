@@ -28,13 +28,13 @@ const {
 } = window.LiveScannerFormatters;
 
 const navItems = [
-  { id: "live", label: "Матчи", title: "Сканер матчей" },
-  { id: "signals", label: "Сигналы", title: "Активные сигналы" },
+  { id: "live", label: "Сканер матчей", title: "Сканер матчей" },
+  { id: "signals", label: "Уведомления", title: "Активные сигналы" },
   { id: "patterns", label: "Паттерны", title: "Лаборатория паттернов" },
-  { id: "history", label: "История", title: "История паттернов" },
-  { id: "stats", label: "Статистика", title: "Статистика" },
-  { id: "profile", label: "Профиль", title: "Профиль аналитика" },
-  { id: "ideas", label: "Идеи", title: "Идеи и обратная связь" },
+  { id: "history", label: "База знаний", title: "История паттернов" },
+  { id: "stats", label: "Аналитика", title: "Статистика" },
+  { id: "profile", label: "Команды", title: "Профиль аналитика" },
+  { id: "ideas", label: "Избранное", title: "Идеи и обратная связь" },
   { id: "settings", label: "Настройки", title: "Настройки" }
 ];
 
@@ -128,12 +128,24 @@ function bindNavigation() {
     </button>
   `).join("");
 
-  desktopNav.innerHTML = navHtml;
+  desktopNav.innerHTML = navHtml + `
+    <div class="sync-card">
+      <span class="sync-dot" aria-hidden="true"></span>
+      <b>Синхронизация данных</b>
+      <small>Последнее обновление: 2 мин назад</small>
+      <button type="button" id="sidebarRefresh">Обновить сейчас</button>
+    </div>
+  `;
   mobileNav.innerHTML = navItems.slice(0, 5).map((item) => `
     <button class="nav-item" type="button" data-view="${item.id}" aria-label="${item.label}">
       <span>${item.label}</span>
     </button>
   `).join("");
+
+  const sidebarRefresh = document.querySelector("#sidebarRefresh");
+  if (sidebarRefresh) {
+    sidebarRefresh.addEventListener("click", refreshMockData);
+  }
 
   document.querySelectorAll("[data-view]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -374,7 +386,8 @@ function renderLive() {
     <section class="hero-strip">
       <div>
         <p class="eyebrow">${footballProvider.mode === "mock" ? "Демо-данные" : "Данные API"}</p>
-        <h2>Сканер матчей по текущей статистике</h2>
+        <h2>Сканер матчей</h2>
+        <span>Поиск матчей с высокопотенциальными паттернами</span>
       </div>
       <div class="refresh-note">Обновлено ${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</div>
     </section>
@@ -387,16 +400,7 @@ function renderLive() {
       <div class="match-feed">
         ${matches.map(renderMatchCard).join("") || renderEmpty("Под выбранный фильтр матчей нет.")}
       </div>
-      <aside class="panel signal-feed">
-        <div class="panel-heading">
-          <div>
-            <p class="eyebrow">Сигналы</p>
-            <h2>Лента сигналов</h2>
-          </div>
-          <span class="count-pill">${state.signals.length}</span>
-        </div>
-        ${state.signals.slice(0, 5).map(renderCompactSignal).join("") || renderEmpty("Сигналов пока нет.")}
-      </aside>
+      ${renderLiveRightbar(matches)}
     </section>
   `;
 }
@@ -1119,11 +1123,22 @@ function renderFilterChips() {
   ];
 
   return `
-    <div class="filter-chips">
-      ${chips.map(([id, label]) => `
-        <button class="chip ${state.activeFilter === id ? "is-active" : ""}" type="button" data-filter="${id}">${label}</button>
-      `).join("")}
-    </div>
+    <section class="scanner-filter-panel">
+      <div class="filter-control"><small>Время</small><strong>Live сейчас</strong></div>
+      <div class="filter-control"><small>Лиги</small><strong>${state.activeFilter === "top" ? "Топ лиги" : state.activeFilter === "mine" ? "Мои лиги" : "Все лиги"}</strong></div>
+      <div class="filter-control"><small>Статус</small><strong>${state.activeFilter === "scoreless" ? "0:0" : state.activeFilter === "late" ? "60+" : "Все"}</strong></div>
+      <div class="filter-control"><small>Интенсивность</small><strong>${["HIGH", "MED", "LOW"].includes(state.activeFilter) ? state.activeFilter : "Любая"}</strong></div>
+      <div class="filter-control"><small>Эффективность</small><strong>Любая</strong></div>
+      <div class="filter-actions">
+        <button class="chip reset-chip ${state.activeFilter === "all" ? "is-active" : ""}" type="button" data-filter="all">Сбросить</button>
+        <span class="view-toggle"><b>Список</b><i>Сетка</i></span>
+      </div>
+      <div class="filter-chips compact">
+        ${chips.map(([id, label]) => `
+          <button class="chip ${state.activeFilter === id ? "is-active" : ""}" type="button" data-filter="${id}">${label}</button>
+        `).join("")}
+      </div>
+    </section>
   `;
 }
 
@@ -1134,31 +1149,53 @@ function renderMatchCard(match) {
   const homePressure = patternEngine.calculatePressureScore(snapshot.home);
   const awayPressure = patternEngine.calculatePressureScore(snapshot.away);
   const pressure = Math.max(homePressure, awayPressure);
+  const strength = mainSignal ? mainSignal.strength : patternEngine.getSignalStrength(pressure);
+  const priority = getMatchPriorityLabel(strength);
+  const trend = formatTrend(snapshot.recent.home, snapshot.previous.home);
+  const confidence = Math.min(96, Math.max(42, pressure + (signals.length * 4)));
 
   return `
     <article class="match-card">
-      <div class="card-topline">
-        <span class="live-pill">${match.status === "halftime" ? "Перерыв" : "Онлайн"}</span>
-        <span>${match.minute}'</span>
-        <span>${match.league}</span>
+      <div class="match-zone match-main-info">
+        <div class="card-topline">
+          <span class="country-dot" aria-hidden="true"></span>
+          <span>${match.league}</span>
+          <span class="live-pill">${match.status === "halftime" ? "ПЕРЕРЫВ" : "LIVE"}</span>
+        </div>
+        <div class="scoreboard">
+          <button class="team-link" type="button" data-team-profile="${escapeHtml(match.homeTeam)}" data-team-id="${match.homeTeamId || ""}" data-match-id="${match.id}" data-team-side="home">${match.homeTeam}</button>
+          <b>${match.scoreHome}:${match.scoreAway}</b>
+          <button class="team-link" type="button" data-team-profile="${escapeHtml(match.awayTeam)}" data-team-id="${match.awayTeamId || ""}" data-match-id="${match.id}" data-team-side="away">${match.awayTeam}</button>
+        </div>
+        <div class="match-meta-line">
+          <span>${match.minute}' минута</span>
+          <span>${match.status === "live" ? "Матч идет" : "Текущий статус"}</span>
+        </div>
       </div>
-      <div class="scoreboard">
-        <button class="team-link" type="button" data-team-profile="${escapeHtml(match.homeTeam)}" data-team-id="${match.homeTeamId || ""}" data-match-id="${match.id}" data-team-side="home">${match.homeTeam}</button>
-        <b>${match.scoreHome}:${match.scoreAway}</b>
-        <button class="team-link" type="button" data-team-profile="${escapeHtml(match.awayTeam)}" data-team-id="${match.awayTeamId || ""}" data-match-id="${match.id}" data-team-side="away">${match.awayTeam}</button>
-      </div>
-      <div class="pattern-callout">
+
+      <div class="match-zone pattern-callout">
         <div>
-          <small class="signal-caption">${mainSignal ? "Обнаружен паттерн" : "Наблюдение"}</small>
+          <small class="signal-caption">Ключевые паттерны</small>
           <p>${mainSignal ? patternTypeLabels[mainSignal.patternType] : "Паттерн не обнаружен"}</p>
           <span>${mainSignal ? mainSignal.explanation : "Идет наблюдение"}</span>
           ${signals.length > 1 ? renderPatternBadges(signals) : ""}
-        </div>
-        <div class="signal-score">
-          <span class="strength ${mainSignal ? mainSignal.strength.toLowerCase() : patternEngine.getSignalStrength(pressure).toLowerCase()}">${mainSignal ? mainSignal.strength : patternEngine.getSignalStrength(pressure)}</span>
-          <span class="pressure-badge ${patternEngine.getSignalStrength(pressure).toLowerCase()}">${pressure}</span>
+          <div class="match-signal-meta">
+            <span class="status-badge ${strength.toLowerCase()}">${strength === "HIGH" ? "Сильный сигнал" : strength === "MED" ? "Нужно подтверждение" : "Низкая интенсивность"}</span>
+            <span>Тренд: ${trend}</span>
+            <span>Уверенность: ${confidence}%</span>
+            <span>Форма: В В Н В П</span>
+          </div>
         </div>
       </div>
+
+      <div class="match-zone match-index-card">
+        <div class="radial-index ${strength.toLowerCase()}" style="--score: ${pressure}">
+          <b>${pressure}</b>
+        </div>
+        <span>Индекс матча</span>
+        <strong>${priority}</strong>
+      </div>
+
       <div class="stat-grid compact">
         ${statMetric("Опасные", snapshot.home.dangerousAttacks, snapshot.away.dangerousAttacks)}
         ${statMetric("Удары", snapshot.home.shotsTotal, snapshot.away.shotsTotal)}
@@ -1166,11 +1203,86 @@ function renderMatchCard(match) {
         ${statMetric("Угловые", snapshot.home.corners, snapshot.away.corners)}
         ${statMetric("xG", snapshot.home.xg.toFixed(2), snapshot.away.xg.toFixed(2))}
       </div>
-      <div class="trend-row">
-        <span class="trend-indicator ${getTrendDirection(snapshot.recent.home, snapshot.previous.home)}">Тренд: ${formatTrend(snapshot.recent.home, snapshot.previous.home)}</span>
-        <span class="strength ${mainSignal ? mainSignal.strength.toLowerCase() : "low"}">${mainSignal ? strengthLabels[mainSignal.strength] : strengthLabels.LOW}</span>
-      </div>
     </article>
+  `;
+}
+
+function renderLiveRightbar(matches) {
+  return `
+    <aside class="rightbar signal-feed">
+      <section class="panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Приоритет</p>
+            <h2>Приоритетные матчи</h2>
+          </div>
+        </div>
+        ${renderPriorityMatches(matches)}
+      </section>
+      <section class="panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Паттерны</p>
+            <h2>Эффективность</h2>
+          </div>
+        </div>
+        ${renderPatternEfficiencyWidget()}
+      </section>
+      <section class="panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Данные</p>
+            <h2>Последние обновления</h2>
+          </div>
+        </div>
+        ${renderRecentUpdatesWidget()}
+      </section>
+    </aside>
+  `;
+}
+
+function renderPriorityMatches(matches) {
+  return `
+    <div class="priority-list">
+      ${matches.slice(0, 5).map((match, index) => {
+        const snapshot = getSnapshot(match.id);
+        const pressure = snapshot ? Math.max(patternEngine.calculatePressureScore(snapshot.home), patternEngine.calculatePressureScore(snapshot.away)) : 0;
+        return `
+          <span>
+            <b>${index + 1}</b>
+            <small>${match.homeTeam} — ${match.awayTeam}<em>${match.league} · ${match.minute}'</em></small>
+            <strong>${pressure}</strong>
+          </span>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderPatternEfficiencyWidget() {
+  const rows = sortPatternRows(state.patterns.map((pattern) => getPatternStats(pattern, state.history))).slice(0, 5);
+  return `
+    <div class="period-tabs"><span class="is-active">7 дней</span><span>30 дней</span><span>Сезон</span></div>
+    <div class="progress-list">
+      ${rows.map((row) => `
+        <span>
+          <b>${row.pattern.name}</b>
+          <i><em style="width: ${Math.max(8, row.successRate15)}%"></em></i>
+          <strong>${row.successRate15}%</strong>
+        </span>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderRecentUpdatesWidget() {
+  const latestMatch = state.matches[0];
+  return `
+    <div class="update-list">
+      <span><b>Обновлены веса паттернов</b><small>Паттерны 1, 3, 7, 9, 12 · 2 мин назад</small></span>
+      <span><b>Изменён статус матча</b><small>${latestMatch.homeTeam} — ${latestMatch.awayTeam} · 5 мин назад</small></span>
+      <span><b>Новые данные по составам</b><small>${state.matches.length} матчей · 12 мин назад</small></span>
+    </div>
   `;
 }
 
@@ -1184,6 +1296,7 @@ function renderTeamProfile(selection) {
 
   return `
     <section class="team-profile-panel">
+      <div class="team-breadcrumbs">Команды &gt; ${escapeHtml(profile.name)}</div>
       <div class="team-profile-header">
         <div class="team-logo" aria-hidden="true">${profile.logo || profile.name.slice(0, 3).toUpperCase()}</div>
         <div>
@@ -1191,19 +1304,15 @@ function renderTeamProfile(selection) {
           <h2>${profile.name}</h2>
           <span>${profile.country || "Страна не указана"} · ${profile.league || profile.match.league}</span>
           <small>Последние ${averages.matchesCount || profile.recentMatches?.length || 0} матчей: ${averages.wins || 0} побед · ${averages.draws || 0} ничьих · ${averages.losses || 0} поражений</small>
+          <p>${profile.summary}</p>
         </div>
         <button class="mini-action" type="button" data-close-team-profile>Закрыть</button>
       </div>
-      <div class="team-profile-grid">
-        ${metric("Pressure score", profile.pressureScore)}
-        ${metric("Опасные атаки", profile.stats.dangerousAttacks)}
-        ${metric("Удары", profile.stats.shotsTotal)}
-        ${metric("xG", profile.stats.xg.toFixed(2))}
-      </div>
+      ${renderTeamKpis(profile)}
       <div class="team-profile-body">
         <article>
-          <h3>Текущий контекст</h3>
-          <p>${profile.summary}</p>
+          <h3>Статистика команды</h3>
+          ${renderTeamQuickStats(profile)}
         </article>
         <article class="team-note-card">
           <h3>Моя заметка</h3>
@@ -1235,12 +1344,98 @@ function renderTeamProfile(selection) {
       </div>
       <div class="team-profile-sections">
         ${renderTeamAverages(profile)}
+        ${renderTeamBestPatterns(profile)}
         ${renderTeamPeriodAverages(profile)}
         ${renderTeamPatterns(profile)}
         ${renderTeamRecentMatches(profile)}
         ${renderImportantMatches(profile)}
+        ${renderTeamTrendChart(profile)}
       </div>
     </section>
+  `;
+}
+
+function renderTeamKpis(profile) {
+  const averages = profile.averages || {};
+  const patternIndex = Math.min(100, Math.round(((profile.characteristicPatterns || []).reduce((sum, item) => sum + item.successRate15, 0) / Math.max(1, (profile.characteristicPatterns || []).length)) || profile.pressureScore));
+  const stability = Math.min(100, Math.round(((averages.wins || 0) / Math.max(1, averages.matchesCount || 1)) * 100 + 25));
+  const strongFrequency = Math.min(100, Math.round((profile.history.win / Math.max(1, profile.history.total)) * 100));
+  const kpis = [
+    ["Средняя интенсивность", profile.pressureScore, "Высокая"],
+    ["Индекс паттернов", patternIndex, "Высокий"],
+    ["Стабильность формы", stability, "Стабильная"],
+    ["Частота сильных сигналов", strongFrequency, "Выше среднего"]
+  ];
+
+  return `
+    <div class="team-kpi-grid">
+      ${kpis.map(([label, value, caption]) => `
+        <article class="team-kpi-card">
+          <div class="mini-radial" style="--score: ${value}"><b>${value}</b></div>
+          <span>${label}</span>
+          <strong>${caption}</strong>
+          <i><em style="width: ${Math.max(12, value)}%"></em></i>
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderTeamQuickStats(profile) {
+  const averages = profile.averages || {};
+  const matches = averages.matchesCount || profile.recentMatches?.length || 0;
+  const wins = averages.wins || 0;
+  const draws = averages.draws || 0;
+  const losses = averages.losses || 0;
+  const goalsFor = Math.round((averages.goalsFor || 0) * Math.max(1, matches));
+  const goalsAgainst = Math.round((averages.goalsAgainst || 0) * Math.max(1, matches));
+
+  return `
+    <div class="team-quick-stats">
+      <span><b>${matches}</b>Сыграно матчей</span>
+      <span><b>${wins}</b>Победы</span>
+      <span><b>${draws}</b>Ничьи</span>
+      <span><b>${losses}</b>Поражения</span>
+      <span><b>${goalsFor}/${goalsAgainst}</b>Голы</span>
+    </div>
+  `;
+}
+
+function renderTeamBestPatterns(profile) {
+  const patterns = [...(profile.characteristicPatterns || [])]
+    .sort((a, b) => b.successRate15 - a.successRate15)
+    .slice(0, 3);
+
+  return `
+    <article class="team-section">
+      <h3>Лучшие паттерны</h3>
+      <div class="progress-list">
+        ${patterns.map((pattern, index) => `
+          <span>
+            <b>${index + 1}. ${pattern.patternName}</b>
+            <i><em style="width: ${pattern.successRate15}%"></em></i>
+            <strong>${pattern.successRate15}%</strong>
+          </span>
+        `).join("") || "<p class=\"muted\">Недостаточно данных.</p>"}
+      </div>
+    </article>
+  `;
+}
+
+function renderTeamTrendChart(profile) {
+  const points = (profile.recentMatches || []).slice(0, 10).map((match, index) => {
+    const base = match.status === "win" ? 78 : match.status === "draw" ? 62 : 46;
+    return Math.min(92, base + (index % 3) * 5);
+  });
+
+  return `
+    <article class="team-section wide">
+      <h3>Динамика по последним матчам</h3>
+      <div class="team-trend-chart">
+        ${points.map((value) => `<span style="height: ${value}%"><b>${value}</b></span>`).join("")}
+      </div>
+      <div class="chart-legend"><span>Интенсивность</span><span>Индекс паттернов</span><span>Голы забито</span></div>
+    </article>
   `;
 }
 
@@ -1404,6 +1599,12 @@ function formatTrend(recent, previous) {
   const arrow = direction === "up" ? "↑" : direction === "down" ? "↓" : "→";
   const label = direction === "up" ? "темп растет" : direction === "down" ? "темп снижается" : "темп ровный";
   return `${arrow} ${label}`;
+}
+
+function getMatchPriorityLabel(strength) {
+  if (strength === "HIGH") return "Высокий приоритет";
+  if (strength === "MED") return "Нужно подтверждение";
+  return "Низкий приоритет";
 }
 
 function renderEmpty(text) {
