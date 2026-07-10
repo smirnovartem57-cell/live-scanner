@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { AppShell } from "./components/AppShell";
 import { LiveScannerView } from "./components/LiveScannerView";
+import { PatternLabView } from "./components/PatternLabView";
 import { SignalListView } from "./components/SignalListView";
 import { useFootballLabData } from "./hooks/useFootballLabData";
 import type { ReactNavItem, ReactViewId } from "./types";
@@ -26,11 +27,12 @@ export function App() {
         <>
           {activeView === "scanner" ? <LiveScannerView matches={data.matches} signals={data.signals} summary={summary} /> : null}
           {activeView === "signals" ? <SignalListView matches={data.matches} signals={data.signals} /> : null}
-          {activeView !== "scanner" && activeView !== "signals" ? (
+          {activeView === "patterns" ? <PatternLabView patterns={data.patterns} history={data.history} signals={data.signals} /> : null}
+          {activeView !== "scanner" && activeView !== "signals" && activeView !== "patterns" ? (
             <section className="panel">
-              <p className="eyebrow">React-миграция</p>
+              <p className="eyebrow">Раздел</p>
               <h2>{title}</h2>
-              <p className="muted">Этот экран будет перенесён следующим шагом. Текущая production-версия уже содержит полный раздел.</p>
+              <p className="muted">Данные раздела доступны в основной версии сервиса.</p>
             </section>
           ) : null}
         </>

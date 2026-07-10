@@ -3252,3 +3252,7 @@ input[type="text"] {
     grid-template-columns: 1fr;
   }
 }
+
+.pattern-layout > .wide-panel {
+  grid-column: 1 / -1;
+}
