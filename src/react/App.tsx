@@ -5,7 +5,9 @@ import { HistoryView } from "./components/HistoryView";
 import { LiveScannerView } from "./components/LiveScannerView";
 import { PatternLabView } from "./components/PatternLabView";
 import { SignalListView } from "./components/SignalListView";
+import { TeamProfileView } from "./components/TeamProfileView";
 import { useFootballLabData } from "./hooks/useFootballLabData";
+import { buildTeamProfileViewModel, type TeamProfileSelection } from "./domain/teamProfile";
 import type { ReactNavItem, ReactViewId } from "./types";
 
 const navItems: ReactNavItem[] = [
@@ -18,8 +20,20 @@ const navItems: ReactNavItem[] = [
 
 export function App() {
   const [activeView, setActiveView] = useState<ReactViewId>("scanner");
+  const [selectedTeam, setSelectedTeam] = useState<TeamProfileSelection | null>(null);
   const { data, error, loading, summary } = useFootballLabData();
   const title = useMemo(() => navItems.find((item) => item.id === activeView)?.title || "Сканер матчей", [activeView]);
+  const teamProfile = useMemo(() => {
+    if (!data || !selectedTeam) return null;
+    return buildTeamProfileViewModel({
+      selection: selectedTeam,
+      matches: data.matches,
+      snapshots: data.snapshots,
+      signals: data.signals,
+      history: data.history,
+      profiles: data.teamProfiles
+    });
+  }, [data, selectedTeam]);
 
   return (
     <AppShell title={title} activeView={activeView} navItems={navItems} onViewChange={setActiveView}>
@@ -27,7 +41,8 @@ export function App() {
       {error ? <div className="empty-state">{error}</div> : null}
       {data ? (
         <>
-          {activeView === "scanner" ? <LiveScannerView matches={data.matches} signals={data.signals} summary={summary} /> : null}
+          {activeView === "scanner" && teamProfile ? <TeamProfileView profile={teamProfile} onClose={() => setSelectedTeam(null)} /> : null}
+          {activeView === "scanner" ? <LiveScannerView matches={data.matches} signals={data.signals} summary={summary} onTeamSelect={setSelectedTeam} /> : null}
           {activeView === "signals" ? <SignalListView matches={data.matches} signals={data.signals} /> : null}
           {activeView === "patterns" ? <PatternLabView patterns={data.patterns} history={data.history} signals={data.signals} /> : null}
           {activeView === "history" ? <HistoryView history={data.history} /> : null}

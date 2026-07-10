@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
-import type { Match } from "../../types/football";
+import type { Match, TeamSide } from "../../types/football";
 import type { Signal } from "../../types/patterns";
+import type { TeamProfileSelection } from "../domain/teamProfile";
 import { getPatternName } from "../domain/labels";
 import { MetricCard } from "./MetricCard";
 
@@ -13,13 +14,14 @@ type LiveScannerViewProps = {
     highSignalsCount: number;
     patternsCount: number;
   };
+  onTeamSelect: (selection: TeamProfileSelection) => void;
 };
 
 type PressureStyle = CSSProperties & {
   "--score": number;
 };
 
-export function LiveScannerView({ matches, signals, summary }: LiveScannerViewProps) {
+export function LiveScannerView({ matches, signals, summary, onTeamSelect }: LiveScannerViewProps) {
   return (
     <>
       <section className="hero-strip">
@@ -51,9 +53,9 @@ export function LiveScannerView({ matches, signals, summary }: LiveScannerViewPr
                   <span className="live-pill">{match.status === "halftime" ? "ПЕРЕРЫВ" : "LIVE"}</span>
                 </div>
                 <div className="scoreboard">
-                  <b>{match.homeTeam}</b>
+                  <TeamButton match={match} side="home" onTeamSelect={onTeamSelect} />
                   <strong>{match.scoreHome}:{match.scoreAway}</strong>
-                  <b>{match.awayTeam}</b>
+                  <TeamButton match={match} side="away" onTeamSelect={onTeamSelect} />
                 </div>
                 <div className="match-meta-line">
                   <span>{match.minute}'</span>
@@ -98,5 +100,16 @@ export function LiveScannerView({ matches, signals, summary }: LiveScannerViewPr
         })}
       </section>
     </>
+  );
+}
+
+function TeamButton({ match, side, onTeamSelect }: { match: Match; side: TeamSide; onTeamSelect: (selection: TeamProfileSelection) => void }) {
+  const teamName = side === "home" ? match.homeTeam : match.awayTeam;
+  const teamId = side === "home" ? match.homeTeamId : match.awayTeamId;
+
+  return (
+    <button className="team-link" type="button" onClick={() => onTeamSelect({ matchId: match.id, side, teamId })}>
+      {teamName}
+    </button>
   );
 }
