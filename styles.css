@@ -1326,6 +1326,24 @@ h2 {
   line-height: 1.35;
 }
 
+.manual-close {
+  display: grid;
+  gap: 8px;
+  min-width: 180px;
+  margin-top: 8px;
+}
+
+.manual-close .event-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.mini-action:disabled,
+.comment-field:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .mini-action {
   min-height: 34px;
   border: 1px solid var(--border-soft);

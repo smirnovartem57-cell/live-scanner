@@ -20,16 +20,38 @@ type HistoryViewProps = {
   source?: "mock" | "supabase";
   loading?: boolean;
   error?: string | null;
+  closingEventId?: string | null;
+  onManualClose?: (event: PatternEvent, outcome: "win" | "lose", comment: string) => Promise<void>;
   onReload?: () => void;
 };
 
 const filters: HistoryFilter[] = ["all", "win", "lose", "open"];
 
-export function HistoryView({ history, serviceStartedAt, source = "mock", loading = false, error = null, onReload }: HistoryViewProps) {
+export function HistoryView({
+  history,
+  serviceStartedAt,
+  source = "mock",
+  loading = false,
+  error = null,
+  closingEventId = null,
+  onManualClose,
+  onReload
+}: HistoryViewProps) {
   const [filter, setFilter] = useState<HistoryFilter>("all");
+  const [comments, setComments] = useState<Record<string, string>>({});
   const filteredHistory = useMemo(() => filterHistory(history, filter), [history, filter]);
   const allStats = useMemo(() => getHistoryStats(history), [history]);
   const filteredStats = useMemo(() => getHistoryStats(filteredHistory), [filteredHistory]);
+  const canCloseManually = source === "supabase" && Boolean(onManualClose);
+
+  function updateComment(eventId: string, comment: string) {
+    setComments((current) => ({ ...current, [eventId]: comment }));
+  }
+
+  async function closeManually(event: PatternEvent, outcome: "win" | "lose") {
+    if (!onManualClose) return;
+    await onManualClose(event, outcome, comments[event.id] || "");
+  }
 
   return (
     <>
@@ -83,14 +105,30 @@ export function HistoryView({ history, serviceStartedAt, source = "mock", loadin
             <span>Матч</span><span>Паттерн</span><span>Команда</span><span>Минута</span><span>Счет</span><span>Индекс</span><span>Статус</span><span>Источник</span><span>Результат</span>
           </div>
           {filteredHistory.map((event) => (
-            <HistoryRow event={event} key={event.id} />
+            <HistoryRow
+              event={event}
+              key={event.id}
+              canCloseManually={canCloseManually}
+              comment={comments[event.id] || event.comment || ""}
+              closing={closingEventId === event.id}
+              onCommentChange={updateComment}
+              onManualClose={closeManually}
+            />
           ))}
           {!filteredHistory.length ? <div className="empty-state">Событий по этому фильтру нет.</div> : null}
         </div>
 
         <div className="history-card-list">
           {filteredHistory.map((event) => (
-            <HistoryCard event={event} key={event.id} />
+            <HistoryCard
+              event={event}
+              key={event.id}
+              canCloseManually={canCloseManually}
+              comment={comments[event.id] || event.comment || ""}
+              closing={closingEventId === event.id}
+              onCommentChange={updateComment}
+              onManualClose={closeManually}
+            />
           ))}
           {!filteredHistory.length ? <div className="empty-state">Событий по этому фильтру нет.</div> : null}
         </div>
@@ -99,7 +137,17 @@ export function HistoryView({ history, serviceStartedAt, source = "mock", loadin
   );
 }
 
-function HistoryRow({ event }: { event: PatternEvent }) {
+type ManualCloseProps = {
+  event: PatternEvent;
+  canCloseManually: boolean;
+  comment: string;
+  closing: boolean;
+  onCommentChange: (eventId: string, comment: string) => void;
+  onManualClose: (event: PatternEvent, outcome: "win" | "lose") => void;
+};
+
+function HistoryRow(props: ManualCloseProps) {
+  const { event } = props;
   const outcome = getHistoryOutcome(event);
 
   return (
@@ -112,12 +160,17 @@ function HistoryRow({ event }: { event: PatternEvent }) {
       <span>{event.pressureScore || "-"}</span>
       <span><b className={`status-dot ${event.status}`} />{formatHistoryOutcome(event)}</span>
       <span><b className={`source-pill ${event.resultSource}`}>{formatResultSource(event)}</b></span>
-      <span><small className={`quality-note ${outcome}`}>{formatHistoryResult(event)}</small></span>
+      <span>
+        <small className={`quality-note ${outcome}`}>{formatHistoryResult(event)}</small>
+        <ManualCloseControls {...props} />
+      </span>
     </div>
   );
 }
 
-function HistoryCard({ event }: { event: PatternEvent }) {
+function HistoryCard(props: ManualCloseProps) {
+  const { event } = props;
+
   return (
     <article className={`history-card ${event.signalKind === "warning" ? "is-warning" : ""}`}>
       <div className="history-card-head">
@@ -139,7 +192,31 @@ function HistoryCard({ event }: { event: PatternEvent }) {
         <span><b className={`status-dot ${event.status}`} />{formatHistoryOutcome(event)}</span>
         <small>{formatHistoryResult(event)}</small>
       </div>
+      <ManualCloseControls {...props} />
     </article>
+  );
+}
+
+function ManualCloseControls({ event, canCloseManually, comment, closing, onCommentChange, onManualClose }: ManualCloseProps) {
+  if (!canCloseManually) return null;
+
+  return (
+    <div className="manual-close">
+      <textarea
+        className="comment-field"
+        value={comment}
+        placeholder="Комментарий к событию"
+        onChange={(input) => onCommentChange(event.id, input.target.value)}
+      />
+      <div className="event-actions">
+        <button className="mini-action is-win" type="button" disabled={closing} onClick={() => onManualClose(event, "win")}>
+          {closing ? "Сохраняем..." : "Win"}
+        </button>
+        <button className="mini-action is-lose" type="button" disabled={closing} onClick={() => onManualClose(event, "lose")}>
+          {closing ? "Сохраняем..." : "Lose"}
+        </button>
+      </div>
+    </div>
   );
 }
 

@@ -81,6 +81,8 @@ export function App() {
               source={journal.source}
               loading={journal.loading}
               error={journal.error}
+              closingEventId={journal.closingEventId}
+              onManualClose={journal.closeEvent}
               onReload={journal.reload}
             />
           ) : null}
