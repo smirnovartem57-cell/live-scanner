@@ -3143,3 +3143,112 @@ input[type="text"] {
     min-height: 0;
   }
 }
+
+/* Screenshot QA fixes */
+.pattern-layout {
+  grid-template-columns: 260px minmax(0, 1fr) 320px;
+}
+
+.pattern-layout > .panel {
+  min-width: 0;
+}
+
+.pattern-layout .mini-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pattern-layout .mini-stats .metric-card {
+  min-height: 92px;
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+}
+
+.pattern-layout .mini-stats .metric-card strong {
+  margin-bottom: 8px;
+  font-size: 31px;
+}
+
+.pattern-layout .mini-stats .metric-card span {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.history-toolbar .chip,
+.filter-chips.compact .chip {
+  min-height: 40px;
+  padding: 0 15px;
+}
+
+.signal-row-card {
+  grid-template-columns: minmax(220px, 1fr) 56px 62px 66px 128px;
+  align-items: center;
+}
+
+.signal-row-card .pressure-badge {
+  width: 58px;
+  min-width: 58px;
+  max-width: 58px;
+  height: 58px;
+  justify-self: center;
+  border-radius: 999px;
+  line-height: 1;
+}
+
+.signal-row-card > span:not(.pressure-badge):not(.status-dot-wrap) {
+  color: var(--text-primary);
+  font-weight: 800;
+  text-align: center;
+}
+
+.signal-row-card .status-dot-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.signal-row-card .status-dot {
+  flex: 0 0 auto;
+  margin-right: 0;
+}
+
+@media (max-width: 1500px) {
+  .pattern-layout {
+    grid-template-columns: 240px minmax(0, 1fr) 300px;
+  }
+}
+
+@media (max-width: 1260px) {
+  .pattern-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .pattern-layout .pattern-list {
+    position: static;
+  }
+
+  .pattern-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .signal-row-card {
+    grid-template-columns: minmax(0, 1fr) 58px;
+  }
+
+  .signal-row-card > span:not(.pressure-badge):not(.status-dot-wrap),
+  .signal-row-card .status-dot-wrap {
+    justify-self: start;
+    text-align: left;
+  }
+
+  .pattern-layout .mini-stats,
+  .pattern-list {
+    grid-template-columns: 1fr;
+  }
+}
