@@ -26,9 +26,9 @@ export function LiveScannerView({ matches, signals, summary, onTeamSelect }: Liv
     <>
       <section className="hero-strip">
         <div>
-          <p className="eyebrow">React-версия</p>
+          <p className="eyebrow">Live-аналитика</p>
           <h2>Сканер матчей</h2>
-          <span>Первый перенос экрана на компонентную архитектуру без замены опубликованного сайта.</span>
+          <span>Отслеживаем давление, темп и игровые паттерны на основе live-статистики.</span>
         </div>
       </section>
 

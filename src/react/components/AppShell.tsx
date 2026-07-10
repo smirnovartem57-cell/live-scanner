@@ -17,7 +17,7 @@ export function AppShell({ title, activeView, navItems, onViewChange, children }
           <div className="brand-mark" aria-hidden="true">FL</div>
           <div>
             <strong>Лаборатория паттернов</strong>
-            <span>React MVP</span>
+            <span>Live Scanner</span>
           </div>
         </div>
         <nav className="side-nav">
