@@ -120,7 +120,8 @@ services/social-feedback-service.js
                 сводка профиля, социального доверия и раздела Ideas / Feedback
 manifest.webmanifest
 sw.js
-icons/icon.svg
+icons/live-scanner-icon-*.png
+icons/live-scanner-logo.png
 ```
 
 ## React + TypeScript

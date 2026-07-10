@@ -18,7 +18,9 @@ export function AppShell({ title, activeView, navItems, onViewChange, onRefresh,
     <div className="app-shell react-app-shell">
       <aside className="desktop-sidebar" aria-label="Разделы приложения">
         <div className="brand">
-          <div className="brand-mark" aria-hidden="true">FL</div>
+          <div className="brand-mark" aria-hidden="true">
+            <img src="/icons/live-scanner-icon-192.png" alt="" />
+          </div>
           <div>
             <strong>Лаборатория паттернов</strong>
             <span>Live Scanner</span>
@@ -41,7 +43,9 @@ export function AppShell({ title, activeView, navItems, onViewChange, onRefresh,
       <div className="app-main">
         <header className="topbar">
           <div className="mobile-title">
-            <div className="brand-mark" aria-hidden="true">FL</div>
+            <div className="brand-mark" aria-hidden="true">
+              <img src="/icons/live-scanner-icon-192.png" alt="" />
+            </div>
             <div>
               <p className="eyebrow">Лаборатория футбольных паттернов</p>
               <h1>{title}</h1>

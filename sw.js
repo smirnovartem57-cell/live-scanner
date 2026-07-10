@@ -1,10 +1,16 @@
-const CACHE_NAME = "football-pattern-lab-v45";
+const CACHE_NAME = "football-pattern-lab-v46";
 const ASSETS = [
   "./",
   "./index.html",
-  "./data/mock-data.js?v=45",
+  "./data/mock-data.js?v=46",
   "./manifest.webmanifest",
-  "./icons/icon.svg",
+  "./icons/live-scanner-logo.png",
+  "./icons/live-scanner-mark.png",
+  "./icons/live-scanner-icon-512.png",
+  "./icons/live-scanner-icon-192.png",
+  "./icons/live-scanner-icon-180.png",
+  "./icons/live-scanner-icon-64.png",
+  "./icons/live-scanner-icon-32.png",
   "./data/sample-matches.json"
 ];
 

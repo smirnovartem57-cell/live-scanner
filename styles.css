@@ -3327,6 +3327,20 @@ input[type="text"] {
   opacity: 0.72;
 }
 
+.react-app-shell .brand-mark {
+  overflow: hidden;
+  background: #ffffff;
+  padding: 0;
+}
+
+.react-app-shell .brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
 @media (max-width: 720px) {
   .react-app-shell .topbar-actions {
     width: 100%;
