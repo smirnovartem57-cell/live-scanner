@@ -27,6 +27,9 @@ jobs:
         with:
           enablement: true
 
+      - name: Verify closed public artifact
+        run: node scripts/verify-closed-pages.mjs
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
