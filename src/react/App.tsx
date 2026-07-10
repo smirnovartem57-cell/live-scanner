@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { AppShell } from "./components/AppShell";
+import { HistoryView } from "./components/HistoryView";
 import { LiveScannerView } from "./components/LiveScannerView";
 import { PatternLabView } from "./components/PatternLabView";
 import { SignalListView } from "./components/SignalListView";
@@ -28,7 +29,8 @@ export function App() {
           {activeView === "scanner" ? <LiveScannerView matches={data.matches} signals={data.signals} summary={summary} /> : null}
           {activeView === "signals" ? <SignalListView matches={data.matches} signals={data.signals} /> : null}
           {activeView === "patterns" ? <PatternLabView patterns={data.patterns} history={data.history} signals={data.signals} /> : null}
-          {activeView !== "scanner" && activeView !== "signals" && activeView !== "patterns" ? (
+          {activeView === "history" ? <HistoryView history={data.history} /> : null}
+          {activeView !== "scanner" && activeView !== "signals" && activeView !== "patterns" && activeView !== "history" ? (
             <section className="panel">
               <p className="eyebrow">Раздел</p>
               <h2>{title}</h2>

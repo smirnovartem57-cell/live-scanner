@@ -3256,3 +3256,9 @@ input[type="text"] {
 .pattern-layout > .wide-panel {
   grid-column: 1 / -1;
 }
+
+.react-history-table .table-head,
+.react-history-table .table-row {
+  grid-template-columns: 1.35fr 0.9fr 0.75fr 0.42fr 0.48fr 0.52fr 0.8fr 0.72fr 1fr;
+  min-width: 1180px;
+}
