@@ -10,6 +10,7 @@ import { SettingsView } from "./components/SettingsView";
 import { SignalListView } from "./components/SignalListView";
 import { TeamProfileView } from "./components/TeamProfileView";
 import { useFootballLabData } from "./hooks/useFootballLabData";
+import { useJournalHistory } from "./hooks/useJournalHistory";
 import { useReactSettings } from "./hooks/useReactSettings";
 import { buildTeamProfileViewModel, type TeamProfileSelection } from "./domain/teamProfile";
 import type { ReactNavItem, ReactViewId } from "./types";
@@ -30,6 +31,7 @@ export function App() {
   const [selectedTeam, setSelectedTeam] = useState<TeamProfileSelection | null>(null);
   const { data, error, loading, refreshing, reload, summary } = useFootballLabData();
   const { settings, setSettings } = useReactSettings();
+  const journal = useJournalHistory(settings, data?.history || []);
   const title = useMemo(() => navItems.find((item) => item.id === activeView)?.title || "Сканер матчей", [activeView]);
   const sourceLabel = data?.providerMode === "real" ? "Real API" : "Mock-данные";
   const updatedLabel = data?.lastLoadedAt ? `Обновлено ${formatTime(data.lastLoadedAt)}` : "Ожидаем данные";
@@ -40,10 +42,10 @@ export function App() {
       matches: data.matches,
       snapshots: data.snapshots,
       signals: data.signals,
-      history: data.history,
+      history: journal.history,
       profiles: data.teamProfiles
     });
-  }, [data, selectedTeam]);
+  }, [data, journal.history, selectedTeam]);
 
   return (
     <AppShell
@@ -63,21 +65,29 @@ export function App() {
           {activeView === "scanner" && teamProfile ? <TeamProfileView profile={teamProfile} onClose={() => setSelectedTeam(null)} /> : null}
           {activeView === "scanner" ? <LiveScannerView matches={data.matches} signals={data.signals} summary={summary} onTeamSelect={setSelectedTeam} /> : null}
           {activeView === "signals" ? <SignalListView matches={data.matches} signals={data.signals} /> : null}
-          {activeView === "patterns" ? <PatternLabView patterns={data.patterns} history={data.history} signals={data.signals} /> : null}
-          {activeView === "history" ? <HistoryView history={data.history} /> : null}
+          {activeView === "patterns" ? <PatternLabView patterns={data.patterns} history={journal.history} signals={data.signals} /> : null}
+          {activeView === "history" ? (
+            <HistoryView
+              history={journal.history}
+              source={journal.source}
+              loading={journal.loading}
+              error={journal.error}
+              onReload={journal.reload}
+            />
+          ) : null}
           {activeView === "analytics" ? (
             <AnalyticsView
               matches={data.matches}
               snapshots={data.snapshots}
               events={data.events}
               patterns={data.patterns}
-              history={data.history}
+              history={journal.history}
               signals={data.signals}
             />
           ) : null}
-          {activeView === "profile" ? <ProfileView profile={data.userProfile} history={data.history} /> : null}
+          {activeView === "profile" ? <ProfileView profile={data.userProfile} history={journal.history} /> : null}
           {activeView === "ideas" ? <IdeasView items={data.feedbackItems} /> : null}
-          {activeView === "settings" ? <SettingsView settings={settings} setSettings={setSettings} history={data.history} /> : null}
+          {activeView === "settings" ? <SettingsView settings={settings} setSettings={setSettings} history={journal.history} /> : null}
           {activeView !== "scanner" && activeView !== "signals" && activeView !== "patterns" && activeView !== "history" && activeView !== "analytics" && activeView !== "profile" && activeView !== "ideas" && activeView !== "settings" ? (
             <section className="panel">
               <p className="eyebrow">Раздел</p>

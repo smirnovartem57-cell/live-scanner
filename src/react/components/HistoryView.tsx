@@ -17,11 +17,15 @@ import { MetricCard } from "./MetricCard";
 type HistoryViewProps = {
   history: PatternEvent[];
   serviceStartedAt?: string;
+  source?: "mock" | "supabase";
+  loading?: boolean;
+  error?: string | null;
+  onReload?: () => void;
 };
 
 const filters: HistoryFilter[] = ["all", "win", "lose", "open"];
 
-export function HistoryView({ history, serviceStartedAt }: HistoryViewProps) {
+export function HistoryView({ history, serviceStartedAt, source = "mock", loading = false, error = null, onReload }: HistoryViewProps) {
   const [filter, setFilter] = useState<HistoryFilter>("all");
   const filteredHistory = useMemo(() => filterHistory(history, filter), [history, filter]);
   const allStats = useMemo(() => getHistoryStats(history), [history]);
@@ -41,8 +45,9 @@ export function HistoryView({ history, serviceStartedAt }: HistoryViewProps) {
       <section className="panel wide-panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Архив</p>
+            <p className="eyebrow">Архив · {source === "supabase" ? "Supabase" : "Mock"}</p>
             <h2>История всех паттернов</h2>
+            {error ? <p className="muted">{error}</p> : null}
           </div>
           <span className="count-pill">{filteredHistory.length}</span>
         </div>
@@ -66,6 +71,11 @@ export function HistoryView({ history, serviceStartedAt }: HistoryViewProps) {
             <span>Lose: {filteredStats.lose}</span>
             <span>Открыто: {filteredStats.open}</span>
           </div>
+          {onReload ? (
+            <button className="mini-action" type="button" onClick={onReload} disabled={loading}>
+              {loading ? "Загружаем..." : "Обновить журнал"}
+            </button>
+          ) : null}
         </div>
 
         <div className="history-table react-history-table">
