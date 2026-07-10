@@ -6,6 +6,7 @@ const storage = window.LiveScannerStorage;
 const historyService = window.LiveScannerHistoryService;
 const patternAnalytics = window.LiveScannerPatternAnalytics;
 const teamProfileService = window.LiveScannerTeamProfile;
+const settingsService = window.LiveScannerSettings;
 const {
   formatOutcome,
   formatResultSource,
@@ -329,7 +330,7 @@ function bindPageEvents() {
   const telegramToggle = root.querySelector("#telegramEnabled");
   if (telegramToggle) {
     telegramToggle.addEventListener("change", () => {
-      state.settings.telegramEnabled = telegramToggle.checked;
+      state.settings = settingsService.updateSetting(state.settings, "telegramEnabled", telegramToggle.checked);
       writeSettings();
       render();
     });
@@ -338,7 +339,7 @@ function bindPageEvents() {
   const telegramChannel = root.querySelector("#telegramChannel");
   if (telegramChannel) {
     telegramChannel.addEventListener("input", () => {
-      state.settings.telegramChannel = telegramChannel.value;
+      state.settings = settingsService.updateSetting(state.settings, "telegramChannel", telegramChannel.value);
       writeSettings();
     });
   }
@@ -346,7 +347,7 @@ function bindPageEvents() {
   const mockMode = root.querySelector("#mockMode");
   if (mockMode) {
     mockMode.addEventListener("change", () => {
-      state.settings.mockMode = mockMode.checked;
+      state.settings = settingsService.updateSetting(state.settings, "mockMode", mockMode.checked);
       writeSettings();
     });
   }
@@ -356,7 +357,8 @@ function bindPageEvents() {
     testTelegram.addEventListener("click", async () => {
       testTelegram.disabled = true;
       testTelegram.textContent = "Готовим сообщение";
-      state.settings.lastTelegramTest = await telegramService.sendTelegramTestMessage(state.settings);
+      const result = await telegramService.sendTelegramTestMessage(state.settings);
+      state.settings = settingsService.updateTelegramTestResult(state.settings, result);
       writeSettings();
       render();
     });
@@ -1027,9 +1029,7 @@ function renderPatternProfiles(pattern) {
 }
 
 function renderSettings() {
-  const telegramStatus = state.settings.lastTelegramTest
-    ? `<p class="telegram-status">${escapeHtml(state.settings.lastTelegramTest.message)}<span>${escapeHtml(state.settings.lastTelegramTest.channel)} · ${formatDateTime(state.settings.lastTelegramTest.createdAt)}</span></p>`
-    : "";
+  const telegramStatus = settingsService.getTelegramStatus(state.settings, formatDateTime, escapeHtml);
   const dataQuality = getDataQualityStats();
 
   return `

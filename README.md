@@ -110,6 +110,8 @@ services/pattern-analytics-service.js
                 эффективность паттернов, статусы, качество, слабые профили и группировки
 services/team-profile-service.js
                 сбор профиля команды, заметки, журнал заметок и команды с наблюдениями
+services/settings-service.js
+                обновление настроек и отображение статуса Telegram-заглушки
 manifest.webmanifest
 sw.js
 icons/icon.svg
