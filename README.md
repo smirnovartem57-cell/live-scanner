@@ -104,6 +104,8 @@ services/formatters.js
                 форматирование дат, статусов, результатов и безопасный вывод текста
 services/storage.js
                 чтение и запись настроек, журнала, профилей условий и заметок в localStorage
+services/history-service.js
+                фильтры журнала, статистика Win/Lose, периоды и экспорт истории
 manifest.webmanifest
 sw.js
 icons/icon.svg

@@ -3,6 +3,12 @@ const patternEngine = window.FootballPatternEngine;
 const signalResultEngine = window.FootballSignalResultEngine;
 const telegramService = window.FootballTelegramService.createTelegramService();
 const storage = window.LiveScannerStorage;
+const historyService = window.LiveScannerHistoryService;
+const {
+  formatOutcome,
+  formatResultSource,
+  getOutcome
+} = historyService;
 const {
   escapeHtml,
   feedbackPriorityLabel,
@@ -1697,27 +1703,11 @@ function getEventTeamName(event) {
 }
 
 function getFilteredHistory() {
-  return state.history.filter((event) => {
-    if (state.historyFilter === "win") return getOutcome(event) === "win";
-    if (state.historyFilter === "lose") return getOutcome(event) === "lose";
-    if (state.historyFilter === "open") return getOutcome(event) === "open";
-    return true;
-  });
+  return historyService.getFilteredHistory(state.history, state.historyFilter);
 }
 
 function getHistoryByPeriod(events, period) {
-  if (period === "all") return events;
-
-  const now = new Date();
-  const start = new Date(now);
-
-  if (period === "today") {
-    start.setHours(0, 0, 0, 0);
-  } else if (period === "7d") {
-    start.setDate(start.getDate() - 7);
-  }
-
-  return events.filter((event) => new Date(event.createdAt).getTime() >= start.getTime());
+  return historyService.getHistoryByPeriod(events, period);
 }
 
 function updatePatternEvent(id, patch) {
@@ -1754,47 +1744,13 @@ function closePatternEvent(id, outcome) {
 
 function exportHistory(format) {
   const events = getFilteredHistory();
-  const timestamp = new Date().toISOString().slice(0, 19).replaceAll(":", "-");
-  const filename = `football-pattern-history-${state.historyFilter}-${timestamp}.${format}`;
-  const content = format === "csv" ? historyToCsv(events) : JSON.stringify(events, null, 2);
-  const type = format === "csv" ? "text/csv;charset=utf-8" : "application/json;charset=utf-8";
+  const { filename, content, type } = historyService.buildHistoryExport({
+    events,
+    filter: state.historyFilter,
+    format,
+    patternLabels: patternTypeLabels
+  });
   downloadFile(filename, content, type);
-}
-
-function historyToCsv(events) {
-  const headers = ["id", "matchId", "teamId", "match", "league", "minute", "pattern", "signalKind", "resultSource", "scoreHome", "scoreAway", "pressureScore", "strength", "outcome", "status", "goalWithin5", "goalWithin10", "goalWithin15", "goalMinute", "goalTeam", "finalComment", "createdAt", "updatedAt", "closedAt"];
-  const rows = events.map((event) => [
-    event.id,
-    event.matchId,
-    event.teamId,
-    event.match,
-    event.league,
-    event.minute,
-    patternTypeLabels[event.patternType] || event.patternType,
-    event.signalKind || "",
-    formatResultSource(event),
-    event.scoreHome,
-    event.scoreAway,
-    event.pressureScore,
-    event.strength,
-    getOutcome(event),
-    event.status,
-    event.result.goalWithin5,
-    event.result.goalWithin10,
-    event.result.goalWithin15,
-    event.result.goalMinute || "",
-    event.result.goalTeam || "",
-    event.result.finalComment || event.comment || "",
-    event.createdAt,
-    event.updatedAt || "",
-    event.closedAt || ""
-  ]);
-
-  return `\ufeff${[headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\n")}`;
-}
-
-function csvCell(value) {
-  return `"${String(value ?? "").replaceAll('"', '""')}"`;
 }
 
 function downloadFile(filename, content, type) {
@@ -1984,39 +1940,7 @@ function getSignalStats(signal) {
 }
 
 function getJournalStats(events = state.history) {
-  const total = events.length;
-  const win = events.filter((event) => getOutcome(event) === "win").length;
-  const lose = events.filter((event) => getOutcome(event) === "lose").length;
-  const open = events.filter((event) => getOutcome(event) === "open").length;
-  const closed = win + lose;
-
-  return {
-    startedAt: state.serviceMeta.startedAt,
-    total,
-    win,
-    lose,
-    open,
-    winRate: closed ? Math.round((win / closed) * 100) : 0
-  };
-}
-
-function getOutcome(event) {
-  if (event.status === "success") return "win";
-  if (event.status === "failed") return "lose";
-  return "open";
-}
-
-function formatOutcome(event) {
-  const outcome = getOutcome(event);
-  if (outcome === "win") return "Win";
-  if (outcome === "lose") return "Lose";
-  return "В процессе";
-}
-
-function formatResultSource(event) {
-  if (event.resultSource === "manual" || event.result?.manualOutcome) return "Вручную";
-  if (event.resultSource === "auto") return "Авто";
-  return "Старт";
+  return historyService.getJournalStats(events, state.serviceMeta.startedAt);
 }
 
 function sortEventsByTime(a, b) {

@@ -1,4 +1,4 @@
-const CACHE_NAME = "football-pattern-lab-v26";
+const CACHE_NAME = "football-pattern-lab-v27";
 const ASSETS = [
   "./",
   "./index.html",
@@ -10,6 +10,7 @@ const ASSETS = [
   "./services/telegram-service.js",
   "./services/formatters.js",
   "./services/storage.js",
+  "./services/history-service.js",
   "./app.js",
   "./manifest.webmanifest",
   "./icons/icon.svg",
