@@ -7,6 +7,7 @@ const historyService = window.LiveScannerHistoryService;
 const patternAnalytics = window.LiveScannerPatternAnalytics;
 const teamProfileService = window.LiveScannerTeamProfile;
 const settingsService = window.LiveScannerSettings;
+const socialFeedback = window.LiveScannerSocialFeedback;
 const {
   formatOutcome,
   formatResultSource,
@@ -837,9 +838,8 @@ function dataQualityMetric(label, value) {
 }
 
 function renderProfile() {
-  const profile = state.userProfile;
   const journalStats = getJournalStats(state.history);
-  const trust = profile?.socialTrust || {};
+  const profile = socialFeedback.getProfileViewModel(state.userProfile, journalStats);
 
   if (!profile) {
     return renderEmpty("Профиль пока не подготовлен.");
@@ -858,10 +858,10 @@ function renderProfile() {
       </div>
 
       <section class="summary-grid">
-        ${metric("Событий в журнале", journalStats.total)}
-        ${metric("Win", journalStats.win)}
-        ${metric("Lose", journalStats.lose)}
-        ${metric("Уровень доверия", trust.score || 0)}
+        ${metric("Событий в журнале", profile.summary.totalEvents)}
+        ${metric("Win", profile.summary.win)}
+        ${metric("Lose", profile.summary.lose)}
+        ${metric("Уровень доверия", profile.summary.trustScore)}
       </section>
 
       <section class="section-grid">
@@ -869,18 +869,18 @@ function renderProfile() {
           <div class="panel-heading">
             <div>
               <h2>Социальное доверие</h2>
-              <p>${escapeHtml(trust.level || "Профиль в подготовке")}</p>
+              <p>${escapeHtml(profile.trust.level || "Профиль в подготовке")}</p>
             </div>
-            <span class="count-pill">${trust.score || 0}/100</span>
+            <span class="count-pill">${profile.trust.score || 0}/100</span>
           </div>
-          <div class="trust-meter"><span style="width: ${Math.min(100, trust.score || 0)}%"></span></div>
+          <div class="trust-meter"><span style="width: ${profile.trustMeterWidth}"></span></div>
           <div class="readiness-list">
-            <span><b>${trust.verifiedSignals || 0}</b> проверенных сигналов</span>
-            <span><b>${trust.reviewedIdeas || 0}</b> разобранных идей</span>
-            <span><b>${trust.sharedReports || 0}</b> публичных отчетов</span>
+            <span><b>${profile.trust.verifiedSignals || 0}</b> проверенных сигналов</span>
+            <span><b>${profile.trust.reviewedIdeas || 0}</b> разобранных идей</span>
+            <span><b>${profile.trust.sharedReports || 0}</b> публичных отчетов</span>
           </div>
           <div class="note-list">
-            ${(trust.notes || []).map((note) => `<span>${escapeHtml(note)}</span>`).join("")}
+            ${profile.trustNotes.map((note) => `<span>${escapeHtml(note)}</span>`).join("")}
           </div>
         </div>
 
@@ -904,17 +904,15 @@ function renderProfile() {
 
 function renderIdeas() {
   const items = state.feedbackItems;
-  const ideaCount = items.filter((item) => item.type === "idea").length;
-  const feedbackCount = items.filter((item) => item.type === "feedback").length;
-  const highPriority = items.filter((item) => item.priority === "high").length;
+  const summary = socialFeedback.getIdeasSummary(items);
 
   return `
     <section>
       <section class="summary-grid">
-        ${metric("Идей", ideaCount)}
-        ${metric("Отклики", feedbackCount)}
-        ${metric("Высокий приоритет", highPriority)}
-        ${metric("Всего голосов", items.reduce((sum, item) => sum + item.votes, 0))}
+        ${metric("Идей", summary.ideaCount)}
+        ${metric("Отклики", summary.feedbackCount)}
+        ${metric("Высокий приоритет", summary.highPriority)}
+        ${metric("Всего голосов", summary.totalVotes)}
       </section>
 
       <div class="ideas-grid">

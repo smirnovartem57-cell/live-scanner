@@ -112,6 +112,8 @@ services/team-profile-service.js
                 сбор профиля команды, заметки, журнал заметок и команды с наблюдениями
 services/settings-service.js
                 обновление настроек и отображение статуса Telegram-заглушки
+services/social-feedback-service.js
+                сводка профиля, социального доверия и раздела Ideas / Feedback
 manifest.webmanifest
 sw.js
 icons/icon.svg
