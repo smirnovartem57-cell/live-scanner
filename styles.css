@@ -1094,6 +1094,58 @@ h2 {
   opacity: 0.55;
 }
 
+.pattern-profile-manager {
+  margin-top: 16px;
+  border-top: 1px solid var(--border-soft);
+  padding-top: 14px;
+}
+
+.import-button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.import-button input {
+  display: none;
+}
+
+.saved-profile-list {
+  display: grid;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.saved-profile-list h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.saved-profile-list span {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+}
+
+.saved-profile-list b,
+.saved-profile-list small {
+  display: block;
+}
+
+.saved-profile-list small {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 .ghost-button,
 .primary-button {
   border: 1px solid var(--border-blue);
@@ -1937,6 +1989,10 @@ input[type="text"] {
   }
 
   .threshold-row {
+    grid-template-columns: 1fr;
+  }
+
+  .saved-profile-list span {
     grid-template-columns: 1fr;
   }
 

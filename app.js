@@ -1,6 +1,7 @@
 const SERVICE_META_KEY = "football-pattern-lab-service-meta";
 const PATTERN_EVENTS_KEY = "football-pattern-lab-pattern-events";
 const PATTERN_SETTINGS_KEY = "football-pattern-lab-pattern-settings";
+const PATTERN_PROFILES_KEY = "football-pattern-lab-pattern-profiles";
 const TEAM_NOTES_KEY = "football-pattern-lab-team-notes";
 const footballProvider = window.FootballDataProvider.createFootballProvider("mock");
 const patternEngine = window.FootballPatternEngine;
@@ -27,6 +28,8 @@ const state = {
   activePatternId: "pressure_without_goal",
   settings: readSettings(),
   patternSettings: readPatternSettings(),
+  patternProfiles: readPatternProfiles(),
+  patternProfileDraftName: "",
   teamNotes: readTeamNotes(),
   patterns: [],
   matches: [],
@@ -274,6 +277,38 @@ function bindPageEvents() {
     });
   });
 
+  const profileNameInput = root.querySelector("#patternProfileName");
+  if (profileNameInput) {
+    profileNameInput.addEventListener("input", () => {
+      state.patternProfileDraftName = profileNameInput.value;
+    });
+  }
+
+  root.querySelectorAll("[data-save-pattern-profile]").forEach((button) => {
+    button.addEventListener("click", () => {
+      savePatternProfile(button.dataset.savePatternProfile);
+      render();
+    });
+  });
+
+  root.querySelectorAll("[data-apply-pattern-profile]").forEach((button) => {
+    button.addEventListener("click", () => {
+      applyPatternProfile(button.dataset.applyPatternProfile);
+      render();
+    });
+  });
+
+  root.querySelectorAll("[data-export-pattern-profiles]").forEach((button) => {
+    button.addEventListener("click", exportPatternProfiles);
+  });
+
+  const importProfiles = root.querySelector("#importPatternProfiles");
+  if (importProfiles) {
+    importProfiles.addEventListener("change", () => {
+      importPatternProfiles(importProfiles);
+    });
+  }
+
   const telegramToggle = root.querySelector("#telegramEnabled");
   if (telegramToggle) {
     telegramToggle.addEventListener("change", () => {
@@ -419,7 +454,21 @@ function renderPatterns() {
         </div>
         <div class="builder-actions">
           <button class="ghost-button" type="button" data-reset-pattern-settings="${activePattern.id}">Сбросить условия</button>
-          <button class="ghost-button" type="button" disabled>Сохранить как мой профиль</button>
+        </div>
+        <div class="pattern-profile-manager">
+          <label class="input-label">
+            Название профиля условий
+            <input id="patternProfileName" type="text" value="${escapeHtml(state.patternProfileDraftName)}" placeholder="Например: осторожный профиль">
+          </label>
+          <div class="builder-actions">
+            <button class="ghost-button" type="button" data-save-pattern-profile="${activePattern.id}">Сохранить профиль</button>
+            <button class="ghost-button" type="button" data-export-pattern-profiles>Экспорт JSON</button>
+            <label class="ghost-button import-button">
+              Импорт JSON
+              <input id="importPatternProfiles" type="file" accept="application/json">
+            </label>
+          </div>
+          ${renderPatternProfiles(activePattern)}
         </div>
       </section>
 
@@ -941,6 +990,22 @@ function renderThresholdControl(pattern, rule, index) {
         ${numericValue ? "step=\"1\"" : ""}
       >
     </label>
+  `;
+}
+
+function renderPatternProfiles(pattern) {
+  const profiles = state.patternProfiles.filter((profile) => profile.patternId === pattern.id);
+  return `
+    <div class="saved-profile-list">
+      <h3>Сохраненные профили</h3>
+      ${profiles.length ? profiles.map((profile) => `
+        <span>
+          <b>${escapeHtml(profile.name)}</b>
+          <small>${formatDateTime(profile.createdAt)} · ${profile.rules.length} условий</small>
+          <button class="mini-action" type="button" data-apply-pattern-profile="${profile.id}">Применить</button>
+        </span>
+      `).join("") : "<span><b>Пока нет профилей</b><small>Сохраните текущие условия, чтобы быстро возвращаться к ним.</small></span>"}
+    </div>
   `;
 }
 
@@ -2045,6 +2110,67 @@ function getEffectivePatterns() {
   }));
 }
 
+function savePatternProfile(patternId) {
+  const pattern = state.patterns.find((item) => item.id === patternId);
+  if (!pattern) return;
+
+  const name = state.patternProfileDraftName.trim() || `${pattern.name} · ${formatDate(new Date().toISOString())}`;
+  const profile = {
+    id: `${patternId}-${Date.now()}`,
+    patternId,
+    name,
+    rules: getPatternRules(pattern).map((rule) => ({ value: rule.value })),
+    createdAt: new Date().toISOString()
+  };
+  state.patternProfiles = [profile, ...state.patternProfiles].slice(0, 30);
+  state.patternProfileDraftName = "";
+  writePatternProfiles();
+}
+
+function applyPatternProfile(profileId) {
+  const profile = state.patternProfiles.find((item) => item.id === profileId);
+  if (!profile) return;
+
+  state.patternSettings[profile.patternId] = {
+    updatedAt: new Date().toISOString(),
+    rules: profile.rules
+  };
+  writePatternSettings();
+  state.activePatternId = profile.patternId;
+  state.signals = evaluateCurrentMatches();
+  syncActiveSignalsToJournal();
+  syncSignalResults();
+}
+
+function exportPatternProfiles() {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    profiles: state.patternProfiles
+  };
+  downloadFile("football-pattern-profiles.json", JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+}
+
+function importPatternProfiles(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    try {
+      const parsed = JSON.parse(String(reader.result || "{}"));
+      const profiles = Array.isArray(parsed.profiles) ? parsed.profiles : [];
+      state.patternProfiles = [...profiles, ...state.patternProfiles]
+        .filter((profile) => profile.id && profile.patternId && Array.isArray(profile.rules))
+        .slice(0, 30);
+      writePatternProfiles();
+      render();
+    } catch {
+      input.value = "";
+    }
+  });
+  reader.readAsText(file);
+}
+
 function formatResult(value) {
   const result = value?.result || value || {};
   if (result.manualOutcome === "win") return "Закрыто вручную: Win";
@@ -2169,6 +2295,18 @@ function readPatternSettings() {
 
 function writePatternSettings() {
   localStorage.setItem(PATTERN_SETTINGS_KEY, JSON.stringify(state.patternSettings));
+}
+
+function readPatternProfiles() {
+  try {
+    return JSON.parse(localStorage.getItem(PATTERN_PROFILES_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function writePatternProfiles() {
+  localStorage.setItem(PATTERN_PROFILES_KEY, JSON.stringify(state.patternProfiles));
 }
 
 function readTeamNotes() {
