@@ -49,3 +49,9 @@ SUPABASE_SERVICE_ROLE_KEY=...
 В браузере используется только anon key. Service-role ключ хранится только в Supabase secrets функции.
 
 После этого можно заменить mock-историю на чтение из `journal_signals + journal_signal_results`.
+
+## Проверка из интерфейса
+
+В разделе `Настройки` включить `Запись в Supabase`, указать `Supabase URL` и `anon key`, затем нажать `Проверить запись журнала`.
+
+Кнопка отправляет последние события текущей истории и дневные агрегаты паттернов в Edge Function `journal-ingest`.

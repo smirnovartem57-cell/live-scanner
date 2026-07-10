@@ -1,13 +1,17 @@
-import type { Dispatch, SetStateAction } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
+import type { PatternEvent } from "../../types/patterns";
 import { formatDate } from "../domain/dateFormat";
-import { sendTelegramTestMessage, type ReactSettings } from "../domain/settings";
+import { sendJournalSyncTest, sendTelegramTestMessage, type ReactSettings } from "../domain/settings";
 
 type SettingsViewProps = {
   settings: ReactSettings;
   setSettings: Dispatch<SetStateAction<ReactSettings>>;
+  history: PatternEvent[];
 };
 
-export function SettingsView({ settings, setSettings }: SettingsViewProps) {
+export function SettingsView({ settings, setSettings, history }: SettingsViewProps) {
+  const [journalSyncing, setJournalSyncing] = useState(false);
+
   function updateSetting<Key extends keyof ReactSettings>(key: Key, value: ReactSettings[Key]) {
     setSettings((current) => ({ ...current, [key]: value }));
   }
@@ -17,6 +21,28 @@ export function SettingsView({ settings, setSettings }: SettingsViewProps) {
       ...current,
       lastTelegramTest: sendTelegramTestMessage(current)
     }));
+  }
+
+  async function runJournalTest() {
+    setJournalSyncing(true);
+    try {
+      const result = await sendJournalSyncTest(settings, history);
+      setSettings((current) => ({ ...current, lastJournalSync: result }));
+    } catch (error) {
+      setSettings((current) => ({
+        ...current,
+        lastJournalSync: {
+          ok: false,
+          mode: "supabase",
+          message: error instanceof Error ? error.message : "Не удалось проверить запись журнала.",
+          signalsSaved: 0,
+          patternStatsSaved: 0,
+          createdAt: new Date().toISOString()
+        }
+      }));
+    } finally {
+      setJournalSyncing(false);
+    }
   }
 
   return (
@@ -69,6 +95,49 @@ export function SettingsView({ settings, setSettings }: SettingsViewProps) {
             <span>{settings.lastTelegramTest.channel} · {formatDate(settings.lastTelegramTest.createdAt)}</span>
           </p>
         ) : null}
+      </div>
+
+      <div className="panel">
+        <h2>Постоянный журнал</h2>
+        <label className="switch field-row">
+          <input
+            type="checkbox"
+            checked={settings.journalStorageEnabled}
+            onChange={(event) => updateSetting("journalStorageEnabled", event.target.checked)}
+          />
+          <span>Запись в Supabase</span>
+        </label>
+        <label className="input-label">
+          Supabase URL
+          <input
+            type="url"
+            value={settings.supabaseUrl}
+            placeholder="https://project.supabase.co"
+            onChange={(event) => updateSetting("supabaseUrl", event.target.value)}
+          />
+        </label>
+        <label className="input-label">
+          Anon key
+          <input
+            type="password"
+            value={settings.supabaseAnonKey}
+            placeholder="anon public key"
+            onChange={(event) => updateSetting("supabaseAnonKey", event.target.value)}
+          />
+        </label>
+        <button className="primary-button" type="button" onClick={runJournalTest} disabled={journalSyncing}>
+          {journalSyncing ? "Проверяем..." : "Проверить запись журнала"}
+        </button>
+        {settings.lastJournalSync ? (
+          <p className="telegram-status">
+            {settings.lastJournalSync.message}
+            <span>
+              {settings.lastJournalSync.signalsSaved} сигналов · {settings.lastJournalSync.patternStatsSaved} агрегатов · {formatDate(settings.lastJournalSync.createdAt)}
+            </span>
+          </p>
+        ) : (
+          <p className="muted">Service-role ключ хранится только в Supabase Edge Function, не в браузере.</p>
+        )}
       </div>
 
       <div className="panel">

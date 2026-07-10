@@ -77,7 +77,7 @@ export function App() {
           ) : null}
           {activeView === "profile" ? <ProfileView profile={data.userProfile} history={data.history} /> : null}
           {activeView === "ideas" ? <IdeasView items={data.feedbackItems} /> : null}
-          {activeView === "settings" ? <SettingsView settings={settings} setSettings={setSettings} /> : null}
+          {activeView === "settings" ? <SettingsView settings={settings} setSettings={setSettings} history={data.history} /> : null}
           {activeView !== "scanner" && activeView !== "signals" && activeView !== "patterns" && activeView !== "history" && activeView !== "analytics" && activeView !== "profile" && activeView !== "ideas" && activeView !== "settings" ? (
             <section className="panel">
               <p className="eyebrow">Раздел</p>
