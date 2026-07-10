@@ -10,6 +10,7 @@ import { SettingsView } from "./components/SettingsView";
 import { SignalListView } from "./components/SignalListView";
 import { TeamProfileView } from "./components/TeamProfileView";
 import { useFootballLabData } from "./hooks/useFootballLabData";
+import { useJournalAutoIngest } from "./hooks/useJournalAutoIngest";
 import { useJournalHistory } from "./hooks/useJournalHistory";
 import { useReactSettings } from "./hooks/useReactSettings";
 import { buildTeamProfileViewModel, type TeamProfileSelection } from "./domain/teamProfile";
@@ -32,6 +33,14 @@ export function App() {
   const { data, error, loading, refreshing, reload, summary } = useFootballLabData();
   const { settings, setSettings } = useReactSettings();
   const journal = useJournalHistory(settings, data?.history || []);
+  useJournalAutoIngest({
+    settings,
+    data,
+    history: journal.history,
+    historySource: journal.source,
+    historyLoading: journal.loading,
+    onSynced: journal.reload
+  });
   const title = useMemo(() => navItems.find((item) => item.id === activeView)?.title || "Сканер матчей", [activeView]);
   const sourceLabel = data?.providerMode === "real" ? "Real API" : "Mock-данные";
   const updatedLabel = data?.lastLoadedAt ? `Обновлено ${formatTime(data.lastLoadedAt)}` : "Ожидаем данные";

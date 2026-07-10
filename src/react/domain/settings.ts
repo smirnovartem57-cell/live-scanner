@@ -1,4 +1,4 @@
-import { JournalIngestClient, type PatternStatsDaily } from "../../services/journalStorage";
+import { buildPatternStatsDaily, JournalIngestClient } from "../../services/journalStorage";
 import type { PatternEvent } from "../../types/patterns";
 
 export type TelegramTestResult = {
@@ -105,43 +105,6 @@ export async function sendJournalSyncTest(settings: ReactSettings, history: Patt
     response.signalsSaved,
     response.patternStatsSaved
   );
-}
-
-function buildPatternStatsDaily(history: PatternEvent[]): PatternStatsDaily[] {
-  const groups = new Map<string, PatternEvent[]>();
-
-  for (const event of history) {
-    const statDate = event.createdAt.slice(0, 10);
-    const key = `${statDate}:${event.patternId}`;
-    groups.set(key, [...(groups.get(key) || []), event]);
-  }
-
-  return [...groups.entries()].map(([key, events]) => {
-    const [statDate] = key.split(":");
-    const failedSignals = events.filter((event) => event.status === "failed" || event.result.manualOutcome === "lose").length;
-    const closedSignals = events.filter((event) => ["success", "failed"].includes(event.status) || event.result.manualOutcome).length;
-    const successWithin15 = events.filter((event) => event.result.goalWithin15 || event.result.manualOutcome === "win").length;
-
-    return {
-      statDate,
-      patternId: events[0].patternId,
-      patternType: events[0].patternType,
-      totalSignals: events.length,
-      successWithin5: events.filter((event) => event.result.goalWithin5).length,
-      successWithin10: events.filter((event) => event.result.goalWithin10).length,
-      successWithin15,
-      failedSignals,
-      warningSignals: events.filter((event) => event.signalKind === "warning").length,
-      averagePressureScore: average(events.map((event) => event.pressureScore)),
-      averageMinute: average(events.map((event) => event.minute)),
-      qualityScore: closedSignals ? Math.round((successWithin15 / closedSignals) * 100) : 0
-    };
-  });
-}
-
-function average(values: number[]) {
-  if (!values.length) return 0;
-  return Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 100) / 100;
 }
 
 function journalSyncResult(
