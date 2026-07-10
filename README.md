@@ -99,7 +99,7 @@ src/services/patternEngine/
 src/services/footballDataProvider/
                 TypeScript-контракт данных и mock/real providers для будущего API
 src/services/journalStorage/
-                контракт постоянного журнала сигналов и Supabase-адаптер
+                контракт постоянного журнала, Supabase-адаптер и Edge Function client
 src/services/storage/
                 ключи локального хранилища для будущей модульной сборки
 src/types/
@@ -126,6 +126,8 @@ icons/live-scanner-icon-*.png
 icons/live-scanner-logo.png
 supabase/migrations/001_journal_storage.sql
                 минимальная схема Supabase только для журнала и статистики паттернов
+supabase/functions/journal-ingest/
+                Edge Function для безопасной записи журнала через service-role secret
 ```
 
 ## React + TypeScript

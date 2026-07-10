@@ -14,9 +14,38 @@
 1. Создать Supabase project.
 2. Открыть SQL Editor.
 3. Выполнить `migrations/001_journal_storage.sql`.
-4. Записи делать только через backend/Edge Function с service-role ключом.
-5. Когда появятся логины, добавить политики чтения для authenticated users.
+4. Развернуть Edge Function `journal-ingest`.
+5. Добавить secret `SUPABASE_SERVICE_ROLE_KEY` в Supabase Functions.
+6. Когда появятся логины, добавить политики чтения для authenticated users.
+
+## Переменные
+
+Для сайта:
+
+```text
+VITE_SUPABASE_URL=https://PROJECT.supabase.co
+VITE_SUPABASE_ANON_KEY=...
+```
+
+Для Edge Function:
+
+```text
+SUPABASE_URL=https://PROJECT.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...
+```
+
+`SUPABASE_SERVICE_ROLE_KEY` нельзя добавлять в GitHub Pages или frontend env.
 
 ## Следующий шаг
 
-Подключить Supabase client и заменить mock-историю на чтение из `journal_signals + journal_signal_results`.
+Развернуть Edge Function `journal-ingest`.
+
+Функция принимает:
+
+- `events` — события журнала;
+- `patternStats` — дневные агрегаты паттернов;
+- `ingestionRun` — служебный лог синхронизации.
+
+В браузере используется только anon key. Service-role ключ хранится только в Supabase secrets функции.
+
+После этого можно заменить mock-историю на чтение из `journal_signals + journal_signal_results`.
