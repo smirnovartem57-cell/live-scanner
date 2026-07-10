@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { MockFootballProvider } from "../../services/footballDataProvider";
+import { MockFootballProvider, RealFootballProvider } from "../../services/footballDataProvider";
 import { evaluateMatch } from "../../services/patternEngine";
 import type { Match, MatchEvent, MatchStatsSnapshot, TeamProfile } from "../../types/football";
 import type { Pattern, PatternEvent, Signal } from "../../types/patterns";
 import type { FeedbackItem, UserProfile } from "../../types/user";
+import type { ReactSettings } from "../domain/settings";
 import { getBrowserMockData } from "../mockData";
 
 export type FootballLabViewModel = {
@@ -27,7 +28,7 @@ export type FootballLabSummary = {
   patternsCount: number;
 };
 
-export function useFootballLabData() {
+export function useFootballLabData(settings: ReactSettings) {
   const [data, setData] = useState<FootballLabViewModel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,7 +40,18 @@ export function useFootballLabData() {
     setRefreshing(isRefresh);
 
     try {
-      const provider = new MockFootballProvider(getBrowserMockData());
+      const mockData = getBrowserMockData();
+      const provider = settings.mockMode
+        ? new MockFootballProvider(mockData)
+        : new RealFootballProvider(
+          {
+            supabaseUrl: settings.supabaseUrl,
+            anonKey: settings.supabaseAnonKey,
+            accessToken: settings.footballDataAccessToken || settings.journalAccessToken,
+            functionName: settings.footballDataFunctionName
+          },
+          mockData
+        );
       const [matches, snapshots, eventsResult, patterns, seedSignals, history, userProfile, feedbackItems] = await Promise.all([
         provider.getLiveMatches(),
         provider.getMatchStats(),
@@ -75,7 +87,14 @@ export function useFootballLabData() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [
+    settings.footballDataAccessToken,
+    settings.footballDataFunctionName,
+    settings.journalAccessToken,
+    settings.mockMode,
+    settings.supabaseAnonKey,
+    settings.supabaseUrl
+  ]);
 
   useEffect(() => {
     let active = true;

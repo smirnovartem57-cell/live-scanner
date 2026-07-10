@@ -151,6 +151,24 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
 
       <div className="panel">
         <h2>API-адаптер</h2>
+        <label className="input-label">
+          Edge Function
+          <input
+            type="text"
+            value={settings.footballDataFunctionName}
+            placeholder="football-live"
+            onChange={(event) => updateSetting("footballDataFunctionName", event.target.value)}
+          />
+        </label>
+        <label className="input-label">
+          Data access token
+          <input
+            type="password"
+            value={settings.footballDataAccessToken}
+            placeholder="если пусто, используется Journal access token"
+            onChange={(event) => updateSetting("footballDataAccessToken", event.target.value)}
+          />
+        </label>
         <pre className="code-block">FootballDataProvider
   getLiveMatches()
   getMatchStats(matchId)

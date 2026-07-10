@@ -44,6 +44,7 @@
 - Найденные сигналы автоматически записываются в постоянный журнал через `journal-ingest`, если Supabase включен.
 - События журнала можно закрывать вручную как `Win` или `Lose` с комментарием, результат сохраняется в Supabase.
 - FootballDataProvider с контрактом, MockFootballProvider и RealFootballProvider-заглушкой.
+- RealFootballProvider подключается только к защищённой Supabase Edge Function `football-live`.
 - UI Telegram-уведомлений и service-заглушка для тестового сообщения и отправки аналитического сигнала.
 - Раздел `Профиль` с mock-архитектурой пользователя, будущего публичного профиля и социального доверия.
 - Раздел `Идеи` с mock-данными для идей, feedback, статусов и приоритетов.
@@ -104,6 +105,8 @@ data/mock-data.js
                 mock-матчи, статистика, сигналы, паттерны, команды, пользователь, идеи и стартовая история
 services/football-provider.js
                 слой данных, который позже заменяется на реальный API
+supabase/functions/football-live/
+                защищённая серверная точка для будущего real football API
 services/pattern-engine.js
                 pressure score, оценка матчей и создание сигналов
 services/signal-result-engine.js

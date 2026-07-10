@@ -30,8 +30,8 @@ const navItems: ReactNavItem[] = [
 export function App() {
   const [activeView, setActiveView] = useState<ReactViewId>("scanner");
   const [selectedTeam, setSelectedTeam] = useState<TeamProfileSelection | null>(null);
-  const { data, error, loading, refreshing, reload, summary } = useFootballLabData();
   const { settings, setSettings } = useReactSettings();
+  const { data, error, loading, refreshing, reload, summary } = useFootballLabData(settings);
   const journal = useJournalHistory(settings, data?.history || []);
   useJournalAutoIngest({
     settings,

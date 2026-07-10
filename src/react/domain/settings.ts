@@ -26,6 +26,8 @@ export type ReactSettings = {
   supabaseUrl: string;
   supabaseAnonKey: string;
   journalAccessToken: string;
+  footballDataFunctionName: string;
+  footballDataAccessToken: string;
   favoriteLeagues: string[];
   lastTelegramTest: TelegramTestResult | null;
   lastJournalSync: JournalSyncTestResult | null;
@@ -41,6 +43,8 @@ export const defaultReactSettings: ReactSettings = {
   supabaseUrl: "",
   supabaseAnonKey: "",
   journalAccessToken: "",
+  footballDataFunctionName: "football-live",
+  footballDataAccessToken: "",
   favoriteLeagues: ["Spain LaLiga", "Italy Serie A", "Portugal Primeira"],
   lastTelegramTest: null,
   lastJournalSync: null
