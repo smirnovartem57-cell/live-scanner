@@ -3,65 +3,17 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#050b12">
+    <meta name="theme-color" content="#06101f">
     <title>Football Pattern Lab</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="stylesheet" href="styles.css?v=40">
+    <link rel="stylesheet" href="/styles.css?v=41">
   </head>
   <body>
-    <div class="app-shell">
-      <aside class="desktop-sidebar" aria-label="Разделы приложения">
-        <div class="brand">
-          <div class="brand-mark" aria-hidden="true">FL</div>
-          <div>
-            <strong>Лаборатория паттернов</strong>
-            <span>Сканер матчей</span>
-          </div>
-        </div>
-        <nav class="side-nav" id="desktopNav"></nav>
-      </aside>
-
-      <div class="app-main">
-        <header class="topbar">
-          <div class="mobile-title">
-            <div class="brand-mark" aria-hidden="true">FL</div>
-            <div>
-              <p class="eyebrow">Лаборатория футбольных паттернов</p>
-              <h1 id="pageTitle">Сканер матчей</h1>
-            </div>
-          </div>
-          <div class="topbar-actions">
-            <button class="topbar-button" id="refreshButton" type="button" title="Обновить данные" aria-label="Обновить данные">
-              <span aria-hidden="true">↻</span>
-              Обновить
-            </button>
-            <button class="topbar-button ghost" id="profileButton" type="button" title="Профиль" aria-label="Профиль">
-              Профиль
-            </button>
-          </div>
-        </header>
-
-        <main class="page" id="pageRoot"></main>
-      </div>
-
-      <nav class="mobile-bottom-nav" id="mobileNav" aria-label="Нижняя навигация"></nav>
-    </div>
-
-    <script src="data/mock-data.js?v=40" defer></script>
-    <script src="services/football-provider.js?v=40" defer></script>
-    <script src="services/pattern-engine.js?v=40" defer></script>
-    <script src="services/signal-result-engine.js?v=40" defer></script>
-    <script src="services/telegram-service.js?v=40" defer></script>
-    <script src="services/formatters.js?v=40" defer></script>
-    <script src="services/storage.js?v=40" defer></script>
-    <script src="services/history-service.js?v=40" defer></script>
-    <script src="services/pattern-analytics-service.js?v=40" defer></script>
-    <script src="services/team-profile-service.js?v=40" defer></script>
-    <script src="services/settings-service.js?v=40" defer></script>
-    <script src="services/social-feedback-service.js?v=40" defer></script>
-    <script src="app.js?v=40" defer></script>
+    <div id="reactRoot"></div>
+    <script src="/data/mock-data.js?v=41"></script>
+    <script type="module" src="/src/react/main.tsx"></script>
   </body>
 </html>

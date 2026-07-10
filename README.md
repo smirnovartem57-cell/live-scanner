@@ -47,28 +47,32 @@
 
 ## Как открыть
 
-Откройте файл:
-
-```text
-C:\ChatGPT\live-scanner\index.html
-```
-
-Проект сделан как статический SPA, поэтому для текущей версии сборка не нужна.
-
-Если нужен локальный сервер:
+Для разработки React-версии:
 
 ```powershell
-cd "C:\ChatGPT\live-scanner"
-python -m http.server 4173
+npm run dev:react
+```
+
+Открыть:
+
+```text
+http://127.0.0.1:5173/
+```
+
+Для проверки production-сборки:
+
+```powershell
+npm run build:react
+npm run preview:react
 ```
 
 После этого откройте:
 
 ```text
-http://localhost:4173
+http://127.0.0.1:4173/
 ```
 
-После отдельной публикации на GitHub Pages проект должен быть доступен на отдельном поддомене:
+После публикации на GitHub Pages проект доступен на отдельном поддомене:
 
 ```text
 https://live-scanner.smirart.ru/
@@ -79,9 +83,9 @@ https://live-scanner.smirart.ru/
 Сейчас MVP собран без зависимостей, чтобы его можно было открыть сразу:
 
 ```text
-index.html      оболочка приложения
+index.html      React-оболочка приложения
 styles.css      темная тема, desktop и mobile layout
-app.js          экранная логика, журнал, pattern engine
+app.js          legacy-версия экранной логики для резерва
 data/mock-data.js
                 mock-матчи, статистика, сигналы, паттерны, команды, пользователь, идеи и стартовая история
 services/football-provider.js
@@ -119,14 +123,13 @@ sw.js
 icons/icon.svg
 ```
 
-## React + TypeScript migration
+## React + TypeScript
 
-Текущая опубликованная версия остается статической и открывается через корневой `index.html`.
+React-версия стала основной оболочкой проекта и открывается через корневой `index.html`.
 
-Для постепенного переноса добавлен отдельный React-вход:
+Основной код лежит здесь:
 
 ```text
-react/index.html
 src/react/
 ```
 
@@ -142,7 +145,7 @@ npm run dev:react
 http://127.0.0.1:5173/react/
 ```
 
-React-версия использует существующие mock-данные из `data/mock-data.js` и TypeScript Pattern Engine из `src/services/patternEngine/`, поэтому текущий MVP и будущая компонентная версия не расходятся по логике.
+React-версия использует существующие mock-данные из `data/mock-data.js` и TypeScript Pattern Engine из `src/services/patternEngine/`.
 
 В React-слое уже перенесены:
 
@@ -156,6 +159,8 @@ React-версия использует существующие mock-данны
 - `Профиль`.
 - `Идеи`.
 - Навигация между React-разделами.
+
+GitHub Pages публикует готовую сборку из `dist-react` через workflow `.github/workflows/pages.yml`.
 
 Pattern Engine вынесен в `services/pattern-engine.js`:
 
@@ -178,9 +183,9 @@ src/services/patternEngine/getPatternStatus.ts
 
 Внутри `app.js` остались экранная логика, журнал событий и расчёт Win/Lose.
 
-## Подготовка к React + TypeScript
+## Модульная структура
 
-Текущий опубликованный сайт остается статическим и работает без сборки. Параллельно добавлен каркас `src/`, чтобы следующий крупный шаг можно было делать уже как модульное приложение:
+Проект переведен на модульную структуру React + TypeScript:
 
 ```text
 src/types/

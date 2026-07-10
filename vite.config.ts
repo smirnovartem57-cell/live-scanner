@@ -8,7 +8,7 @@ export default defineConfig({
     outDir: "dist-react",
     emptyOutDir: true,
     rollupOptions: {
-      input: resolve(__dirname, "react/index.html")
+      input: resolve(__dirname, "index.html")
     }
   }
 });

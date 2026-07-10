@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev:react": "vite --host 127.0.0.1 --port 5173",
-    "build:react": "vite build",
+    "build:react": "vite build && node scripts/prepare-react-dist.mjs",
     "preview:react": "vite preview --host 127.0.0.1 --port 4173",
     "typecheck": "tsc --noEmit"
   },
