@@ -1,11 +1,15 @@
 import type { ReactNode } from "react";
+import type { ReactNavItem, ReactViewId } from "../types";
 
 type AppShellProps = {
   title: string;
+  activeView: ReactViewId;
+  navItems: ReactNavItem[];
+  onViewChange: (viewId: ReactViewId) => void;
   children: ReactNode;
 };
 
-export function AppShell({ title, children }: AppShellProps) {
+export function AppShell({ title, activeView, navItems, onViewChange, children }: AppShellProps) {
   return (
     <div className="app-shell">
       <aside className="desktop-sidebar" aria-label="Разделы приложения">
@@ -17,9 +21,14 @@ export function AppShell({ title, children }: AppShellProps) {
           </div>
         </div>
         <nav className="side-nav">
-          {["Сканер", "Сигналы", "Паттерны", "История", "Аналитика"].map((item, index) => (
-            <button className={`nav-item ${index === 0 ? "is-active" : ""}`} type="button" key={item}>
-              {item}
+          {navItems.map((item) => (
+            <button
+              className={`nav-item ${item.id === activeView ? "is-active" : ""}`}
+              type="button"
+              key={item.id}
+              onClick={() => onViewChange(item.id)}
+            >
+              {item.label}
             </button>
           ))}
         </nav>
@@ -41,6 +50,19 @@ export function AppShell({ title, children }: AppShellProps) {
         </header>
         <main className="page">{children}</main>
       </div>
+
+      <nav className="mobile-bottom-nav" aria-label="Нижняя навигация">
+        {navItems.map((item) => (
+          <button
+            className={`nav-item ${item.id === activeView ? "is-active" : ""}`}
+            type="button"
+            key={item.id}
+            onClick={() => onViewChange(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }

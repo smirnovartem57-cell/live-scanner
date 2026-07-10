@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { Match } from "../../types/football";
 import type { Signal } from "../../types/patterns";
+import { getPatternName } from "../domain/labels";
 import { MetricCard } from "./MetricCard";
 
 type LiveScannerViewProps = {
@@ -12,15 +13,6 @@ type LiveScannerViewProps = {
     highSignalsCount: number;
     patternsCount: number;
   };
-};
-
-const patternNames: Record<string, string> = {
-  pressure_without_goal: "Давят без гола",
-  late_goal: "Поздний гол",
-  favorite_losing_but_pressing: "Проигрывает, но давит",
-  match_woke_up: "Матч ожил",
-  corner_pressure: "Давление на угловой",
-  empty_pressure: "Пустое давление"
 };
 
 type PressureStyle = CSSProperties & {
@@ -73,13 +65,13 @@ export function LiveScannerView({ matches, signals, summary }: LiveScannerViewPr
                 {mainSignal ? (
                   <>
                     <span className="signal-caption">Найден паттерн</span>
-                    <p>{patternNames[mainSignal.patternType] || mainSignal.patternType}</p>
+                    <p>{getPatternName(mainSignal.patternType)}</p>
                     <span>{mainSignal.explanation}</span>
                     {matchSignals.length > 1 ? (
                       <div className="pattern-badges">
                         {matchSignals.map((signal) => (
                           <span className={signal.signalKind === "warning" ? "is-warning" : ""} key={signal.id}>
-                            {patternNames[signal.patternType] || signal.patternType}
+                            {getPatternName(signal.patternType)}
                           </span>
                         ))}
                       </div>

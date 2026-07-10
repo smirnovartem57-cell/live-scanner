@@ -144,6 +144,12 @@ http://127.0.0.1:5173/react/
 
 React-версия использует существующие mock-данные из `data/mock-data.js` и TypeScript Pattern Engine из `src/services/patternEngine/`, поэтому текущий MVP и будущая компонентная версия не расходятся по логике.
 
+В React-слое уже перенесены:
+
+- `Сканер матчей`.
+- `Найденные сигналы`.
+- Навигация между React-разделами.
+
 Pattern Engine вынесен в `services/pattern-engine.js`:
 
 - `calculatePressureScore(stats)`

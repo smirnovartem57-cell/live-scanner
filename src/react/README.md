@@ -8,6 +8,8 @@
 - Корневой компонент `App`.
 - Компонентная оболочка `AppShell`.
 - Первый React-экран `LiveScannerView`.
+- Экран `SignalListView` для найденных сигналов.
+- Переключение между React-разделами через desktop sidebar и mobile bottom navigation.
 - Хук `useFootballLabData`, который берет существующие mock-данные и прогоняет их через TypeScript Pattern Engine.
 - Переиспользуются текущие стили из `styles.css`, чтобы дизайн не расходился между версиями.
 
