@@ -102,6 +102,8 @@ services/telegram-service.js
                 Telegram-заглушка без внешней отправки
 services/formatters.js
                 форматирование дат, статусов, результатов и безопасный вывод текста
+services/storage.js
+                чтение и запись настроек, журнала, профилей условий и заметок в localStorage
 manifest.webmanifest
 sw.js
 icons/icon.svg

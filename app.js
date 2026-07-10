@@ -1,12 +1,8 @@
-const SERVICE_META_KEY = "football-pattern-lab-service-meta";
-const PATTERN_EVENTS_KEY = "football-pattern-lab-pattern-events";
-const PATTERN_SETTINGS_KEY = "football-pattern-lab-pattern-settings";
-const PATTERN_PROFILES_KEY = "football-pattern-lab-pattern-profiles";
-const TEAM_NOTES_KEY = "football-pattern-lab-team-notes";
 const footballProvider = window.FootballDataProvider.createFootballProvider("mock");
 const patternEngine = window.FootballPatternEngine;
 const signalResultEngine = window.FootballSignalResultEngine;
 const telegramService = window.FootballTelegramService.createTelegramService();
+const storage = window.LiveScannerStorage;
 const {
   escapeHtml,
   feedbackPriorityLabel,
@@ -1814,34 +1810,22 @@ function downloadFile(filename, content, type) {
 }
 
 function readServiceMeta() {
-  const fallback = { startedAt: new Date().toISOString() };
-  try {
-    const stored = JSON.parse(localStorage.getItem(SERVICE_META_KEY) || "null");
-    if (stored?.startedAt) {
-      return stored;
-    }
-    localStorage.setItem(SERVICE_META_KEY, JSON.stringify(fallback));
-    return fallback;
-  } catch {
-    return fallback;
-  }
+  return storage.readServiceMeta();
 }
 
 function readPatternEvents(seedEvents) {
-  try {
-    const stored = JSON.parse(localStorage.getItem(PATTERN_EVENTS_KEY) || "null");
-    if (Array.isArray(stored) && stored.length > 0) {
-      return stored.map(normalizePatternEvent).sort(sortEventsByTime);
-    }
-  } catch {}
+  const stored = storage.readPatternEvents();
+  if (Array.isArray(stored) && stored.length > 0) {
+    return stored.map(normalizePatternEvent).sort(sortEventsByTime);
+  }
 
   const seeded = seedEvents.map(normalizePatternEvent).sort(sortEventsByTime);
-  localStorage.setItem(PATTERN_EVENTS_KEY, JSON.stringify(seeded));
+  storage.writePatternEvents(seeded);
   return seeded;
 }
 
 function writePatternEvents() {
-  localStorage.setItem(PATTERN_EVENTS_KEY, JSON.stringify(state.history));
+  storage.writePatternEvents(state.history);
 }
 
 function syncActiveSignalsToJournal() {
@@ -2185,59 +2169,35 @@ function importPatternProfiles(input) {
 }
 
 function readSettings() {
-  const defaults = {
-    mockMode: true,
-    telegramEnabled: false,
-    telegramChannel: "",
-    lastTelegramTest: null,
-    favoriteLeagues: ["Spain LaLiga", "Italy Serie A", "Portugal Primeira"]
-  };
-
-  try {
-    return { ...defaults, ...JSON.parse(localStorage.getItem("football-pattern-lab-settings") || "{}") };
-  } catch {
-    return defaults;
-  }
+  return storage.readSettings();
 }
 
 function writeSettings() {
-  localStorage.setItem("football-pattern-lab-settings", JSON.stringify(state.settings));
+  storage.writeSettings(state.settings);
 }
 
 function readPatternSettings() {
-  try {
-    return JSON.parse(localStorage.getItem(PATTERN_SETTINGS_KEY) || "{}");
-  } catch {
-    return {};
-  }
+  return storage.readPatternSettings();
 }
 
 function writePatternSettings() {
-  localStorage.setItem(PATTERN_SETTINGS_KEY, JSON.stringify(state.patternSettings));
+  storage.writePatternSettings(state.patternSettings);
 }
 
 function readPatternProfiles() {
-  try {
-    return JSON.parse(localStorage.getItem(PATTERN_PROFILES_KEY) || "[]");
-  } catch {
-    return [];
-  }
+  return storage.readPatternProfiles();
 }
 
 function writePatternProfiles() {
-  localStorage.setItem(PATTERN_PROFILES_KEY, JSON.stringify(state.patternProfiles));
+  storage.writePatternProfiles(state.patternProfiles);
 }
 
 function readTeamNotes() {
-  try {
-    return JSON.parse(localStorage.getItem(TEAM_NOTES_KEY) || "{}");
-  } catch {
-    return {};
-  }
+  return storage.readTeamNotes();
 }
 
 function writeTeamNotes() {
-  localStorage.setItem(TEAM_NOTES_KEY, JSON.stringify(state.teamNotes));
+  storage.writeTeamNotes(state.teamNotes);
 }
 
 if ("serviceWorker" in navigator) {
