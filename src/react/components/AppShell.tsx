@@ -45,7 +45,7 @@ export function AppShell({ title, activeView, navItems, onViewChange, children }
           </div>
           <div className="topbar-actions">
             <button className="topbar-button" type="button">Обновить</button>
-            <button className="topbar-button ghost" type="button">Профиль</button>
+            <button className="topbar-button ghost" type="button" onClick={() => onViewChange("profile")}>Профиль</button>
           </div>
         </header>
         <main className="page">{children}</main>

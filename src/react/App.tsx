@@ -2,8 +2,10 @@ import { useMemo, useState } from "react";
 import { AnalyticsView } from "./components/AnalyticsView";
 import { AppShell } from "./components/AppShell";
 import { HistoryView } from "./components/HistoryView";
+import { IdeasView } from "./components/IdeasView";
 import { LiveScannerView } from "./components/LiveScannerView";
 import { PatternLabView } from "./components/PatternLabView";
+import { ProfileView } from "./components/ProfileView";
 import { SettingsView } from "./components/SettingsView";
 import { SignalListView } from "./components/SignalListView";
 import { TeamProfileView } from "./components/TeamProfileView";
@@ -18,6 +20,8 @@ const navItems: ReactNavItem[] = [
   { id: "patterns", label: "Паттерны", title: "Паттерны" },
   { id: "history", label: "История", title: "История" },
   { id: "analytics", label: "Аналитика", title: "Аналитика" },
+  { id: "profile", label: "Профиль", title: "Профиль" },
+  { id: "ideas", label: "Идеи", title: "Идеи" },
   { id: "settings", label: "Настройки", title: "Настройки" }
 ];
 
@@ -60,8 +64,10 @@ export function App() {
               signals={data.signals}
             />
           ) : null}
+          {activeView === "profile" ? <ProfileView profile={data.userProfile} history={data.history} /> : null}
+          {activeView === "ideas" ? <IdeasView items={data.feedbackItems} /> : null}
           {activeView === "settings" ? <SettingsView settings={settings} setSettings={setSettings} /> : null}
-          {activeView !== "scanner" && activeView !== "signals" && activeView !== "patterns" && activeView !== "history" && activeView !== "analytics" && activeView !== "settings" ? (
+          {activeView !== "scanner" && activeView !== "signals" && activeView !== "patterns" && activeView !== "history" && activeView !== "analytics" && activeView !== "profile" && activeView !== "ideas" && activeView !== "settings" ? (
             <section className="panel">
               <p className="eyebrow">Раздел</p>
               <h2>{title}</h2>

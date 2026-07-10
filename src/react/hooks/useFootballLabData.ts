@@ -3,6 +3,7 @@ import { MockFootballProvider } from "../../services/footballDataProvider";
 import { evaluateMatch } from "../../services/patternEngine";
 import type { Match, MatchEvent, MatchStatsSnapshot, TeamProfile } from "../../types/football";
 import type { Pattern, PatternEvent, Signal } from "../../types/patterns";
+import type { FeedbackItem, UserProfile } from "../../types/user";
 import { getBrowserMockData } from "../mockData";
 
 export type FootballLabViewModel = {
@@ -13,6 +14,8 @@ export type FootballLabViewModel = {
   patterns: Pattern[];
   signals: Signal[];
   history: PatternEvent[];
+  userProfile: UserProfile | null;
+  feedbackItems: FeedbackItem[];
 };
 
 export type FootballLabSummary = {
@@ -32,13 +35,15 @@ export function useFootballLabData() {
     async function load() {
       try {
         const provider = new MockFootballProvider(getBrowserMockData());
-        const [matches, snapshots, eventsResult, patterns, seedSignals, history] = await Promise.all([
+        const [matches, snapshots, eventsResult, patterns, seedSignals, history, userProfile, feedbackItems] = await Promise.all([
           provider.getLiveMatches(),
           provider.getMatchStats(),
           provider.getMatchEvents(),
           provider.getPatterns(),
           provider.getSeedSignals(),
-          provider.getSeedHistory()
+          provider.getSeedHistory(),
+          provider.getUserProfile(),
+          provider.getFeedbackItems()
         ]);
         const events = Array.isArray(eventsResult) ? {} : eventsResult;
         const teamIds = [...new Set(matches.flatMap((match) => [match.homeTeamId, match.awayTeamId]).filter(Boolean))] as string[];
@@ -54,7 +59,9 @@ export function useFootballLabData() {
             teamProfiles,
             patterns,
             signals: [...seedSignals, ...generatedSignals],
-            history
+            history,
+            userProfile,
+            feedbackItems
           });
         }
       } catch (loadError) {
