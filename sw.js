@@ -1,8 +1,8 @@
-const CACHE_NAME = "football-pattern-lab-v42";
+const CACHE_NAME = "football-pattern-lab-v45";
 const ASSETS = [
   "./",
   "./index.html",
-  "./data/mock-data.js?v=42",
+  "./data/mock-data.js?v=45",
   "./manifest.webmanifest",
   "./icons/icon.svg",
   "./data/sample-matches.json"
@@ -24,6 +24,13 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") {
+    return;
+  }
+
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match("./index.html"))
+    );
     return;
   }
 

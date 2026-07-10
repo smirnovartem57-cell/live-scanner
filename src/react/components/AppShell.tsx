@@ -6,10 +6,14 @@ type AppShellProps = {
   activeView: ReactViewId;
   navItems: ReactNavItem[];
   onViewChange: (viewId: ReactViewId) => void;
+  onRefresh: () => void;
+  refreshing: boolean;
+  sourceLabel: string;
+  updatedLabel: string;
   children: ReactNode;
 };
 
-export function AppShell({ title, activeView, navItems, onViewChange, children }: AppShellProps) {
+export function AppShell({ title, activeView, navItems, onViewChange, onRefresh, refreshing, sourceLabel, updatedLabel, children }: AppShellProps) {
   return (
     <div className="app-shell react-app-shell">
       <aside className="desktop-sidebar" aria-label="Разделы приложения">
@@ -44,7 +48,13 @@ export function AppShell({ title, activeView, navItems, onViewChange, children }
             </div>
           </div>
           <div className="topbar-actions">
-            <button className="topbar-button" type="button">Обновить</button>
+            <div className="data-status" aria-live="polite">
+              <span>{sourceLabel}</span>
+              <small>{updatedLabel}</small>
+            </div>
+            <button className="topbar-button" type="button" onClick={onRefresh} disabled={refreshing}>
+              {refreshing ? "Обновляем..." : "Обновить"}
+            </button>
             <button className="topbar-button ghost" type="button" onClick={() => onViewChange("profile")}>Профиль</button>
           </div>
         </header>

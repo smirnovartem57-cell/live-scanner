@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { MockFootballProvider } from "../../services/footballDataProvider";
 import { evaluateMatch } from "../../services/patternEngine";
 import type { Match, MatchEvent, MatchStatsSnapshot, TeamProfile } from "../../types/football";
@@ -16,6 +16,8 @@ export type FootballLabViewModel = {
   history: PatternEvent[];
   userProfile: UserProfile | null;
   feedbackItems: FeedbackItem[];
+  lastLoadedAt: string;
+  providerMode: "mock" | "real";
 };
 
 export type FootballLabSummary = {
@@ -28,55 +30,68 @@ export type FootballLabSummary = {
 export function useFootballLabData() {
   const [data, setData] = useState<FootballLabViewModel | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(async (isRefresh = false) => {
+    setError(null);
+    setLoading(!isRefresh);
+    setRefreshing(isRefresh);
+
+    try {
+      const provider = new MockFootballProvider(getBrowserMockData());
+      const [matches, snapshots, eventsResult, patterns, seedSignals, history, userProfile, feedbackItems] = await Promise.all([
+        provider.getLiveMatches(),
+        provider.getMatchStats(),
+        provider.getMatchEvents(),
+        provider.getPatterns(),
+        provider.getSeedSignals(),
+        provider.getSeedHistory(),
+        provider.getUserProfile(),
+        provider.getFeedbackItems()
+      ]);
+      const events = Array.isArray(eventsResult) ? {} : eventsResult;
+      const teamIds = [...new Set(matches.flatMap((match) => [match.homeTeamId, match.awayTeamId]).filter(Boolean))] as string[];
+      const teamProfiles = (await Promise.all(teamIds.map((teamId) => provider.getTeamProfile(teamId))))
+        .filter((profile): profile is TeamProfile => Boolean(profile));
+      const generatedSignals = buildGeneratedSignals(matches, snapshots, patterns, seedSignals);
+
+      setData({
+        matches,
+        snapshots,
+        events,
+        teamProfiles,
+        patterns,
+        signals: [...seedSignals, ...generatedSignals],
+        history,
+        userProfile,
+        feedbackItems,
+        lastLoadedAt: new Date().toISOString(),
+        providerMode: provider.mode
+      });
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Не удалось загрузить данные.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
+    let active = true;
 
-    async function load() {
-      try {
-        const provider = new MockFootballProvider(getBrowserMockData());
-        const [matches, snapshots, eventsResult, patterns, seedSignals, history, userProfile, feedbackItems] = await Promise.all([
-          provider.getLiveMatches(),
-          provider.getMatchStats(),
-          provider.getMatchEvents(),
-          provider.getPatterns(),
-          provider.getSeedSignals(),
-          provider.getSeedHistory(),
-          provider.getUserProfile(),
-          provider.getFeedbackItems()
-        ]);
-        const events = Array.isArray(eventsResult) ? {} : eventsResult;
-        const teamIds = [...new Set(matches.flatMap((match) => [match.homeTeamId, match.awayTeamId]).filter(Boolean))] as string[];
-        const teamProfiles = (await Promise.all(teamIds.map((teamId) => provider.getTeamProfile(teamId))))
-          .filter((profile): profile is TeamProfile => Boolean(profile));
-        const generatedSignals = buildGeneratedSignals(matches, snapshots, patterns, seedSignals);
-
-        if (!cancelled) {
-          setData({
-            matches,
-            snapshots,
-            events,
-            teamProfiles,
-            patterns,
-            signals: [...seedSignals, ...generatedSignals],
-            history,
-            userProfile,
-            feedbackItems
-          });
-        }
-      } catch (loadError) {
-        if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : "Не удалось загрузить данные.");
-        }
+    async function loadInitial() {
+      if (active) {
+        await load(false);
       }
     }
 
-    load();
+    loadInitial();
 
     return () => {
-      cancelled = true;
+      active = false;
     };
-  }, []);
+  }, [load]);
 
   const summary = useMemo<FootballLabSummary>(() => {
     const signals = data?.signals || [];
@@ -89,7 +104,9 @@ export function useFootballLabData() {
     };
   }, [data]);
 
-  return { data, error, loading: !data && !error, summary };
+  const reload = useCallback(() => load(true), [load]);
+
+  return { data, error, loading, refreshing, reload, summary };
 }
 
 function buildGeneratedSignals(

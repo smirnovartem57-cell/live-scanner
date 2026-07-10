@@ -28,9 +28,11 @@ const navItems: ReactNavItem[] = [
 export function App() {
   const [activeView, setActiveView] = useState<ReactViewId>("scanner");
   const [selectedTeam, setSelectedTeam] = useState<TeamProfileSelection | null>(null);
-  const { data, error, loading, summary } = useFootballLabData();
+  const { data, error, loading, refreshing, reload, summary } = useFootballLabData();
   const { settings, setSettings } = useReactSettings();
   const title = useMemo(() => navItems.find((item) => item.id === activeView)?.title || "Сканер матчей", [activeView]);
+  const sourceLabel = data?.providerMode === "real" ? "Real API" : "Mock-данные";
+  const updatedLabel = data?.lastLoadedAt ? `Обновлено ${formatTime(data.lastLoadedAt)}` : "Ожидаем данные";
   const teamProfile = useMemo(() => {
     if (!data || !selectedTeam) return null;
     return buildTeamProfileViewModel({
@@ -44,7 +46,16 @@ export function App() {
   }, [data, selectedTeam]);
 
   return (
-    <AppShell title={title} activeView={activeView} navItems={navItems} onViewChange={setActiveView}>
+    <AppShell
+      title={title}
+      activeView={activeView}
+      navItems={navItems}
+      onViewChange={setActiveView}
+      onRefresh={reload}
+      refreshing={refreshing}
+      sourceLabel={sourceLabel}
+      updatedLabel={updatedLabel}
+    >
       {loading ? <div className="empty-state">Загружаем данные...</div> : null}
       {error ? <div className="empty-state">{error}</div> : null}
       {data ? (
@@ -78,4 +89,11 @@ export function App() {
       ) : null}
     </AppShell>
   );
+}
+
+function formatTime(value: string) {
+  return new Intl.DateTimeFormat("ru-RU", {
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
 }
