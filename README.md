@@ -100,6 +100,8 @@ src/types/
                 доменные типы матчей, статистики, сигналов, паттернов, пользователей и feedback
 services/telegram-service.js
                 Telegram-заглушка без внешней отправки
+services/formatters.js
+                форматирование дат, статусов, результатов и безопасный вывод текста
 manifest.webmanifest
 sw.js
 icons/icon.svg
