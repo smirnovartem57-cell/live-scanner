@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { MockFootballProvider } from "../../services/footballDataProvider";
 import { evaluateMatch } from "../../services/patternEngine";
-import type { Match, MatchStatsSnapshot } from "../../types/football";
+import type { Match, MatchEvent, MatchStatsSnapshot } from "../../types/football";
 import type { Pattern, PatternEvent, Signal } from "../../types/patterns";
 import { getBrowserMockData } from "../mockData";
 
 export type FootballLabViewModel = {
   matches: Match[];
   snapshots: MatchStatsSnapshot[];
+  events: Record<string, MatchEvent[]>;
   patterns: Pattern[];
   signals: Signal[];
   history: PatternEvent[];
@@ -30,19 +31,22 @@ export function useFootballLabData() {
     async function load() {
       try {
         const provider = new MockFootballProvider(getBrowserMockData());
-        const [matches, snapshots, patterns, seedSignals, history] = await Promise.all([
+        const [matches, snapshots, eventsResult, patterns, seedSignals, history] = await Promise.all([
           provider.getLiveMatches(),
           provider.getMatchStats(),
+          provider.getMatchEvents(),
           provider.getPatterns(),
           provider.getSeedSignals(),
           provider.getSeedHistory()
         ]);
+        const events = Array.isArray(eventsResult) ? {} : eventsResult;
         const generatedSignals = buildGeneratedSignals(matches, snapshots, patterns, seedSignals);
 
         if (!cancelled) {
           setData({
             matches,
             snapshots,
+            events,
             patterns,
             signals: [...seedSignals, ...generatedSignals],
             history

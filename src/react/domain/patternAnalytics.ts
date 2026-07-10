@@ -67,6 +67,25 @@ export function getReactPatternStats(pattern: Pattern, history: PatternEvent[], 
   };
 }
 
+export function getWeakPatternRows(rows: ReactPatternStats[]) {
+  return [...rows]
+    .filter((row) => ["weak", "ineffective", "testing"].includes(row.status) || row.qualityScore < 45)
+    .sort((a, b) => a.qualityScore - b.qualityScore)
+    .slice(0, 4);
+}
+
+export function sortPatternRows(rows: ReactPatternStats[], sortMode: "quality" | "weak" | "sample" | "pressure" = "quality") {
+  const sorted = [...rows];
+  const sorters = {
+    quality: (a: ReactPatternStats, b: ReactPatternStats) => b.qualityScore - a.qualityScore || b.successRate15 - a.successRate15,
+    weak: (a: ReactPatternStats, b: ReactPatternStats) => a.qualityScore - b.qualityScore || b.failedSignals - a.failedSignals,
+    sample: (a: ReactPatternStats, b: ReactPatternStats) => b.totalSignals - a.totalSignals,
+    pressure: (a: ReactPatternStats, b: ReactPatternStats) => b.averagePressureScore - a.averagePressureScore
+  };
+
+  return sorted.sort(sorters[sortMode]);
+}
+
 export function getRuleText(rule: Pattern["rules"][number]) {
   const period = rule.period ? ` · ${rule.period}` : "";
   return `${rule.field} ${rule.operator} ${rule.value}${period}`;

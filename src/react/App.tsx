@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { AnalyticsView } from "./components/AnalyticsView";
 import { AppShell } from "./components/AppShell";
 import { HistoryView } from "./components/HistoryView";
 import { LiveScannerView } from "./components/LiveScannerView";
@@ -30,7 +31,17 @@ export function App() {
           {activeView === "signals" ? <SignalListView matches={data.matches} signals={data.signals} /> : null}
           {activeView === "patterns" ? <PatternLabView patterns={data.patterns} history={data.history} signals={data.signals} /> : null}
           {activeView === "history" ? <HistoryView history={data.history} /> : null}
-          {activeView !== "scanner" && activeView !== "signals" && activeView !== "patterns" && activeView !== "history" ? (
+          {activeView === "analytics" ? (
+            <AnalyticsView
+              matches={data.matches}
+              snapshots={data.snapshots}
+              events={data.events}
+              patterns={data.patterns}
+              history={data.history}
+              signals={data.signals}
+            />
+          ) : null}
+          {activeView !== "scanner" && activeView !== "signals" && activeView !== "patterns" && activeView !== "history" && activeView !== "analytics" ? (
             <section className="panel">
               <p className="eyebrow">Раздел</p>
               <h2>{title}</h2>

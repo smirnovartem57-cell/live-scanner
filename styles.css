@@ -3262,3 +3262,9 @@ input[type="text"] {
   grid-template-columns: 1.35fr 0.9fr 0.75fr 0.42fr 0.48fr 0.52fr 0.8fr 0.72fr 1fr;
   min-width: 1180px;
 }
+
+.react-analytics-table .analytics-head,
+.react-analytics-table .analytics-row {
+  grid-template-columns: minmax(210px, 1.25fr) repeat(7, minmax(68px, 0.48fr)) minmax(86px, 0.6fr) minmax(124px, 0.75fr);
+  min-width: 1080px;
+}
