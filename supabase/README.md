@@ -14,7 +14,7 @@
 1. Создать Supabase project.
 2. Открыть SQL Editor.
 3. Выполнить `migrations/001_journal_storage.sql`.
-4. Развернуть Edge Function `journal-ingest`.
+4. Развернуть Edge Functions `journal-ingest` и `journal-read`.
 5. Добавить secret `SUPABASE_SERVICE_ROLE_KEY` в Supabase Functions.
 6. Когда появятся логины, добавить политики чтения для authenticated users.
 
@@ -38,7 +38,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 ## Следующий шаг
 
-Развернуть Edge Function `journal-ingest`.
+Развернуть Edge Functions `journal-ingest` и `journal-read`.
 
 Функция принимает:
 
@@ -49,6 +49,8 @@ SUPABASE_SERVICE_ROLE_KEY=...
 В браузере используется только anon key. Service-role ключ хранится только в Supabase secrets функции.
 
 После этого можно заменить mock-историю на чтение из `journal_signals + journal_signal_results`.
+
+`journal-read` возвращает последние события журнала и, при необходимости, дневные агрегаты `pattern_stats_daily`.
 
 ## Проверка из интерфейса
 

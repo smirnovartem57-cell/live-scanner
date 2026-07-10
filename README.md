@@ -129,6 +129,8 @@ supabase/migrations/001_journal_storage.sql
                 минимальная схема Supabase только для журнала и статистики паттернов
 supabase/functions/journal-ingest/
                 Edge Function для безопасной записи журнала через service-role secret
+supabase/functions/journal-read/
+                Edge Function для безопасного чтения журнала и агрегатов
 ```
 
 ## React + TypeScript
