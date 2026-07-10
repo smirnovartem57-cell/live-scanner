@@ -5,6 +5,7 @@ const telegramService = window.FootballTelegramService.createTelegramService();
 const storage = window.LiveScannerStorage;
 const historyService = window.LiveScannerHistoryService;
 const patternAnalytics = window.LiveScannerPatternAnalytics;
+const teamProfileService = window.LiveScannerTeamProfile;
 const {
   formatOutcome,
   formatResultSource,
@@ -1476,87 +1477,38 @@ function getDataQualityStats() {
 }
 
 function getTeamProfile(selection) {
-  const match = state.matches.find((item) => item.id === selection.matchId);
-  const snapshot = match ? getSnapshot(match.id) : null;
-  if (!match || !snapshot) return null;
-
-  const side = selection.side === "away" ? "away" : "home";
-  const opponentSide = side === "home" ? "away" : "home";
-  const teamName = side === "home" ? match.homeTeam : match.awayTeam;
-  const opponentName = side === "home" ? match.awayTeam : match.homeTeam;
-  const teamId = selection.teamId || (side === "home" ? match.homeTeamId : match.awayTeamId);
-  const providerProfile = footballProvider.getTeamProfile?.(teamId);
-  const stats = snapshot[side];
-  const opponent = snapshot[opponentSide];
-  const pressureScore = patternEngine.calculatePressureScore(stats);
-  const signals = state.signals.filter((signal) => signal.matchId === match.id && signal.teamSide === side);
-  const teamEvents = state.history.filter((event) => event.match?.includes(teamName));
-  const history = getJournalStats(teamEvents);
-  const pressureGap = pressureScore - patternEngine.calculatePressureScore(opponent);
-  const trend = snapshot.recent?.[side]?.dangerousAttacks >= snapshot.previous?.[side]?.dangerousAttacks
-    ? "темп растет"
-    : "темп стабильный или ниже";
-
-  return {
-    ...(providerProfile || {}),
-    id: teamId,
-    name: teamName,
-    match,
-    stats,
-    signals,
-    history,
-    pressureScore,
-    summary: `${teamName} против ${opponentName}: ${stats.dangerousAttacks} опасных атак, ${stats.shotsTotal} ударов, ${stats.shotsOnTarget} в створ, ${stats.corners} угловых. Разница pressure score с соперником: ${pressureGap > 0 ? "+" : ""}${pressureGap}, ${trend}.`
-  };
+  return teamProfileService.buildTeamProfile({
+    selection,
+    matches: state.matches,
+    snapshots: state.snapshots,
+    signals: state.signals,
+    history: state.history,
+    provider: footballProvider,
+    patternEngine,
+    getJournalStats
+  });
 }
 
 function getTeamNote(teamId) {
-  return state.teamNotes[teamId] || { note: "", tags: [], updatedAt: null };
+  return teamProfileService.getTeamNote(state.teamNotes, teamId);
 }
 
 function updateTeamNote(teamId, patch) {
-  state.teamNotes[teamId] = {
-    ...getTeamNote(teamId),
-    ...patch,
-    updatedAt: new Date().toISOString()
-  };
+  state.teamNotes = teamProfileService.updateTeamNote(state.teamNotes, teamId, patch);
   writeTeamNotes();
 }
 
 function saveTeamNoteSnapshot(teamId) {
-  const current = getTeamNote(teamId);
-  const entry = {
-    id: `${teamId}-${Date.now()}`,
-    note: current.note || "",
-    tags: current.tags || [],
-    importantMatch: Boolean(current.importantMatch),
-    createdAt: new Date().toISOString()
-  };
-  updateTeamNote(teamId, {
-    entries: [entry, ...(current.entries || [])].slice(0, 20)
-  });
+  state.teamNotes = teamProfileService.saveTeamNoteSnapshot(state.teamNotes, teamId);
+  writeTeamNotes();
 }
 
 function getTeamsWithNotes() {
-  return Object.entries(state.teamNotes)
-    .filter(([, note]) => note.note || note.importantMatch || (note.tags || []).length || (note.entries || []).length)
-    .map(([teamId, note]) => ({
-      teamId,
-      name: getTeamNameById(teamId),
-      noteCount: (note.entries || []).length,
-      tags: note.tags || [],
-      importantMatch: Boolean(note.importantMatch),
-      updatedAt: note.updatedAt
-    }))
-    .sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+  return teamProfileService.getTeamsWithNotes(state.teamNotes, state.matches, footballProvider);
 }
 
 function getTeamNameById(teamId) {
-  const match = state.matches.find((item) => item.homeTeamId === teamId || item.awayTeamId === teamId);
-  if (match?.homeTeamId === teamId) return match.homeTeam;
-  if (match?.awayTeamId === teamId) return match.awayTeam;
-  const providerProfile = footballProvider.getTeamProfile?.(teamId);
-  return providerProfile?.name || teamId;
+  return teamProfileService.getTeamNameById(teamId, state.matches, footballProvider);
 }
 
 function getPatternStats(pattern, events) {
