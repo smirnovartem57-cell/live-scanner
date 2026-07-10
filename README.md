@@ -98,6 +98,8 @@ src/services/patternEngine/
                 TypeScript-структура Pattern Engine для будущей сборки
 src/services/footballDataProvider/
                 TypeScript-контракт данных и mock/real providers для будущего API
+src/services/journalStorage/
+                контракт постоянного журнала сигналов и Supabase-адаптер
 src/services/storage/
                 ключи локального хранилища для будущей модульной сборки
 src/types/
@@ -122,6 +124,8 @@ manifest.webmanifest
 sw.js
 icons/live-scanner-icon-*.png
 icons/live-scanner-logo.png
+supabase/migrations/001_journal_storage.sql
+                минимальная схема Supabase только для журнала и статистики паттернов
 ```
 
 ## React + TypeScript
@@ -193,6 +197,8 @@ src/types/
                 общие типы домена
 src/services/footballDataProvider/
                 асинхронный контракт данных, MockFootballProvider и RealFootballProvider
+src/services/journalStorage/
+                постоянный журнал сигналов без хранения тяжелого live-потока
 src/services/patternEngine/
                 TypeScript-версия расчетов Pattern Engine
 src/services/storage/
