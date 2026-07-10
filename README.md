@@ -119,6 +119,31 @@ sw.js
 icons/icon.svg
 ```
 
+## React + TypeScript migration
+
+Текущая опубликованная версия остается статической и открывается через корневой `index.html`.
+
+Для постепенного переноса добавлен отдельный React-вход:
+
+```text
+react/index.html
+src/react/
+```
+
+После установки зависимостей можно запустить React-версию:
+
+```powershell
+npm run dev:react
+```
+
+И открыть:
+
+```text
+http://127.0.0.1:5173/react/
+```
+
+React-версия использует существующие mock-данные из `data/mock-data.js` и TypeScript Pattern Engine из `src/services/patternEngine/`, поэтому текущий MVP и будущая компонентная версия не расходятся по логике.
+
 Pattern Engine вынесен в `services/pattern-engine.js`:
 
 - `calculatePressureScore(stats)`
