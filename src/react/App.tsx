@@ -4,9 +4,11 @@ import { AppShell } from "./components/AppShell";
 import { HistoryView } from "./components/HistoryView";
 import { LiveScannerView } from "./components/LiveScannerView";
 import { PatternLabView } from "./components/PatternLabView";
+import { SettingsView } from "./components/SettingsView";
 import { SignalListView } from "./components/SignalListView";
 import { TeamProfileView } from "./components/TeamProfileView";
 import { useFootballLabData } from "./hooks/useFootballLabData";
+import { useReactSettings } from "./hooks/useReactSettings";
 import { buildTeamProfileViewModel, type TeamProfileSelection } from "./domain/teamProfile";
 import type { ReactNavItem, ReactViewId } from "./types";
 
@@ -15,13 +17,15 @@ const navItems: ReactNavItem[] = [
   { id: "signals", label: "Сигналы", title: "Найденные сигналы" },
   { id: "patterns", label: "Паттерны", title: "Паттерны" },
   { id: "history", label: "История", title: "История" },
-  { id: "analytics", label: "Аналитика", title: "Аналитика" }
+  { id: "analytics", label: "Аналитика", title: "Аналитика" },
+  { id: "settings", label: "Настройки", title: "Настройки" }
 ];
 
 export function App() {
   const [activeView, setActiveView] = useState<ReactViewId>("scanner");
   const [selectedTeam, setSelectedTeam] = useState<TeamProfileSelection | null>(null);
   const { data, error, loading, summary } = useFootballLabData();
+  const { settings, setSettings } = useReactSettings();
   const title = useMemo(() => navItems.find((item) => item.id === activeView)?.title || "Сканер матчей", [activeView]);
   const teamProfile = useMemo(() => {
     if (!data || !selectedTeam) return null;
@@ -56,7 +60,8 @@ export function App() {
               signals={data.signals}
             />
           ) : null}
-          {activeView !== "scanner" && activeView !== "signals" && activeView !== "patterns" && activeView !== "history" && activeView !== "analytics" ? (
+          {activeView === "settings" ? <SettingsView settings={settings} setSettings={setSettings} /> : null}
+          {activeView !== "scanner" && activeView !== "signals" && activeView !== "patterns" && activeView !== "history" && activeView !== "analytics" && activeView !== "settings" ? (
             <section className="panel">
               <p className="eyebrow">Раздел</p>
               <h2>{title}</h2>

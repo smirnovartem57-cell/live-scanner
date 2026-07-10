@@ -11,7 +11,7 @@ type AppShellProps = {
 
 export function AppShell({ title, activeView, navItems, onViewChange, children }: AppShellProps) {
   return (
-    <div className="app-shell">
+    <div className="app-shell react-app-shell">
       <aside className="desktop-sidebar" aria-label="Разделы приложения">
         <div className="brand">
           <div className="brand-mark" aria-hidden="true">FL</div>

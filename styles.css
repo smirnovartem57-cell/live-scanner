@@ -3268,3 +3268,9 @@ input[type="text"] {
   grid-template-columns: minmax(210px, 1.25fr) repeat(7, minmax(68px, 0.48fr)) minmax(86px, 0.6fr) minmax(124px, 0.75fr);
   min-width: 1080px;
 }
+
+@media (max-width: 920px) {
+  .react-app-shell .mobile-bottom-nav {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
