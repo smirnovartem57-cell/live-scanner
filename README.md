@@ -76,11 +76,13 @@ npm run preview:react
 http://127.0.0.1:4173/
 ```
 
-После публикации на GitHub Pages проект доступен на отдельном поддомене:
+Публичная публикация на GitHub Pages сейчас закрыта. Поддомен оставлен только для закрытой страницы:
 
 ```text
 https://live-scanner.smirart.ru/
 ```
+
+Рабочее приложение и данные не публикуются на этом адресе до подключения нормальной авторизации.
 
 ## Где лежит логика
 
@@ -173,7 +175,7 @@ React-версия использует существующие mock-данны
 - `Идеи`.
 - Навигация между React-разделами.
 
-GitHub Pages публикует готовую сборку из `dist-react` через workflow `.github/workflows/pages.yml`.
+GitHub Pages сейчас публикует только закрытую страницу из `public-closed` через workflow `.github/workflows/pages.yml`.
 
 Pattern Engine вынесен в `services/pattern-engine.js`:
 

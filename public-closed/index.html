@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow,noarchive">
+    <meta name="theme-color" content="#06101f">
+    <title>Live Scanner - доступ закрыт</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Manrope, Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #06101f;
+        color: #eaf3ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background:
+          radial-gradient(circle at 20% 20%, rgba(0, 214, 255, 0.16), transparent 34%),
+          linear-gradient(135deg, #06101f 0%, #07172d 58%, #04101b 100%);
+      }
+
+      main {
+        width: min(560px, 100%);
+        border: 1px solid rgba(78, 174, 255, 0.28);
+        border-radius: 18px;
+        background: rgba(8, 24, 45, 0.82);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+        padding: 28px;
+      }
+
+      .mark {
+        width: 54px;
+        height: 54px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        margin-bottom: 22px;
+        background: linear-gradient(135deg, #0f5cff, #14e2c2);
+        color: #001526;
+        font-weight: 900;
+      }
+
+      p {
+        margin: 0;
+        color: #9fb2c9;
+        line-height: 1.65;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(28px, 5vw, 42px);
+        line-height: 1.05;
+      }
+
+      small {
+        display: block;
+        margin-top: 22px;
+        color: #6f859f;
+      }
+    </style>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then((items) => {
+          items.forEach((item) => item.unregister());
+        });
+      }
+
+      if ("caches" in window) {
+        caches.keys().then((keys) => {
+          keys.forEach((key) => caches.delete(key));
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <main>
+      <div class="mark">LS</div>
+      <h1>Доступ закрыт</h1>
+      <p>
+        Live Scanner переведен в закрытый режим. Публичная версия приложения временно отключена,
+        данные и рабочие экраны не публикуются на этом адресе.
+      </p>
+      <small>Football Pattern Lab / Live Scanner</small>
+    </main>
+  </body>
+</html>
