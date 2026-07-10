@@ -3270,12 +3270,33 @@ input[type="text"] {
 }
 
 @media (max-width: 920px) {
+  .react-app-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .react-app-shell .app-main {
+    width: 100%;
+    min-width: 0;
+    padding-bottom: 106px;
+  }
+
   .react-app-shell .mobile-bottom-nav {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
+    display: flex;
+    grid-template-columns: none;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .react-app-shell .mobile-bottom-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .react-app-shell .mobile-bottom-nav .nav-item {
-    font-size: 9px;
-    padding: 0 3px;
+    flex: 0 0 72px;
+    min-height: 48px;
+    font-size: 10px;
+    padding: 0 6px;
   }
 }
