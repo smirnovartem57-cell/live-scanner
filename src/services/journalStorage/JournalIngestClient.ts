@@ -4,6 +4,7 @@ import type { JournalIngestionRun, PatternStatsDaily } from "./JournalStorage";
 export type JournalIngestClientConfig = {
   supabaseUrl: string;
   anonKey: string;
+  accessToken?: string;
   functionName?: string;
 };
 
@@ -32,6 +33,7 @@ export class JournalIngestClient {
       headers: {
         apikey: this.config.anonKey,
         authorization: `Bearer ${this.config.anonKey}`,
+        ...(this.config.accessToken ? { "x-live-scanner-key": this.config.accessToken } : {}),
         "content-type": "application/json"
       },
       body: JSON.stringify(payload)

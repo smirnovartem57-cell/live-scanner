@@ -6,7 +6,7 @@ type JournalReadPayload = {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-live-scanner-key",
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 
@@ -17,6 +17,10 @@ Deno.serve(async (request) => {
 
   if (request.method !== "POST") {
     return json({ error: "Method not allowed" }, 405);
+  }
+
+  if (!hasAccess(request)) {
+    return json({ error: "Access denied" }, 403);
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -52,6 +56,11 @@ Deno.serve(async (request) => {
     patternStats
   });
 });
+
+function hasAccess(request: Request) {
+  const expectedToken = Deno.env.get("JOURNAL_ACCESS_TOKEN");
+  return Boolean(expectedToken) && request.headers.get("x-live-scanner-key") === expectedToken;
+}
 
 async function select(supabaseUrl: string, key: string, table: string, query: string) {
   const response = await fetch(`${supabaseUrl}/rest/v1/${table}?${query}`, {

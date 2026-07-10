@@ -27,7 +27,8 @@ export function useJournalHistory(settings: ReactSettings, fallbackHistory: Patt
     try {
       const client = new JournalReadClient({
         supabaseUrl: settings.supabaseUrl.trim(),
-        anonKey: settings.supabaseAnonKey.trim()
+        anonKey: settings.supabaseAnonKey.trim(),
+        accessToken: settings.journalAccessToken.trim()
       });
       const result = await client.read({ limit: 200, includePatternStats: true, patternStatsDays: 30 });
       setRemoteHistory(result.history);
@@ -37,7 +38,7 @@ export function useJournalHistory(settings: ReactSettings, fallbackHistory: Patt
     } finally {
       setLoading(false);
     }
-  }, [canReadRemote, settings.supabaseAnonKey, settings.supabaseUrl]);
+  }, [canReadRemote, settings.journalAccessToken, settings.supabaseAnonKey, settings.supabaseUrl]);
 
   useEffect(() => {
     loadRemoteHistory();
@@ -74,7 +75,8 @@ export function useJournalHistory(settings: ReactSettings, fallbackHistory: Patt
     try {
       const client = new JournalIngestClient({
         supabaseUrl: settings.supabaseUrl.trim(),
-        anonKey: settings.supabaseAnonKey.trim()
+        anonKey: settings.supabaseAnonKey.trim(),
+        accessToken: settings.journalAccessToken.trim()
       });
       const nextHistory = [updatedEvent, ...history.filter((item) => item.id !== event.id)];
       await client.send({
@@ -94,7 +96,7 @@ export function useJournalHistory(settings: ReactSettings, fallbackHistory: Patt
     } finally {
       setClosingEventId(null);
     }
-  }, [canReadRemote, history, settings.supabaseAnonKey, settings.supabaseUrl]);
+  }, [canReadRemote, history, settings.journalAccessToken, settings.supabaseAnonKey, settings.supabaseUrl]);
 
   return {
     history,

@@ -36,6 +36,7 @@ export function useJournalAutoIngest({
 
     const supabaseUrl = settings.supabaseUrl.trim();
     const anonKey = settings.supabaseAnonKey.trim();
+    const accessToken = settings.journalAccessToken.trim();
     if (!supabaseUrl || !anonKey) return;
 
     const currentData = data;
@@ -54,7 +55,7 @@ export function useJournalAutoIngest({
     let cancelled = false;
 
     async function syncSignals() {
-      const client = new JournalIngestClient({ supabaseUrl, anonKey });
+      const client = new JournalIngestClient({ supabaseUrl, anonKey, accessToken });
       const patternStats = buildPatternStatsDaily([...history, ...events]);
 
       await client.send({
@@ -89,6 +90,7 @@ export function useJournalAutoIngest({
     historySource,
     onSynced,
     settings.journalStorageEnabled,
+    settings.journalAccessToken,
     settings.supabaseAnonKey,
     settings.supabaseUrl
   ]);

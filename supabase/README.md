@@ -15,26 +15,21 @@
 2. Открыть SQL Editor.
 3. Выполнить `migrations/001_journal_storage.sql`.
 4. Развернуть Edge Functions `journal-ingest` и `journal-read`.
-5. Добавить secret `SUPABASE_SERVICE_ROLE_KEY` в Supabase Functions.
+5. Добавить secrets `SUPABASE_SERVICE_ROLE_KEY` и `JOURNAL_ACCESS_TOKEN` в Supabase Functions.
 6. Когда появятся логины, добавить политики чтения для authenticated users.
 
 ## Переменные
-
-Для сайта:
-
-```text
-VITE_SUPABASE_URL=https://PROJECT.supabase.co
-VITE_SUPABASE_ANON_KEY=...
-```
 
 Для Edge Function:
 
 ```text
 SUPABASE_URL=https://PROJECT.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=...
+JOURNAL_ACCESS_TOKEN=long-random-private-token
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` нельзя добавлять в GitHub Pages или frontend env.
+`JOURNAL_ACCESS_TOKEN` обязателен для закрытого личного доступа к чтению и записи журнала. Если secret не задан или в приложении указан другой токен, `journal-read` и `journal-ingest` вернут `403`.
 
 ## Следующий шаг
 
@@ -46,7 +41,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 - `patternStats` — дневные агрегаты паттернов;
 - `ingestionRun` — служебный лог синхронизации.
 
-В браузере используется только anon key. Service-role ключ хранится только в Supabase secrets функции.
+В браузере используется anon key и личный `Journal access token`. Service-role ключ хранится только в Supabase secrets функции.
 
 После этого можно заменить mock-историю на чтение из `journal_signals + journal_signal_results`.
 

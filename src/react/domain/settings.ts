@@ -25,6 +25,7 @@ export type ReactSettings = {
   journalStorageEnabled: boolean;
   supabaseUrl: string;
   supabaseAnonKey: string;
+  journalAccessToken: string;
   favoriteLeagues: string[];
   lastTelegramTest: TelegramTestResult | null;
   lastJournalSync: JournalSyncTestResult | null;
@@ -39,6 +40,7 @@ export const defaultReactSettings: ReactSettings = {
   journalStorageEnabled: false,
   supabaseUrl: "",
   supabaseAnonKey: "",
+  journalAccessToken: "",
   favoriteLeagues: ["Spain LaLiga", "Italy Serie A", "Portugal Primeira"],
   lastTelegramTest: null,
   lastJournalSync: null
@@ -74,6 +76,7 @@ export async function sendJournalSyncTest(settings: ReactSettings, history: Patt
 
   const supabaseUrl = settings.supabaseUrl.trim();
   const anonKey = settings.supabaseAnonKey.trim();
+  const accessToken = settings.journalAccessToken.trim();
 
   if (!supabaseUrl || !anonKey) {
     return journalSyncResult(false, "supabase", "Укажите Supabase URL и anon key.", 0, 0);
@@ -83,7 +86,7 @@ export async function sendJournalSyncTest(settings: ReactSettings, history: Patt
     return journalSyncResult(false, "supabase", "В истории пока нет событий для отправки.", 0, 0);
   }
 
-  const client = new JournalIngestClient({ supabaseUrl, anonKey });
+  const client = new JournalIngestClient({ supabaseUrl, anonKey, accessToken });
   const events = history.slice(0, 20);
   const patternStats = buildPatternStatsDaily(history);
   const response = await client.send({

@@ -69,7 +69,7 @@ type JournalIngestPayload = {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-live-scanner-key",
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 
@@ -80,6 +80,10 @@ Deno.serve(async (request) => {
 
   if (request.method !== "POST") {
     return json({ error: "Method not allowed" }, 405);
+  }
+
+  if (!hasAccess(request)) {
+    return json({ error: "Access denied" }, 403);
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -112,6 +116,11 @@ Deno.serve(async (request) => {
     patternStatsSaved: patternStats.length
   });
 });
+
+function hasAccess(request: Request) {
+  const expectedToken = Deno.env.get("JOURNAL_ACCESS_TOKEN");
+  return Boolean(expectedToken) && request.headers.get("x-live-scanner-key") === expectedToken;
+}
 
 function toSignalRow(event: JournalEvent) {
   return {

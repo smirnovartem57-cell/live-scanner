@@ -125,6 +125,15 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
             onChange={(event) => updateSetting("supabaseAnonKey", event.target.value)}
           />
         </label>
+        <label className="input-label">
+          Journal access token
+          <input
+            type="password"
+            value={settings.journalAccessToken}
+            placeholder="личный токен функции"
+            onChange={(event) => updateSetting("journalAccessToken", event.target.value)}
+          />
+        </label>
         <button className="primary-button" type="button" onClick={runJournalTest} disabled={journalSyncing}>
           {journalSyncing ? "Проверяем..." : "Проверить запись журнала"}
         </button>

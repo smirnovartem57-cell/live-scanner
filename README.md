@@ -338,9 +338,11 @@ buildSignalMessage(signal)
 ## Env на будущее
 
 ```text
-VITE_DATA_MODE=mock
-VITE_FOOTBALL_API_PROVIDER=mock
-VITE_FOOTBALL_API_KEY=
-VITE_TELEGRAM_BOT_TOKEN=
-VITE_TELEGRAM_CHAT_ID=
+DATA_MODE=mock
+FOOTBALL_API_PROVIDER=mock
+FOOTBALL_API_KEY=server-only
+TELEGRAM_BOT_TOKEN=server-only
+JOURNAL_ACCESS_TOKEN=server-only
 ```
+
+Секреты не должны начинаться с `VITE_`, если они не предназначены для браузера. Все ключи поставщиков данных, Telegram bot token и service-role ключи хранятся только на backend/Edge Functions.
