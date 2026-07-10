@@ -92,6 +92,12 @@ services/signal-result-engine.js
                 проверка результата сигнала по событиям матча
 src/services/patternEngine/
                 TypeScript-структура Pattern Engine для будущей сборки
+src/services/footballDataProvider/
+                TypeScript-контракт данных и mock/real providers для будущего API
+src/services/storage/
+                ключи локального хранилища для будущей модульной сборки
+src/types/
+                доменные типы матчей, статистики, сигналов, паттернов, пользователей и feedback
 services/telegram-service.js
                 Telegram-заглушка без внешней отправки
 manifest.webmanifest
@@ -119,6 +125,23 @@ src/services/patternEngine/getPatternStatus.ts
 ```
 
 Внутри `app.js` остались экранная логика, журнал событий и расчёт Win/Lose.
+
+## Подготовка к React + TypeScript
+
+Текущий опубликованный сайт остается статическим и работает без сборки. Параллельно добавлен каркас `src/`, чтобы следующий крупный шаг можно было делать уже как модульное приложение:
+
+```text
+src/types/
+                общие типы домена
+src/services/footballDataProvider/
+                асинхронный контракт данных, MockFootballProvider и RealFootballProvider
+src/services/patternEngine/
+                TypeScript-версия расчетов Pattern Engine
+src/services/storage/
+                единые ключи localStorage
+src/index.ts
+                общая точка экспорта будущего приложения
+```
 
 ## Журнал сигналов
 

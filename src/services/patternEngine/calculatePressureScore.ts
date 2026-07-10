@@ -1,12 +1,4 @@
-export type TeamStats = {
-  attacks?: number;
-  dangerousAttacks?: number;
-  shotsTotal?: number;
-  shotsOnTarget?: number;
-  corners?: number;
-  xg?: number;
-  xG?: number;
-};
+import type { TeamStats } from "../../types/football";
 
 export function calculatePressureScore(stats: TeamStats): number {
   const xg = typeof stats.xG === "number" ? stats.xG : stats.xg;

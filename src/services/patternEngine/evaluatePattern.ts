@@ -1,62 +1,8 @@
-import { calculatePressureScore, type TeamStats } from "./calculatePressureScore";
-import { getPatternStatus, type SignalStatus } from "./getPatternStatus";
-import { getSignalStrength, type SignalStrength } from "./getSignalStrength";
-
-export type Match = {
-  id: string;
-  homeTeamId?: string;
-  awayTeamId?: string;
-  homeTeam: string;
-  awayTeam: string;
-  minute: number;
-  scoreHome: number;
-  scoreAway: number;
-};
-
-export type MatchStatsSnapshot = {
-  matchId: string;
-  home: TeamStats;
-  away: TeamStats;
-  last10?: { home?: TeamStats; away?: TeamStats };
-  previous10?: { home?: TeamStats; away?: TeamStats };
-  recent?: { home?: TeamStats; away?: TeamStats };
-  previous?: { home?: TeamStats; away?: TeamStats };
-};
-
-export type Pattern = {
-  id: string;
-  type: string;
-  enabled: boolean;
-  rules?: PatternRule[];
-};
-
-export type PatternRule = {
-  label?: string;
-  field: string;
-  operator: string;
-  value: number | string;
-  period?: string;
-};
-
-export type Signal = {
-  id: string;
-  matchId: string;
-  patternId: string;
-  patternType: string;
-  teamId?: string;
-  teamSide: "home" | "away";
-  minute: number;
-  scoreHome: number;
-  scoreAway: number;
-  pressureScore: number;
-  strength: SignalStrength;
-  status: SignalStatus;
-  signalKind: "signal" | "warning";
-  statsAtSignal: TeamStats;
-  explanation: string;
-  createdAt: string;
-  updatedAt: string;
-};
+import type { Match, MatchStatsSnapshot, TeamSide, TeamStats } from "../../types/football";
+import type { Pattern, PatternRule, Signal } from "../../types/patterns";
+import { calculatePressureScore } from "./calculatePressureScore";
+import { getPatternStatus } from "./getPatternStatus";
+import { getSignalStrength } from "./getSignalStrength";
 
 const SIGNAL_BUCKET_MINUTES = 10;
 
@@ -64,7 +10,7 @@ export function evaluatePattern(
   match: Match,
   snapshot: MatchStatsSnapshot,
   pattern: Pattern,
-  side: "home" | "away",
+  side: TeamSide,
   now = new Date()
 ): Signal | null {
   const team = snapshot[side];
@@ -170,7 +116,7 @@ function buildSignalExplanation(
   match: Match,
   team: TeamStats,
   opponent: TeamStats,
-  side: "home" | "away",
+  side: TeamSide,
   pressureScore: number,
   recent: TeamStats,
   previous: TeamStats

@@ -1,4 +1,4 @@
-export type SignalStrength = "LOW" | "MED" | "HIGH";
+import type { SignalStrength } from "../../types/patterns";
 
 export function getSignalStrength(pressureScore: number): SignalStrength {
   if (pressureScore >= 75) return "HIGH";
