@@ -106,6 +106,8 @@ services/storage.js
                 чтение и запись настроек, журнала, профилей условий и заметок в localStorage
 services/history-service.js
                 фильтры журнала, статистика Win/Lose, периоды и экспорт истории
+services/pattern-analytics-service.js
+                эффективность паттернов, статусы, качество, слабые профили и группировки
 manifest.webmanifest
 sw.js
 icons/icon.svg
