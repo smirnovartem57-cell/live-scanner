@@ -43,5 +43,6 @@ Backend/Edge Function only:
 - `SUPABASE_SERVICE_ROLE_KEY`;
 - `JOURNAL_ACCESS_TOKEN`;
 - `FOOTBALL_DATA_ACCESS_TOKEN`;
+- `API_FOOTBALL_KEY`;
 - football data provider keys;
 - Telegram bot token.

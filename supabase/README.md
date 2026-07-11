@@ -15,7 +15,7 @@
 2. Открыть SQL Editor.
 3. Выполнить `migrations/001_journal_storage.sql`.
 4. Развернуть Edge Functions `journal-ingest`, `journal-read` и `football-live`.
-5. Добавить secrets `SUPABASE_SERVICE_ROLE_KEY`, `JOURNAL_ACCESS_TOKEN` и при необходимости `FOOTBALL_DATA_ACCESS_TOKEN` в Supabase Functions.
+5. Добавить secrets `SUPABASE_SERVICE_ROLE_KEY`, `JOURNAL_ACCESS_TOKEN`, `API_FOOTBALL_KEY` и при необходимости `FOOTBALL_DATA_ACCESS_TOKEN` в Supabase Functions.
 6. Когда появятся логины, добавить политики чтения для authenticated users.
 
 ## Переменные
@@ -27,11 +27,14 @@ SUPABASE_URL=https://PROJECT.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=...
 JOURNAL_ACCESS_TOKEN=long-random-private-token
 FOOTBALL_DATA_ACCESS_TOKEN=optional-long-random-private-token
+API_FOOTBALL_KEY=server-only-api-football-key
+API_FOOTBALL_BASE_URL=https://v3.football.api-sports.io
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` нельзя добавлять в GitHub Pages или frontend env.
 `JOURNAL_ACCESS_TOKEN` обязателен для закрытого личного доступа к чтению и записи журнала. Если secret не задан или в приложении указан другой токен, `journal-read` и `journal-ingest` вернут `403`.
 `football-live` использует `FOOTBALL_DATA_ACCESS_TOKEN`, а если он не задан, проверяет `JOURNAL_ACCESS_TOKEN`.
+`API_FOOTBALL_KEY` используется только внутри `football-live` и не должен попадать в браузер.
 
 ## Следующий шаг
 
@@ -45,7 +48,7 @@ FOOTBALL_DATA_ACCESS_TOKEN=optional-long-random-private-token
 
 В браузере используется anon key и личный `Journal access token`. Service-role ключ хранится только в Supabase secrets функции.
 
-`football-live` пока возвращает пустой live-snapshot и служит защищённым местом для будущего football API. Ключ поставщика данных должен храниться только внутри этой функции.
+`football-live` читает live fixtures, statistics и events из API-FOOTBALL/API-SPORTS и нормализует их в типы Live Scanner. Если `API_FOOTBALL_KEY` не задан, функция возвращает пустой snapshot без ошибки.
 
 После этого можно заменить mock-историю на чтение из `journal_signals + journal_signal_results`.
 
