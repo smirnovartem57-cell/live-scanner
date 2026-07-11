@@ -25,6 +25,36 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
   const hasConnection = hasSupabaseConnectionSettings(settings);
   const journalReady = canUseJournalStorage(settings);
   const realDataReady = canUseRealFootballData(settings);
+  const readinessItems = [
+    {
+      label: "Real data",
+      value: !settings.mockMode && realDataReady ? "Готово" : settings.mockMode ? "Включен mock" : "Нужен token",
+      ok: !settings.mockMode && realDataReady
+    },
+    {
+      label: "Supabase",
+      value: hasConnection ? "URL и anon key есть" : "Нет подключения",
+      ok: hasConnection
+    },
+    {
+      label: "Журнал",
+      value: journalReady ? "Запись включена" : "Не готов",
+      ok: journalReady
+    },
+    {
+      label: "Проверка записи",
+      value: settings.lastJournalRoundtrip?.ok ? "Круг прошел" : "Нужен тест",
+      ok: Boolean(settings.lastJournalRoundtrip?.ok)
+    },
+    {
+      label: "Live source",
+      value: settings.lastFootballDataTest?.ok ? `${settings.lastFootballDataTest.matchesLoaded} матчей` : "Нужен тест",
+      ok: Boolean(settings.lastFootballDataTest?.ok)
+    }
+  ];
+  const readinessPassed = readinessItems.filter((item) => item.ok).length;
+  const readinessTotal = readinessItems.length;
+  const readinessReady = readinessPassed === readinessTotal;
 
   function updateSetting<Key extends keyof ReactSettings>(key: Key, value: ReactSettings[Key]) {
     setSettings((current) => ({ ...current, [key]: value }));
@@ -105,6 +135,29 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
 
   return (
     <section className="settings-grid">
+      <div className="panel real-readiness-panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Real data readiness</p>
+            <h2>Готовность к реальным событиям</h2>
+            <p className="muted">
+              {readinessReady
+                ? "Можно запускать live-проверку: источник, журнал и чтение истории готовы."
+                : "Перед live-проверкой нужно закрыть оставшиеся пункты ниже."}
+            </p>
+          </div>
+          <span className={`readiness-score ${readinessReady ? "ok" : "warning"}`}>{readinessPassed}/{readinessTotal}</span>
+        </div>
+        <div className="readiness-check-grid">
+          {readinessItems.map((item) => (
+            <span className={`readiness-check-card ${item.ok ? "ok" : "warning"}`} key={item.label}>
+              <b>{item.label}</b>
+              <small>{item.value}</small>
+            </span>
+          ))}
+        </div>
+      </div>
+
       <div className="panel">
         <h2>Режим данных</h2>
         <label className="switch field-row">
