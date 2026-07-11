@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MockFootballProvider, RealFootballProvider } from "../../services/footballDataProvider";
+import type { FootballDataSourceStatus } from "../../services/footballDataProvider";
 import { evaluateMatch } from "../../services/patternEngine";
 import type { Match, MatchEvent, MatchStatsSnapshot, TeamProfile } from "../../types/football";
 import type { Pattern, PatternEvent, Signal } from "../../types/patterns";
@@ -19,6 +20,7 @@ export type FootballLabViewModel = {
   feedbackItems: FeedbackItem[];
   lastLoadedAt: string;
   providerMode: "mock" | "real";
+  sourceStatus: FootballDataSourceStatus;
 };
 
 export type FootballLabSummary = {
@@ -79,7 +81,8 @@ export function useFootballLabData(settings: ReactSettings) {
         userProfile,
         feedbackItems,
         lastLoadedAt: new Date().toISOString(),
-        providerMode: provider.mode
+        providerMode: provider.mode,
+        sourceStatus: provider.getSourceStatus()
       });
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Не удалось загрузить данные.");

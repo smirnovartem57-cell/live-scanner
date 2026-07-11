@@ -4,8 +4,17 @@ import type { FeedbackItem, UserProfile } from "../../types/user";
 
 export type FootballDataMode = "mock" | "real";
 
+export type FootballDataSourceStatus = {
+  mode: FootballDataMode;
+  provider: string;
+  message: string;
+  cached: boolean;
+  loadedAt: string;
+};
+
 export interface FootballDataProvider {
   mode: FootballDataMode;
+  getSourceStatus(): FootballDataSourceStatus;
   getLiveMatches(): Promise<Match[]>;
   getMatchStats(): Promise<MatchStatsSnapshot[]>;
   getMatchEvents(matchId?: string): Promise<Record<string, MatchEvent[]> | MatchEvent[]>;

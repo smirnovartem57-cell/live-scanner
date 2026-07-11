@@ -1,7 +1,7 @@
 import type { Match, MatchEvent, MatchStatsSnapshot, TeamProfile, TeamRecentMatch } from "../../types/football";
 import type { Pattern, PatternEvent, Signal } from "../../types/patterns";
 import type { FeedbackItem, UserProfile } from "../../types/user";
-import type { FootballDataProvider } from "./FootballDataProvider";
+import type { FootballDataProvider, FootballDataSourceStatus } from "./FootballDataProvider";
 
 export type MockFootballData = {
   matches: Match[];
@@ -19,6 +19,16 @@ export class MockFootballProvider implements FootballDataProvider {
   mode = "mock" as const;
 
   constructor(private readonly data: MockFootballData) {}
+
+  getSourceStatus(): FootballDataSourceStatus {
+    return {
+      mode: this.mode,
+      provider: "mock",
+      message: "Локальные mock-данные.",
+      cached: false,
+      loadedAt: new Date().toISOString()
+    };
+  }
 
   async getLiveMatches(): Promise<Match[]> {
     const updatedAt = new Date().toISOString();

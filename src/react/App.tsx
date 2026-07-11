@@ -14,6 +14,7 @@ import { useJournalAutoIngest } from "./hooks/useJournalAutoIngest";
 import { useJournalHistory } from "./hooks/useJournalHistory";
 import { useReactSettings } from "./hooks/useReactSettings";
 import { buildTeamProfileViewModel, type TeamProfileSelection } from "./domain/teamProfile";
+import type { FootballDataSourceStatus } from "../services/footballDataProvider";
 import type { ReactNavItem, ReactViewId } from "./types";
 
 const navItems: ReactNavItem[] = [
@@ -43,7 +44,10 @@ export function App() {
   });
   const title = useMemo(() => navItems.find((item) => item.id === activeView)?.title || "Сканер матчей", [activeView]);
   const sourceLabel = data?.providerMode === "real" ? "Real API" : "Mock-данные";
-  const updatedLabel = data?.lastLoadedAt ? `Обновлено ${formatTime(data.lastLoadedAt)}` : "Ожидаем данные";
+  const updatedLabel = data?.lastLoadedAt
+    ? `${data.sourceStatus.message} · ${formatTime(data.lastLoadedAt)}`
+    : "Ожидаем данные";
+  const sourceDetails = data ? formatSourceDetails(data.sourceStatus, data.matches.length) : "Источник не загружен";
   const teamProfile = useMemo(() => {
     if (!data || !selectedTeam) return null;
     return buildTeamProfileViewModel({
@@ -66,6 +70,7 @@ export function App() {
       refreshing={refreshing}
       sourceLabel={sourceLabel}
       updatedLabel={updatedLabel}
+      sourceDetails={sourceDetails}
     >
       {loading ? <div className="empty-state">Загружаем данные...</div> : null}
       {error ? <div className="empty-state">{error}</div> : null}
@@ -117,4 +122,9 @@ function formatTime(value: string) {
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date(value));
+}
+
+function formatSourceDetails(source: FootballDataSourceStatus, matchesCount: number) {
+  const cacheLabel = source.cached ? "cache" : "live";
+  return `${source.provider} · ${cacheLabel} · ${matchesCount} матчей`;
 }

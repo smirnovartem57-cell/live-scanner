@@ -10,10 +10,11 @@ type AppShellProps = {
   refreshing: boolean;
   sourceLabel: string;
   updatedLabel: string;
+  sourceDetails: string;
   children: ReactNode;
 };
 
-export function AppShell({ title, activeView, navItems, onViewChange, onRefresh, refreshing, sourceLabel, updatedLabel, children }: AppShellProps) {
+export function AppShell({ title, activeView, navItems, onViewChange, onRefresh, refreshing, sourceLabel, updatedLabel, sourceDetails, children }: AppShellProps) {
   return (
     <div className="app-shell react-app-shell">
       <aside className="desktop-sidebar" aria-label="Разделы приложения">
@@ -55,6 +56,7 @@ export function AppShell({ title, activeView, navItems, onViewChange, onRefresh,
             <div className="data-status" aria-live="polite">
               <span>{sourceLabel}</span>
               <small>{updatedLabel}</small>
+              <small>{sourceDetails}</small>
             </div>
             <button className="topbar-button" type="button" onClick={onRefresh} disabled={refreshing}>
               {refreshing ? "Обновляем..." : "Обновить"}
