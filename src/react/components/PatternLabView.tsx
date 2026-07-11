@@ -54,6 +54,16 @@ export function PatternLabView({ patterns, history, signals, settings, setSettin
     });
   }
 
+  function toggleActivePattern() {
+    setSettings((current) => ({
+      ...current,
+      patternEnabledOverrides: {
+        ...current.patternEnabledOverrides,
+        [activePattern.id]: !activePattern.enabled
+      }
+    }));
+  }
+
   function saveProfile() {
     const cleanName = profileName.trim() || `${activePattern.name} · ${new Date().toLocaleDateString("ru-RU")}`;
     const profile: PatternConditionProfile = {
@@ -138,7 +148,12 @@ export function PatternLabView({ patterns, history, signals, settings, setSettin
             <p className="eyebrow">Паттерны &gt; {activePattern.name}</p>
             <h2>Конструктор паттерна</h2>
           </div>
-          <span className={`quality-badge ${activeStats.status}`}>{patternStatusLabel[activeStats.status]}</span>
+          <div className="builder-status-actions">
+            <button className={`mini-action ${activePattern.enabled ? "is-win" : "is-lose"}`} type="button" onClick={toggleActivePattern}>
+              {activePattern.enabled ? "Активен" : "Выключен"}
+            </button>
+            <span className={`quality-badge ${activeStats.status}`}>{patternStatusLabel[activeStats.status]}</span>
+          </div>
         </div>
 
         <p className="muted">{activePattern.description}</p>

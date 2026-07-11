@@ -1066,6 +1066,14 @@ h2 {
   font-size: 13px;
 }
 
+.builder-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
 .threshold-list {
   display: grid;
   gap: 10px;

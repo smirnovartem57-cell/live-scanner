@@ -47,6 +47,7 @@ export type ReactSettings = {
   footballDataFunctionName: string;
   footballDataAccessToken: string;
   patternRuleOverrides: Record<string, Array<{ value: number | string }>>;
+  patternEnabledOverrides: Record<string, boolean>;
   patternConditionProfiles: PatternConditionProfile[];
   favoriteLeagues: string[];
   lastTelegramTest: TelegramTestResult | null;
@@ -68,6 +69,7 @@ export const defaultReactSettings: ReactSettings = {
   footballDataFunctionName: "football-live",
   footballDataAccessToken: "",
   patternRuleOverrides: {},
+  patternEnabledOverrides: {},
   patternConditionProfiles: [],
   favoriteLeagues: ["Spain LaLiga", "Italy Serie A", "Portugal Primeira"],
   lastTelegramTest: null,
@@ -89,16 +91,21 @@ export function writeReactSettings(settings: ReactSettings) {
   localStorage.setItem(settingsKey, JSON.stringify(settings));
 }
 
-export function applyPatternRuleOverrides(patterns: Pattern[], overrides: ReactSettings["patternRuleOverrides"]): Pattern[] {
+export function applyPatternSettings(
+  patterns: Pattern[],
+  ruleOverrides: ReactSettings["patternRuleOverrides"],
+  enabledOverrides: ReactSettings["patternEnabledOverrides"]
+): Pattern[] {
   return patterns.map((pattern) => {
-    const patternOverrides = overrides[pattern.id];
-    if (!patternOverrides?.length) return pattern;
+    const patternOverrides = ruleOverrides[pattern.id];
+    const enabledOverride = enabledOverrides[pattern.id];
 
     return {
       ...pattern,
+      enabled: enabledOverride ?? pattern.enabled,
       rules: pattern.rules.map((rule, index) => ({
         ...rule,
-        value: patternOverrides[index]?.value ?? rule.value
+        value: patternOverrides?.[index]?.value ?? rule.value
       }))
     };
   });
