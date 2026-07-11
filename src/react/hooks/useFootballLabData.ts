@@ -5,7 +5,7 @@ import { evaluateMatch } from "../../services/patternEngine";
 import type { Match, MatchEvent, MatchStatsSnapshot, TeamProfile } from "../../types/football";
 import type { Pattern, PatternEvent, Signal } from "../../types/patterns";
 import type { FeedbackItem, UserProfile } from "../../types/user";
-import { getFootballDataAccessToken, hasSupabaseConnectionSettings, type ReactSettings } from "../domain/settings";
+import { applyPatternRuleOverrides, getFootballDataAccessToken, hasSupabaseConnectionSettings, type ReactSettings } from "../domain/settings";
 import { getBrowserMockData } from "../mockData";
 
 export type FootballLabViewModel = {
@@ -60,7 +60,7 @@ export function useFootballLabData(settings: ReactSettings) {
           },
           mockData
         );
-      const [matches, snapshots, eventsResult, patterns, seedSignals, history, userProfile, feedbackItems] = await Promise.all([
+      const [matches, snapshots, eventsResult, providerPatterns, seedSignals, history, userProfile, feedbackItems] = await Promise.all([
         provider.getLiveMatches(),
         provider.getMatchStats(),
         provider.getMatchEvents(),
@@ -70,6 +70,7 @@ export function useFootballLabData(settings: ReactSettings) {
         provider.getUserProfile(),
         provider.getFeedbackItems()
       ]);
+      const patterns = applyPatternRuleOverrides(providerPatterns, settings.patternRuleOverrides);
       const events = Array.isArray(eventsResult) ? {} : eventsResult;
       const teamIds = [...new Set(matches.flatMap((match) => [match.homeTeamId, match.awayTeamId]).filter(Boolean))] as string[];
       const teamProfiles = (await Promise.all(teamIds.map((teamId) => provider.getTeamProfile(teamId))))
@@ -101,6 +102,7 @@ export function useFootballLabData(settings: ReactSettings) {
     settings.footballDataFunctionName,
     settings.journalAccessToken,
     settings.mockMode,
+    settings.patternRuleOverrides,
     settings.supabaseAnonKey,
     settings.supabaseUrl
   ]);

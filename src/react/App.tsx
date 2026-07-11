@@ -79,7 +79,15 @@ export function App() {
           {activeView === "scanner" && teamProfile ? <TeamProfileView profile={teamProfile} onClose={() => setSelectedTeam(null)} /> : null}
           {activeView === "scanner" ? <LiveScannerView matches={data.matches} signals={data.signals} summary={summary} onTeamSelect={setSelectedTeam} /> : null}
           {activeView === "signals" ? <SignalListView matches={data.matches} signals={data.signals} /> : null}
-          {activeView === "patterns" ? <PatternLabView patterns={data.patterns} history={journal.history} signals={data.signals} /> : null}
+          {activeView === "patterns" ? (
+            <PatternLabView
+              patterns={data.patterns}
+              history={journal.history}
+              signals={data.signals}
+              settings={settings}
+              setSettings={setSettings}
+            />
+          ) : null}
           {activeView === "history" ? (
             <HistoryView
               history={journal.history}

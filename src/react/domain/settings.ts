@@ -1,5 +1,5 @@
 import { buildPatternStatsDaily, JournalIngestClient, JournalReadClient } from "../../services/journalStorage";
-import type { PatternEvent } from "../../types/patterns";
+import type { Pattern, PatternConditionProfile, PatternEvent } from "../../types/patterns";
 
 export type TelegramTestResult = {
   ok: boolean;
@@ -46,6 +46,8 @@ export type ReactSettings = {
   journalAccessToken: string;
   footballDataFunctionName: string;
   footballDataAccessToken: string;
+  patternRuleOverrides: Record<string, Array<{ value: number | string }>>;
+  patternConditionProfiles: PatternConditionProfile[];
   favoriteLeagues: string[];
   lastTelegramTest: TelegramTestResult | null;
   lastJournalSync: JournalSyncTestResult | null;
@@ -65,6 +67,8 @@ export const defaultReactSettings: ReactSettings = {
   journalAccessToken: "",
   footballDataFunctionName: "football-live",
   footballDataAccessToken: "",
+  patternRuleOverrides: {},
+  patternConditionProfiles: [],
   favoriteLeagues: ["Spain LaLiga", "Italy Serie A", "Portugal Primeira"],
   lastTelegramTest: null,
   lastJournalSync: null,
@@ -83,6 +87,21 @@ export function readReactSettings(): ReactSettings {
 
 export function writeReactSettings(settings: ReactSettings) {
   localStorage.setItem(settingsKey, JSON.stringify(settings));
+}
+
+export function applyPatternRuleOverrides(patterns: Pattern[], overrides: ReactSettings["patternRuleOverrides"]): Pattern[] {
+  return patterns.map((pattern) => {
+    const patternOverrides = overrides[pattern.id];
+    if (!patternOverrides?.length) return pattern;
+
+    return {
+      ...pattern,
+      rules: pattern.rules.map((rule, index) => ({
+        ...rule,
+        value: patternOverrides[index]?.value ?? rule.value
+      }))
+    };
+  });
 }
 
 export function getJournalAccessToken(settings: ReactSettings): string {

@@ -1,17 +1,22 @@
-import { useMemo, useState } from "react";
-import type { Pattern, PatternEvent, Signal } from "../../types/patterns";
+import { useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import type { Pattern, PatternConditionProfile, PatternEvent, PatternRule, Signal } from "../../types/patterns";
 import { getPatternName } from "../domain/labels";
 import { getReactPatternStats, getRuleText, patternStatusLabel } from "../domain/patternAnalytics";
+import type { ReactSettings } from "../domain/settings";
 import { MetricCard } from "./MetricCard";
 
 type PatternLabViewProps = {
   patterns: Pattern[];
   history: PatternEvent[];
   signals: Signal[];
+  settings: ReactSettings;
+  setSettings: Dispatch<SetStateAction<ReactSettings>>;
 };
 
-export function PatternLabView({ patterns, history, signals }: PatternLabViewProps) {
+export function PatternLabView({ patterns, history, signals, settings, setSettings }: PatternLabViewProps) {
   const [activePatternId, setActivePatternId] = useState(patterns[0]?.id || "");
+  const [profileName, setProfileName] = useState("");
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const activePattern = patterns.find((pattern) => pattern.id === activePatternId) || patterns[0];
   const rows = useMemo(
     () => patterns.map((pattern) => getReactPatternStats(pattern, history, signals)),
@@ -19,9 +24,90 @@ export function PatternLabView({ patterns, history, signals }: PatternLabViewPro
   );
   const activeStats = activePattern ? getReactPatternStats(activePattern, history, signals) : null;
   const activeSignals = activePattern ? signals.filter((signal) => signal.patternId === activePattern.id) : [];
+  const savedProfiles = activePattern ? settings.patternConditionProfiles.filter((profile) => profile.patternId === activePattern.id) : [];
 
   if (!activePattern || !activeStats) {
     return <div className="empty-state">Паттерны пока не загружены.</div>;
+  }
+
+  function updateRuleValue(ruleIndex: number, rawValue: string) {
+    setSettings((current) => {
+      const currentRules = activePattern.rules.map((rule) => ({ value: rule.value }));
+      const sourceValue = activePattern.rules[ruleIndex]?.value;
+      currentRules[ruleIndex] = { value: normalizeRuleValue(rawValue, sourceValue) };
+
+      return {
+        ...current,
+        patternRuleOverrides: {
+          ...current.patternRuleOverrides,
+          [activePattern.id]: currentRules
+        }
+      };
+    });
+  }
+
+  function resetActivePattern() {
+    setSettings((current) => {
+      const nextOverrides = { ...current.patternRuleOverrides };
+      delete nextOverrides[activePattern.id];
+      return { ...current, patternRuleOverrides: nextOverrides };
+    });
+  }
+
+  function saveProfile() {
+    const cleanName = profileName.trim() || `${activePattern.name} · ${new Date().toLocaleDateString("ru-RU")}`;
+    const profile: PatternConditionProfile = {
+      id: `profile-${activePattern.id}-${Date.now()}`,
+      patternId: activePattern.id,
+      name: cleanName,
+      rules: activePattern.rules.map((rule) => ({ value: rule.value })),
+      createdAt: new Date().toISOString()
+    };
+
+    setSettings((current) => ({
+      ...current,
+      patternConditionProfiles: [profile, ...current.patternConditionProfiles].slice(0, 40)
+    }));
+    setProfileName("");
+  }
+
+  function applyProfile(profile: PatternConditionProfile) {
+    setActivePatternId(profile.patternId);
+    setSettings((current) => ({
+      ...current,
+      patternRuleOverrides: {
+        ...current.patternRuleOverrides,
+        [profile.patternId]: profile.rules
+      }
+    }));
+  }
+
+  function exportProfiles() {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      profiles: settings.patternConditionProfiles
+    };
+    downloadFile("football-pattern-profiles.json", JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+  }
+
+  function importProfiles(file?: File | null) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result || "{}")) as { profiles?: PatternConditionProfile[] };
+        const profiles = (parsed.profiles || []).filter(isPatternProfile);
+        setSettings((current) => ({
+          ...current,
+          patternConditionProfiles: [...profiles, ...current.patternConditionProfiles].slice(0, 60)
+        }));
+      } catch {
+        // Keep the current profiles unchanged when the imported file is invalid.
+      } finally {
+        if (importInputRef.current) importInputRef.current.value = "";
+      }
+    };
+    reader.readAsText(file);
   }
 
   return (
@@ -69,14 +155,46 @@ export function PatternLabView({ patterns, history, signals }: PatternLabViewPro
                 <b>{rule.label || rule.field}</b>
                 <small>{getRuleText(rule)}</small>
               </span>
-              <input value={String(rule.value)} readOnly aria-label={rule.label || rule.field} />
+              <input
+                value={String(rule.value)}
+                aria-label={rule.label || rule.field}
+                onChange={(event) => updateRuleValue(index, event.target.value)}
+              />
             </div>
           ))}
         </div>
 
         <div className="builder-actions">
-          <button className="ghost-button" type="button" disabled>Сбросить условия</button>
-          <button className="ghost-button" type="button" disabled>Сохранить профиль</button>
+          <button className="ghost-button" type="button" onClick={resetActivePattern}>Сбросить условия</button>
+          <input
+            className="profile-name-input"
+            type="text"
+            value={profileName}
+            placeholder="Название профиля"
+            onChange={(event) => setProfileName(event.target.value)}
+          />
+          <button className="ghost-button" type="button" onClick={saveProfile}>Сохранить профиль</button>
+          <button className="ghost-button" type="button" onClick={exportProfiles} disabled={!settings.patternConditionProfiles.length}>Экспорт JSON</button>
+          <button className="ghost-button" type="button" onClick={() => importInputRef.current?.click()}>Импорт JSON</button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json"
+            hidden
+            onChange={(event) => importProfiles(event.target.files?.[0])}
+          />
+        </div>
+
+        <div className="saved-profile-list">
+          {savedProfiles.length ? savedProfiles.map((profile) => (
+            <span key={profile.id}>
+              <b>{profile.name}</b>
+              <small>{new Date(profile.createdAt).toLocaleDateString("ru-RU")} · {profile.rules.length} условий</small>
+              <button className="mini-action" type="button" onClick={() => applyProfile(profile)}>Применить</button>
+            </span>
+          )) : (
+            <span><b>Сохранённых профилей нет</b><small>Измените условия и сохраните профиль для повторного применения.</small></span>
+          )}
         </div>
       </section>
 
@@ -138,4 +256,27 @@ export function PatternLabView({ patterns, history, signals }: PatternLabViewPro
       </section>
     </section>
   );
+}
+
+function normalizeRuleValue(rawValue: string, sourceValue: PatternRule["value"]) {
+  if (typeof sourceValue === "number") {
+    const parsed = Number(rawValue);
+    return Number.isFinite(parsed) ? parsed : sourceValue;
+  }
+
+  return rawValue;
+}
+
+function isPatternProfile(profile: PatternConditionProfile): profile is PatternConditionProfile {
+  return Boolean(profile?.id && profile.patternId && profile.name && Array.isArray(profile.rules));
+}
+
+function downloadFile(filename: string, content: string, type: string) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }
