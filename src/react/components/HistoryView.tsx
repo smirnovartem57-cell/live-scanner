@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { PatternEvent } from "../../types/patterns";
 import { formatDate } from "../domain/dateFormat";
 import {
+  buildHistoryExport,
   filterHistory,
   filterHistoryByPeriod,
   formatHistoryOutcome,
@@ -11,6 +12,7 @@ import {
   getHistoryStats,
   historyFilterLabels,
   historyPeriodLabels,
+  type HistoryExportFormat,
   type HistoryFilter,
   type HistoryPeriod
 } from "../domain/historyAnalytics";
@@ -57,6 +59,17 @@ export function HistoryView({
   async function closeManually(event: PatternEvent, outcome: "win" | "lose") {
     if (!onManualClose) return;
     await onManualClose(event, outcome, comments[event.id] || "");
+  }
+
+  function exportHistory(format: HistoryExportFormat) {
+    const file = buildHistoryExport({
+      events: filteredHistory,
+      filter,
+      period,
+      format,
+      getPatternName
+    });
+    downloadFile(file.filename, file.content, file.type);
   }
 
   return (
@@ -116,6 +129,14 @@ export function HistoryView({
               {loading ? "Загружаем..." : "Обновить журнал"}
             </button>
           ) : null}
+          <div className="export-actions">
+            <button className="ghost-button" type="button" onClick={() => exportHistory("json")} disabled={!filteredHistory.length}>
+              JSON
+            </button>
+            <button className="ghost-button" type="button" onClick={() => exportHistory("csv")} disabled={!filteredHistory.length}>
+              CSV
+            </button>
+          </div>
         </div>
 
         <div className="history-table react-history-table">
@@ -244,4 +265,14 @@ function getEventTeamName(event: PatternEvent) {
   }
 
   return event.match.split(" - ")[0] || "Команда хозяев";
+}
+
+function downloadFile(filename: string, content: string, type: string) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }

@@ -88,3 +88,88 @@ export function formatResultSource(event: PatternEvent) {
   if (event.resultSource === "auto") return "Авто";
   return "Старт";
 }
+
+export type HistoryExportFormat = "json" | "csv";
+
+export function buildHistoryExport(params: {
+  events: PatternEvent[];
+  filter: HistoryFilter;
+  period: HistoryPeriod;
+  format: HistoryExportFormat;
+  getPatternName: (patternType: string) => string;
+}) {
+  const { events, filter, period, format, getPatternName } = params;
+  const timestamp = new Date().toISOString().slice(0, 19).replaceAll(":", "-");
+
+  return {
+    filename: `football-pattern-history-${period}-${filter}-${timestamp}.${format}`,
+    content: format === "csv" ? historyToCsv(events, getPatternName) : JSON.stringify(events, null, 2),
+    type: format === "csv" ? "text/csv;charset=utf-8" : "application/json;charset=utf-8"
+  };
+}
+
+function historyToCsv(events: PatternEvent[], getPatternName: (patternType: string) => string) {
+  const headers = [
+    "id",
+    "matchId",
+    "teamId",
+    "match",
+    "league",
+    "minute",
+    "pattern",
+    "teamSide",
+    "signalKind",
+    "resultSource",
+    "scoreHome",
+    "scoreAway",
+    "pressureScore",
+    "strength",
+    "outcome",
+    "status",
+    "goalWithin5",
+    "goalWithin10",
+    "goalWithin15",
+    "goalMinute",
+    "goalTeam",
+    "comment",
+    "finalComment",
+    "createdAt",
+    "updatedAt",
+    "closedAt"
+  ];
+
+  const rows = events.map((event) => [
+    event.id,
+    event.matchId,
+    event.teamId || "",
+    event.match,
+    event.league,
+    event.minute,
+    getPatternName(event.patternType),
+    event.teamSide,
+    event.signalKind,
+    formatResultSource(event),
+    event.scoreHome,
+    event.scoreAway,
+    event.pressureScore,
+    event.strength,
+    getHistoryOutcome(event),
+    event.status,
+    event.result.goalWithin5,
+    event.result.goalWithin10,
+    event.result.goalWithin15,
+    event.result.goalMinute || "",
+    event.result.goalTeam || "",
+    event.comment || "",
+    event.result.finalComment || "",
+    event.createdAt,
+    event.updatedAt || "",
+    event.closedAt || ""
+  ]);
+
+  return `\ufeff${[headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\n")}`;
+}
+
+function csvCell(value: unknown) {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
