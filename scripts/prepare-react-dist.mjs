@@ -6,6 +6,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const dist = join(root, "dist-react");
 
 const entries = [
+  ["CNAME", "CNAME"],
   ["data", "data"],
   ["icons", "icons"],
   ["manifest.webmanifest", "manifest.webmanifest"],

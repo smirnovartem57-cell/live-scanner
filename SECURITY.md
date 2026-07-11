@@ -2,27 +2,28 @@
 
 ## Current public mode
 
-GitHub Pages is intentionally locked down to `public-closed`.
+GitHub Pages serves the React application on the public domain.
+
+The public app may include UI code, static assets and mock/demo data. Real journal data and real football API data must stay behind Supabase Edge Functions with access-token checks.
 
 The published domain must not serve:
 
-- the React application;
-- `data/mock-data.js`;
-- Supabase settings;
+- Supabase service-role keys;
 - Edge Function secrets;
 - football API keys;
-- Telegram bot tokens.
+- Telegram bot tokens;
+- private real datasets.
 
 ## Required manual settings
 
 For full protection:
 
-1. Keep GitHub Pages disabled or pointed only to the closed artifact.
-2. Make the repository private before adding real provider code or real datasets.
+1. Keep real data access routed through Supabase Edge Functions.
+2. Make the repository private before adding private datasets or provider code that should not be public.
 3. Store Supabase service-role key only in Supabase Edge Function secrets.
 4. Set `JOURNAL_ACCESS_TOKEN` in Supabase Edge Function secrets.
 5. Set `FOOTBALL_DATA_ACCESS_TOKEN` for `football-live`, or let it reuse `JOURNAL_ACCESS_TOKEN`.
-6. Use the same access token in the closed local/private app settings.
+6. Use the same access token in the app settings when real data mode is enabled.
 
 If `JOURNAL_ACCESS_TOKEN` is missing or incorrect, `journal-read` and `journal-ingest` return `403`.
 

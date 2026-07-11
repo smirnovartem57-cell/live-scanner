@@ -77,21 +77,13 @@ npm run preview:react
 http://127.0.0.1:4173/
 ```
 
-Публичная публикация на GitHub Pages сейчас закрыта. Поддомен оставлен только для закрытой страницы:
+Публичная версия GitHub Pages открывает приложение:
 
 ```text
 https://live-scanner.smirart.ru/
 ```
 
-Рабочее приложение и данные не публикуются на этом адресе до подключения нормальной авторизации.
-
-Перед публикацией GitHub Actions запускает guard-проверку:
-
-```powershell
-npm run security:closed-pages
-```
-
-Она не даёт случайно опубликовать `dist-react`, `data/mock-data.js`, рабочие скрипты или PWA-файлы на публичный Pages.
+Интерфейс, статические файлы и mock/demo-данные могут быть публичными. Реальный журнал и real football API должны проходить только через Supabase Edge Functions с access token.
 
 Проверка нормализации API-FOOTBALL:
 
@@ -192,7 +184,7 @@ React-версия использует существующие mock-данны
 - `Идеи`.
 - Навигация между React-разделами.
 
-GitHub Pages сейчас публикует только закрытую страницу из `public-closed` через workflow `.github/workflows/pages.yml`.
+GitHub Pages публикует production-сборку React из `dist-react` через workflow `.github/workflows/pages.yml`.
 
 Pattern Engine вынесен в `services/pattern-engine.js`:
 
