@@ -1,7 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import type { PatternEvent } from "../../types/patterns";
 import { formatDate } from "../domain/dateFormat";
-import { sendJournalSyncTest, sendTelegramTestMessage, type ReactSettings } from "../domain/settings";
+import { sendFootballDataTest, sendJournalSyncTest, sendTelegramTestMessage, type ReactSettings } from "../domain/settings";
 
 type SettingsViewProps = {
   settings: ReactSettings;
@@ -11,6 +11,7 @@ type SettingsViewProps = {
 
 export function SettingsView({ settings, setSettings, history }: SettingsViewProps) {
   const [journalSyncing, setJournalSyncing] = useState(false);
+  const [footballDataChecking, setFootballDataChecking] = useState(false);
 
   function updateSetting<Key extends keyof ReactSettings>(key: Key, value: ReactSettings[Key]) {
     setSettings((current) => ({ ...current, [key]: value }));
@@ -42,6 +43,28 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
       }));
     } finally {
       setJournalSyncing(false);
+    }
+  }
+
+  async function runFootballDataTest() {
+    setFootballDataChecking(true);
+    try {
+      const result = await sendFootballDataTest(settings);
+      setSettings((current) => ({ ...current, lastFootballDataTest: result }));
+    } catch (error) {
+      setSettings((current) => ({
+        ...current,
+        lastFootballDataTest: {
+          ok: false,
+          provider: settings.footballDataFunctionName || "football-live",
+          message: error instanceof Error ? error.message : "Не удалось проверить источник данных.",
+          matchesLoaded: 0,
+          cached: false,
+          createdAt: new Date().toISOString()
+        }
+      }));
+    } finally {
+      setFootballDataChecking(false);
     }
   }
 
@@ -169,6 +192,17 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
             onChange={(event) => updateSetting("footballDataAccessToken", event.target.value)}
           />
         </label>
+        <button className="primary-button" type="button" onClick={runFootballDataTest} disabled={footballDataChecking}>
+          {footballDataChecking ? "Проверяем..." : "Проверить источник данных"}
+        </button>
+        {settings.lastFootballDataTest ? (
+          <p className="telegram-status">
+            {settings.lastFootballDataTest.message}
+            <span>
+              {settings.lastFootballDataTest.provider} · {settings.lastFootballDataTest.cached ? "cache" : "live"} · {settings.lastFootballDataTest.matchesLoaded} матчей · {formatDate(settings.lastFootballDataTest.createdAt)}
+            </span>
+          </p>
+        ) : null}
         <pre className="code-block">FootballDataProvider
   getLiveMatches()
   getMatchStats(matchId)

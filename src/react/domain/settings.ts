@@ -18,6 +18,15 @@ export type JournalSyncTestResult = {
   createdAt: string;
 };
 
+export type FootballDataTestResult = {
+  ok: boolean;
+  provider: string;
+  message: string;
+  matchesLoaded: number;
+  cached: boolean;
+  createdAt: string;
+};
+
 export type ReactSettings = {
   mockMode: boolean;
   telegramEnabled: boolean;
@@ -31,6 +40,7 @@ export type ReactSettings = {
   favoriteLeagues: string[];
   lastTelegramTest: TelegramTestResult | null;
   lastJournalSync: JournalSyncTestResult | null;
+  lastFootballDataTest: FootballDataTestResult | null;
 };
 
 const settingsKey = "football-pattern-lab-settings";
@@ -47,7 +57,8 @@ export const defaultReactSettings: ReactSettings = {
   footballDataAccessToken: "",
   favoriteLeagues: ["Spain LaLiga", "Italy Serie A", "Portugal Primeira"],
   lastTelegramTest: null,
-  lastJournalSync: null
+  lastJournalSync: null,
+  lastFootballDataTest: null
 };
 
 export function readReactSettings(): ReactSettings {
@@ -114,6 +125,50 @@ export async function sendJournalSyncTest(settings: ReactSettings, history: Patt
   );
 }
 
+export async function sendFootballDataTest(settings: ReactSettings): Promise<FootballDataTestResult> {
+  const supabaseUrl = settings.supabaseUrl.trim();
+  const anonKey = settings.supabaseAnonKey.trim();
+  const functionName = settings.footballDataFunctionName.trim() || "football-live";
+  const accessToken = (settings.footballDataAccessToken || settings.journalAccessToken).trim();
+
+  if (!supabaseUrl || !anonKey) {
+    return footballDataTestResult(false, "not_configured", "Укажите Supabase URL и anon key.", 0, false);
+  }
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
+    method: "POST",
+    headers: {
+      apikey: anonKey,
+      authorization: `Bearer ${anonKey}`,
+      ...(accessToken ? { "x-live-scanner-key": accessToken } : {}),
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({ scope: "live-snapshot" })
+  });
+
+  if (!response.ok) {
+    return footballDataTestResult(false, functionName, `Ошибка проверки источника: ${await response.text()}`, 0, false);
+  }
+
+  const payload = await response.json() as {
+    ok?: boolean;
+    provider?: string;
+    message?: string;
+    cached?: boolean;
+    data?: {
+      matches?: unknown[];
+    };
+  };
+
+  return footballDataTestResult(
+    Boolean(payload.ok),
+    payload.provider || functionName,
+    payload.message || "Источник ответил.",
+    payload.data?.matches?.length || 0,
+    Boolean(payload.cached)
+  );
+}
+
 function journalSyncResult(
   ok: boolean,
   mode: JournalSyncTestResult["mode"],
@@ -127,6 +182,23 @@ function journalSyncResult(
     message,
     signalsSaved,
     patternStatsSaved,
+    createdAt: new Date().toISOString()
+  };
+}
+
+function footballDataTestResult(
+  ok: boolean,
+  provider: string,
+  message: string,
+  matchesLoaded: number,
+  cached: boolean
+): FootballDataTestResult {
+  return {
+    ok,
+    provider,
+    message,
+    matchesLoaded,
+    cached,
     createdAt: new Date().toISOString()
   };
 }
