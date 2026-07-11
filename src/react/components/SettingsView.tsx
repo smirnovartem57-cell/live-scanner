@@ -5,6 +5,7 @@ import {
   canUseJournalStorage,
   canUseRealFootballData,
   hasSupabaseConnectionSettings,
+  sendJournalRoundtripTest,
   sendFootballDataTest,
   sendJournalSyncTest,
   sendTelegramTestMessage,
@@ -19,6 +20,7 @@ type SettingsViewProps = {
 
 export function SettingsView({ settings, setSettings, history }: SettingsViewProps) {
   const [journalSyncing, setJournalSyncing] = useState(false);
+  const [journalRoundtripChecking, setJournalRoundtripChecking] = useState(false);
   const [footballDataChecking, setFootballDataChecking] = useState(false);
   const hasConnection = hasSupabaseConnectionSettings(settings);
   const journalReady = canUseJournalStorage(settings);
@@ -54,6 +56,28 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
       }));
     } finally {
       setJournalSyncing(false);
+    }
+  }
+
+  async function runJournalRoundtripTest() {
+    setJournalRoundtripChecking(true);
+    try {
+      const result = await sendJournalRoundtripTest(settings);
+      setSettings((current) => ({ ...current, lastJournalRoundtrip: result }));
+    } catch (error) {
+      setSettings((current) => ({
+        ...current,
+        lastJournalRoundtrip: {
+          ok: false,
+          message: error instanceof Error ? error.message : "Не удалось проверить полный круг журнала.",
+          eventId: "",
+          signalsSaved: 0,
+          foundAfterRead: false,
+          createdAt: new Date().toISOString()
+        }
+      }));
+    } finally {
+      setJournalRoundtripChecking(false);
     }
   }
 
@@ -179,6 +203,9 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
         <button className="primary-button" type="button" onClick={runJournalTest} disabled={journalSyncing}>
           {journalSyncing ? "Проверяем..." : "Проверить запись журнала"}
         </button>
+        <button className="ghost-button" type="button" onClick={runJournalRoundtripTest} disabled={journalRoundtripChecking}>
+          {journalRoundtripChecking ? "Проверяем..." : "Проверить полный круг"}
+        </button>
         {settings.lastJournalSync ? (
           <p className="telegram-status">
             {settings.lastJournalSync.message}
@@ -189,6 +216,14 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
         ) : (
           <p className="muted">Service-role ключ хранится только в Supabase Edge Function, не в браузере.</p>
         )}
+        {settings.lastJournalRoundtrip ? (
+          <p className={settings.lastJournalRoundtrip.ok ? "telegram-status is-ok" : "telegram-status is-warning"}>
+            {settings.lastJournalRoundtrip.message}
+            <span>
+              {settings.lastJournalRoundtrip.signalsSaved} событие · {settings.lastJournalRoundtrip.foundAfterRead ? "чтение подтверждено" : "чтение не подтвердилось"} · {formatDate(settings.lastJournalRoundtrip.createdAt)}
+            </span>
+          </p>
+        ) : null}
       </div>
 
       <div className="panel">

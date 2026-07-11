@@ -1,4 +1,4 @@
-import { buildPatternStatsDaily, JournalIngestClient } from "../../services/journalStorage";
+import { buildPatternStatsDaily, JournalIngestClient, JournalReadClient } from "../../services/journalStorage";
 import type { PatternEvent } from "../../types/patterns";
 
 export type TelegramTestResult = {
@@ -15,6 +15,15 @@ export type JournalSyncTestResult = {
   message: string;
   signalsSaved: number;
   patternStatsSaved: number;
+  createdAt: string;
+};
+
+export type JournalRoundtripTestResult = {
+  ok: boolean;
+  message: string;
+  eventId: string;
+  signalsSaved: number;
+  foundAfterRead: boolean;
   createdAt: string;
 };
 
@@ -40,6 +49,7 @@ export type ReactSettings = {
   favoriteLeagues: string[];
   lastTelegramTest: TelegramTestResult | null;
   lastJournalSync: JournalSyncTestResult | null;
+  lastJournalRoundtrip: JournalRoundtripTestResult | null;
   lastFootballDataTest: FootballDataTestResult | null;
 };
 
@@ -58,6 +68,7 @@ export const defaultReactSettings: ReactSettings = {
   favoriteLeagues: ["Spain LaLiga", "Italy Serie A", "Portugal Primeira"],
   lastTelegramTest: null,
   lastJournalSync: null,
+  lastJournalRoundtrip: null,
   lastFootballDataTest: null
 };
 
@@ -149,6 +160,51 @@ export async function sendJournalSyncTest(settings: ReactSettings, history: Patt
   );
 }
 
+export async function sendJournalRoundtripTest(settings: ReactSettings): Promise<JournalRoundtripTestResult> {
+  const supabaseUrl = settings.supabaseUrl.trim();
+  const anonKey = settings.supabaseAnonKey.trim();
+  const accessToken = getJournalAccessToken(settings);
+  const createdAt = new Date().toISOString();
+  const event = buildDiagnosticJournalEvent(createdAt);
+
+  if (!settings.journalStorageEnabled) {
+    return journalRoundtripResult(false, "Постоянный журнал выключен.", event.id, 0, false);
+  }
+
+  if (!supabaseUrl || !anonKey) {
+    return journalRoundtripResult(false, "Укажите Supabase URL и anon key.", event.id, 0, false);
+  }
+
+  if (!accessToken) {
+    return journalRoundtripResult(false, "Укажите Journal access token.", event.id, 0, false);
+  }
+
+  const ingestClient = new JournalIngestClient({ supabaseUrl, anonKey, accessToken });
+  const ingestResult = await ingestClient.send({
+    events: [event],
+    patternStats: buildPatternStatsDaily([event]),
+    ingestionRun: {
+      provider: "journal-roundtrip-test",
+      status: "success",
+      signalsCreated: 1,
+      message: "Проверка полного круга журнала: запись и чтение.",
+      finishedAt: createdAt
+    }
+  });
+
+  const readClient = new JournalReadClient({ supabaseUrl, anonKey, accessToken });
+  const readResult = await readClient.read({ limit: 50, includePatternStats: true, patternStatsDays: 1, includeDiagnostics: true });
+  const foundAfterRead = readResult.history.some((item) => item.id === event.id);
+
+  return journalRoundtripResult(
+    foundAfterRead,
+    foundAfterRead ? "Полный круг журнала работает: событие записано и прочитано обратно." : "Запись прошла, но событие не найдено при чтении журнала.",
+    event.id,
+    ingestResult.signalsSaved,
+    foundAfterRead
+  );
+}
+
 export async function sendFootballDataTest(settings: ReactSettings): Promise<FootballDataTestResult> {
   const supabaseUrl = settings.supabaseUrl.trim();
   const anonKey = settings.supabaseAnonKey.trim();
@@ -197,6 +253,49 @@ export async function sendFootballDataTest(settings: ReactSettings): Promise<Foo
   );
 }
 
+function buildDiagnosticJournalEvent(createdAt: string): PatternEvent {
+  return {
+    id: `diagnostic-${Date.now()}`,
+    matchId: "diagnostic-match",
+    match: "Diagnostic Home - Diagnostic Away",
+    league: "System Check",
+    patternId: "diagnostic_roundtrip",
+    patternType: "diagnostic_roundtrip",
+    teamId: "diagnostic-home",
+    teamSide: "home",
+    minute: 1,
+    scoreHome: 0,
+    scoreAway: 0,
+    score: "0:0",
+    pressureScore: 1,
+    strength: "LOW",
+    status: "success",
+    signalKind: "signal",
+    statsAtSignal: {
+      attacks: 1,
+      dangerousAttacks: 1,
+      shotsTotal: 0,
+      shotsOnTarget: 0,
+      corners: 0
+    },
+    explanation: "Диагностическое событие для проверки записи и чтения постоянного журнала.",
+    comment: "Создано кнопкой проверки полного круга.",
+    createdAt,
+    updatedAt: createdAt,
+    result: {
+      goalWithin5: false,
+      goalWithin10: false,
+      goalWithin15: false,
+      goalMinute: null,
+      goalTeam: null,
+      finalComment: "Диагностическая запись успешно закрыта.",
+      manualOutcome: "win"
+    },
+    resultSource: "manual",
+    closedAt: createdAt
+  };
+}
+
 function journalSyncResult(
   ok: boolean,
   mode: JournalSyncTestResult["mode"],
@@ -227,6 +326,23 @@ function footballDataTestResult(
     message,
     matchesLoaded,
     cached,
+    createdAt: new Date().toISOString()
+  };
+}
+
+function journalRoundtripResult(
+  ok: boolean,
+  message: string,
+  eventId: string,
+  signalsSaved: number,
+  foundAfterRead: boolean
+): JournalRoundtripTestResult {
+  return {
+    ok,
+    message,
+    eventId,
+    signalsSaved,
+    foundAfterRead,
     createdAt: new Date().toISOString()
   };
 }

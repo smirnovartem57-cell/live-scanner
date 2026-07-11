@@ -13,6 +13,7 @@ export type JournalReadOptions = {
   limit?: number;
   includePatternStats?: boolean;
   patternStatsDays?: number;
+  includeDiagnostics?: boolean;
 };
 
 export type JournalReadResult = {
@@ -106,10 +107,18 @@ export class JournalReadClient {
 
     return {
       ok: data.ok,
-      history: (data.signals || []).map(toPatternEvent),
-      patternStats: (data.patternStats || []).map(toPatternStats)
+      history: (data.signals || [])
+        .filter((row) => options.includeDiagnostics || !isDiagnosticRow(row.pattern_id))
+        .map(toPatternEvent),
+      patternStats: (data.patternStats || [])
+        .filter((row) => options.includeDiagnostics || !isDiagnosticRow(row.pattern_id))
+        .map(toPatternStats)
     };
   }
+}
+
+function isDiagnosticRow(patternId: string) {
+  return patternId === "diagnostic_roundtrip";
 }
 
 function toPatternEvent(row: JournalSignalRow): PatternEvent {
