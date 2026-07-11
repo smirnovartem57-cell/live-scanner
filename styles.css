@@ -3295,12 +3295,99 @@ input[type="text"] {
   opacity: 0.45;
 }
 
+.live-source-diagnostics {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 16px;
+  background: rgba(6, 16, 31, 0.68);
+  padding: 14px;
+}
+
+.live-source-diagnostics.ok {
+  border-color: rgba(45, 246, 219, 0.34);
+}
+
+.live-source-diagnostics.warning {
+  border-color: rgba(255, 176, 32, 0.32);
+}
+
+.live-source-diagnostics-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.live-source-diagnostics-header div {
+  display: grid;
+  gap: 4px;
+}
+
+.live-source-diagnostics-header b {
+  color: var(--text-primary);
+  font-size: 15px;
+}
+
+.live-source-diagnostics-header span,
+.live-source-diagnostics p,
+.live-source-diagnostics small {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.live-source-diagnostics-header em {
+  border: 1px solid var(--border-active);
+  border-radius: 999px;
+  color: var(--accent-cyan);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 900;
+  padding: 5px 10px;
+}
+
+.live-source-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.live-source-metrics span {
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: rgba(8, 26, 48, 0.76);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  min-height: 62px;
+  padding: 10px;
+}
+
+.live-source-metrics b {
+  color: var(--accent-cyan);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.live-source-diagnostics p,
+.live-source-diagnostics small {
+  margin: 0;
+}
+
 @media (max-width: 960px) {
   .readiness-check-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .real-wizard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .live-source-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -3319,6 +3406,14 @@ input[type="text"] {
   }
 
   .real-wizard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .live-source-diagnostics-header {
+    display: grid;
+  }
+
+  .live-source-metrics {
     grid-template-columns: 1fr;
   }
 }

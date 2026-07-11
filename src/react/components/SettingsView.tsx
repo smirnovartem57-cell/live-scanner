@@ -124,6 +124,9 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
           provider: settings.footballDataFunctionName || "football-live",
           message: error instanceof Error ? error.message : "Не удалось проверить источник данных.",
           matchesLoaded: 0,
+          snapshotsLoaded: 0,
+          eventMatchesLoaded: 0,
+          teamProfilesLoaded: 0,
           cached: false,
           createdAt: new Date().toISOString()
         }
@@ -338,12 +341,29 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
           {footballDataChecking ? "Проверяем..." : "Проверить источник данных"}
         </button>
         {settings.lastFootballDataTest ? (
-          <p className="telegram-status">
-            {settings.lastFootballDataTest.message}
-            <span>
-              {settings.lastFootballDataTest.provider} · {settings.lastFootballDataTest.cached ? "cache" : "live"} · {settings.lastFootballDataTest.matchesLoaded} матчей · {formatDate(settings.lastFootballDataTest.createdAt)}
-            </span>
-          </p>
+          <div className={`live-source-diagnostics ${settings.lastFootballDataTest.ok ? "ok" : "warning"}`}>
+            <div className="live-source-diagnostics-header">
+              <div>
+                <b>{settings.lastFootballDataTest.ok ? "Источник отвечает" : "Источник требует внимания"}</b>
+                <span>{settings.lastFootballDataTest.message}</span>
+              </div>
+              <em>{settings.lastFootballDataTest.cached ? "cache" : "live"}</em>
+            </div>
+            <div className="live-source-metrics">
+              <span><b>{settings.lastFootballDataTest.matchesLoaded}</b>матчей</span>
+              <span><b>{settings.lastFootballDataTest.snapshotsLoaded ?? 0}</b>снимков</span>
+              <span><b>{settings.lastFootballDataTest.eventMatchesLoaded ?? 0}</b>матчей с событиями</span>
+              <span><b>{settings.lastFootballDataTest.teamProfilesLoaded ?? 0}</b>профилей команд</span>
+            </div>
+            <p>
+              {settings.lastFootballDataTest.ok && settings.lastFootballDataTest.matchesLoaded > 0
+                ? "Live source готов: можно обновить сканер и смотреть найденные сигналы."
+                : settings.lastFootballDataTest.ok
+                  ? "Источник работает, но сейчас live-матчей нет. Это нормально, если в выбранный момент нет активных игр."
+                  : "Проверьте токен, имя Edge Function и переменные API_FOOTBALL_KEY / FOOTBALL_DATA_ACCESS_TOKEN в Supabase."}
+            </p>
+            <small>{settings.lastFootballDataTest.provider} · {formatDate(settings.lastFootballDataTest.createdAt)}</small>
+          </div>
         ) : null}
         <pre className="code-block">FootballDataProvider
   getLiveMatches()

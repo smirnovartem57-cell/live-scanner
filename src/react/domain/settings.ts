@@ -32,6 +32,9 @@ export type FootballDataTestResult = {
   provider: string;
   message: string;
   matchesLoaded: number;
+  snapshotsLoaded: number;
+  eventMatchesLoaded: number;
+  teamProfilesLoaded: number;
   cached: boolean;
   createdAt: string;
 };
@@ -238,11 +241,11 @@ export async function sendFootballDataTest(settings: ReactSettings): Promise<Foo
   const accessToken = getFootballDataAccessToken(settings);
 
   if (!supabaseUrl || !anonKey) {
-    return footballDataTestResult(false, "not_configured", "Укажите Supabase URL и anon key.", 0, false);
+    return footballDataTestResult(false, "not_configured", "Укажите Supabase URL и anon key.", 0, 0, 0, 0, false);
   }
 
   if (!accessToken) {
-    return footballDataTestResult(false, "not_configured", "Укажите Data access token или Journal access token.", 0, false);
+    return footballDataTestResult(false, "not_configured", "Укажите Data access token или Journal access token.", 0, 0, 0, 0, false);
   }
 
   const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
@@ -257,7 +260,7 @@ export async function sendFootballDataTest(settings: ReactSettings): Promise<Foo
   });
 
   if (!response.ok) {
-    return footballDataTestResult(false, functionName, `Ошибка проверки источника: ${await response.text()}`, 0, false);
+    return footballDataTestResult(false, functionName, `Ошибка проверки источника: ${await response.text()}`, 0, 0, 0, 0, false);
   }
 
   const payload = await response.json() as {
@@ -267,14 +270,21 @@ export async function sendFootballDataTest(settings: ReactSettings): Promise<Foo
     cached?: boolean;
     data?: {
       matches?: unknown[];
+      snapshots?: unknown[];
+      events?: Record<string, unknown[]>;
+      teamProfiles?: unknown[];
     };
   };
+  const eventMatchesLoaded = Object.values(payload.data?.events || {}).filter((items) => Array.isArray(items) && items.length > 0).length;
 
   return footballDataTestResult(
     Boolean(payload.ok),
     payload.provider || functionName,
     payload.message || "Источник ответил.",
     payload.data?.matches?.length || 0,
+    payload.data?.snapshots?.length || 0,
+    eventMatchesLoaded,
+    payload.data?.teamProfiles?.length || 0,
     Boolean(payload.cached)
   );
 }
@@ -344,6 +354,9 @@ function footballDataTestResult(
   provider: string,
   message: string,
   matchesLoaded: number,
+  snapshotsLoaded: number,
+  eventMatchesLoaded: number,
+  teamProfilesLoaded: number,
   cached: boolean
 ): FootballDataTestResult {
   return {
@@ -351,6 +364,9 @@ function footballDataTestResult(
     provider,
     message,
     matchesLoaded,
+    snapshotsLoaded,
+    eventMatchesLoaded,
+    teamProfilesLoaded,
     cached,
     createdAt: new Date().toISOString()
   };
