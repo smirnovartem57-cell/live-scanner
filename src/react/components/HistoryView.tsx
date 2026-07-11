@@ -3,13 +3,16 @@ import type { PatternEvent } from "../../types/patterns";
 import { formatDate } from "../domain/dateFormat";
 import {
   filterHistory,
+  filterHistoryByPeriod,
   formatHistoryOutcome,
   formatHistoryResult,
   formatResultSource,
   getHistoryOutcome,
   getHistoryStats,
   historyFilterLabels,
-  type HistoryFilter
+  historyPeriodLabels,
+  type HistoryFilter,
+  type HistoryPeriod
 } from "../domain/historyAnalytics";
 import { getPatternName } from "../domain/labels";
 import { MetricCard } from "./MetricCard";
@@ -26,6 +29,7 @@ type HistoryViewProps = {
 };
 
 const filters: HistoryFilter[] = ["all", "win", "lose", "open"];
+const periods: HistoryPeriod[] = ["today", "7d", "all"];
 
 export function HistoryView({
   history,
@@ -38,9 +42,11 @@ export function HistoryView({
   onReload
 }: HistoryViewProps) {
   const [filter, setFilter] = useState<HistoryFilter>("all");
+  const [period, setPeriod] = useState<HistoryPeriod>("all");
   const [comments, setComments] = useState<Record<string, string>>({});
-  const filteredHistory = useMemo(() => filterHistory(history, filter), [history, filter]);
-  const allStats = useMemo(() => getHistoryStats(history), [history]);
+  const periodHistory = useMemo(() => filterHistoryByPeriod(history, period), [history, period]);
+  const filteredHistory = useMemo(() => filterHistory(periodHistory, filter), [periodHistory, filter]);
+  const allStats = useMemo(() => getHistoryStats(periodHistory), [periodHistory]);
   const filteredStats = useMemo(() => getHistoryStats(filteredHistory), [filteredHistory]);
   const canCloseManually = source === "supabase" && Boolean(onManualClose);
 
@@ -84,6 +90,18 @@ export function HistoryView({
                 onClick={() => setFilter(item)}
               >
                 {historyFilterLabels[item]}
+              </button>
+            ))}
+          </div>
+          <div className="filter-chips compact stats-periods">
+            {periods.map((item) => (
+              <button
+                className={`chip ${period === item ? "is-active" : ""}`}
+                type="button"
+                key={item}
+                onClick={() => setPeriod(item)}
+              >
+                {historyPeriodLabels[item]}
               </button>
             ))}
           </div>

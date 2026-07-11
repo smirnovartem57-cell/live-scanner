@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import type { Match, MatchEvent, MatchStatsSnapshot } from "../../types/football";
 import type { Pattern, PatternEvent, Signal } from "../../types/patterns";
 import { getDataQualityStats } from "../domain/dataQuality";
-import { getHistoryStats } from "../domain/historyAnalytics";
+import { filterHistoryByPeriod, getHistoryStats, historyPeriodLabels, type HistoryPeriod } from "../domain/historyAnalytics";
 import { getReactPatternStats, getWeakPatternRows, patternStatusLabel, sortPatternRows } from "../domain/patternAnalytics";
 import { MetricCard } from "./MetricCard";
 
@@ -24,13 +24,17 @@ const sortLabels: Record<AnalyticsSort, string> = {
   pressure: "Индекс"
 };
 
+const periods: HistoryPeriod[] = ["today", "7d", "all"];
+
 export function AnalyticsView({ matches, snapshots, events, patterns, history, signals }: AnalyticsViewProps) {
   const [sortMode, setSortMode] = useState<AnalyticsSort>("quality");
-  const journalStats = useMemo(() => getHistoryStats(history), [history]);
+  const [period, setPeriod] = useState<HistoryPeriod>("all");
+  const periodHistory = useMemo(() => filterHistoryByPeriod(history, period), [history, period]);
+  const journalStats = useMemo(() => getHistoryStats(periodHistory), [periodHistory]);
   const dataQuality = useMemo(() => getDataQualityStats(matches, snapshots, events), [matches, snapshots, events]);
   const patternRows = useMemo(
-    () => sortPatternRows(patterns.map((pattern) => getReactPatternStats(pattern, history, signals)), sortMode),
-    [patterns, history, signals, sortMode]
+    () => sortPatternRows(patterns.map((pattern) => getReactPatternStats(pattern, periodHistory, signals)), sortMode),
+    [patterns, periodHistory, signals, sortMode]
   );
   const weakRows = useMemo(() => getWeakPatternRows(patternRows), [patternRows]);
 
@@ -57,6 +61,13 @@ export function AnalyticsView({ matches, snapshots, events, patterns, history, s
             {(Object.keys(sortLabels) as AnalyticsSort[]).map((item) => (
               <button className={`chip ${sortMode === item ? "is-active" : ""}`} type="button" key={item} onClick={() => setSortMode(item)}>
                 {sortLabels[item]}
+              </button>
+            ))}
+          </div>
+          <div className="filter-chips compact stats-periods">
+            {periods.map((item) => (
+              <button className={`chip ${period === item ? "is-active" : ""}`} type="button" key={item} onClick={() => setPeriod(item)}>
+                {historyPeriodLabels[item]}
               </button>
             ))}
           </div>

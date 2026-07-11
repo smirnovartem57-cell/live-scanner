@@ -1,6 +1,7 @@
 import type { PatternEvent } from "../../types/patterns";
 
 export type HistoryFilter = "all" | "win" | "lose" | "open";
+export type HistoryPeriod = "today" | "7d" | "all";
 
 export type HistoryStats = {
   total: number;
@@ -17,6 +18,12 @@ export const historyFilterLabels: Record<HistoryFilter, string> = {
   open: "В процессе"
 };
 
+export const historyPeriodLabels: Record<HistoryPeriod, string> = {
+  today: "Сегодня",
+  "7d": "7 дней",
+  all: "Все время"
+};
+
 export function getHistoryOutcome(event: PatternEvent): Exclude<HistoryFilter, "all"> {
   if (event.result.manualOutcome === "win") return "win";
   if (event.result.manualOutcome === "lose") return "lose";
@@ -28,6 +35,21 @@ export function getHistoryOutcome(event: PatternEvent): Exclude<HistoryFilter, "
 export function filterHistory(events: PatternEvent[], filter: HistoryFilter) {
   if (filter === "all") return events;
   return events.filter((event) => getHistoryOutcome(event) === filter);
+}
+
+export function filterHistoryByPeriod(events: PatternEvent[], period: HistoryPeriod, nowValue = new Date()) {
+  if (period === "all") return events;
+
+  const start = new Date(nowValue);
+  if (period === "today") {
+    start.setHours(0, 0, 0, 0);
+  }
+
+  if (period === "7d") {
+    start.setDate(start.getDate() - 7);
+  }
+
+  return events.filter((event) => new Date(event.createdAt).getTime() >= start.getTime());
 }
 
 export function getHistoryStats(events: PatternEvent[]): HistoryStats {
