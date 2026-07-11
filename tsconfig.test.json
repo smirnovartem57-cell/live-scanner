@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist-test",
+    "declaration": false,
+    "emitDeclarationOnly": false
+  },
+  "include": [
+    "src/services/apiFootball/normalizeApiFootball.ts",
+    "src/types/football.ts"
+  ]
+}

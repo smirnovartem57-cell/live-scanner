@@ -93,6 +93,12 @@ npm run security:closed-pages
 
 Она не даёт случайно опубликовать `dist-react`, `data/mock-data.js`, рабочие скрипты или PWA-файлы на публичный Pages.
 
+Проверка нормализации API-FOOTBALL:
+
+```powershell
+npm run test:api-football
+```
+
 ## Где лежит логика
 
 Сейчас MVP собран без зависимостей, чтобы его можно было открыть сразу:
