@@ -109,6 +109,7 @@ export function App() {
               patterns={data.patterns}
               history={journal.history}
               signals={data.signals}
+              sourceStatus={data.sourceStatus}
             />
           ) : null}
           {activeView === "profile" ? <ProfileView profile={data.userProfile} history={journal.history} /> : null}

@@ -1,6 +1,7 @@
 ﻿import { useMemo, useState } from "react";
 import type { Match, MatchEvent, MatchStatsSnapshot } from "../../types/football";
 import type { Pattern, PatternEvent, Signal } from "../../types/patterns";
+import type { FootballDataSourceStatus } from "../../services/footballDataProvider";
 import { getDataQualityStats } from "../domain/dataQuality";
 import { filterHistoryByPeriod, getHistoryStats, historyPeriodLabels, type HistoryPeriod } from "../domain/historyAnalytics";
 import { getPatternRecommendations, getReactPatternStats, getWeakPatternRows, patternStatusLabel, sortPatternRows } from "../domain/patternAnalytics";
@@ -15,6 +16,7 @@ type AnalyticsViewProps = {
   patterns: Pattern[];
   history: PatternEvent[];
   signals: Signal[];
+  sourceStatus: FootballDataSourceStatus;
 };
 
 const sortLabels: Record<AnalyticsSort, string> = {
@@ -26,12 +28,14 @@ const sortLabels: Record<AnalyticsSort, string> = {
 
 const periods: HistoryPeriod[] = ["today", "7d", "all"];
 
-export function AnalyticsView({ matches, snapshots, events, patterns, history, signals }: AnalyticsViewProps) {
+export function AnalyticsView({ matches, snapshots, events, patterns, history, signals, sourceStatus }: AnalyticsViewProps) {
   const [sortMode, setSortMode] = useState<AnalyticsSort>("quality");
   const [period, setPeriod] = useState<HistoryPeriod>("all");
   const periodHistory = useMemo(() => filterHistoryByPeriod(history, period), [history, period]);
   const journalStats = useMemo(() => getHistoryStats(periodHistory), [periodHistory]);
   const dataQuality = useMemo(() => getDataQualityStats(matches, snapshots, events), [matches, snapshots, events]);
+  const sourceModeLabel = sourceStatus.mode === "real" ? "real-режим" : "mock-режим";
+  const sourceResponseLabel = sourceStatus.cached ? "cache" : "live";
   const patternRows = useMemo(
     () => sortPatternRows(patterns.map((pattern) => getReactPatternStats(pattern, periodHistory, signals)), sortMode),
     [patterns, periodHistory, signals, sortMode]
@@ -130,12 +134,13 @@ export function AnalyticsView({ matches, snapshots, events, patterns, history, s
           <DataQualityMetric label="Свежесть" value={dataQuality.freshnessLabel} />
         </div>
         <div className="source-health-list">
-          <span><b>MockFootballProvider</b> режим источника</span>
+          <span><b>{sourceStatus.provider}</b> {sourceModeLabel}</span>
+          <span><b>{sourceResponseLabel}</b> режим ответа</span>
           <span><b>{dataQuality.snapshots}</b> снимков статистики</span>
           <span><b>{dataQuality.eventMatches}</b> матчей с событиями</span>
           <span><b>{dataQuality.lastUpdatedLabel}</b> последнее обновление</span>
         </div>
-        <p className="muted">{dataQuality.summary}</p>
+        <p className="muted">{sourceStatus.message}. {dataQuality.summary}</p>
       </section>
     </>
   );
