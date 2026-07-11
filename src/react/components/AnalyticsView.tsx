@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import type { Match, MatchEvent, MatchStatsSnapshot } from "../../types/football";
 import type { Pattern, PatternEvent, Signal } from "../../types/patterns";
 import { getDataQualityStats } from "../domain/dataQuality";
 import { filterHistoryByPeriod, getHistoryStats, historyPeriodLabels, type HistoryPeriod } from "../domain/historyAnalytics";
-import { getReactPatternStats, getWeakPatternRows, patternStatusLabel, sortPatternRows } from "../domain/patternAnalytics";
+import { getPatternRecommendations, getReactPatternStats, getWeakPatternRows, patternStatusLabel, sortPatternRows } from "../domain/patternAnalytics";
 import { MetricCard } from "./MetricCard";
 
 type AnalyticsSort = "quality" | "weak" | "sample" | "pressure";
@@ -37,6 +37,7 @@ export function AnalyticsView({ matches, snapshots, events, patterns, history, s
     [patterns, periodHistory, signals, sortMode]
   );
   const weakRows = useMemo(() => getWeakPatternRows(patternRows), [patternRows]);
+  const recommendations = useMemo(() => getPatternRecommendations(patternRows), [patternRows]);
 
   return (
     <>
@@ -95,15 +96,22 @@ export function AnalyticsView({ matches, snapshots, events, patterns, history, s
         <aside className="panel">
           <h2>Требуют внимания</h2>
           <div className="watchlist">
-            {weakRows.length ? weakRows.map((row) => (
-              <span key={row.pattern.id}>
-                <b>{row.pattern.name}</b>
-                <small>{row.reason} Оценка {row.qualityScore}/100.</small>
+            {recommendations.length ? recommendations.map((item) => (
+              <span className={`recommendation-item ${item.severity}`} key={item.patternId}>
+                <b>{item.patternName}</b>
+                <small>{item.title}: {item.reason}</small>
+                <em>{item.action}</em>
               </span>
             )) : (
               <span><b>Явных слабых мест нет</b><small>Продолжаем собирать выборку.</small></span>
             )}
           </div>
+          {weakRows.length ? (
+            <div className="watchlist-summary">
+              <b>{weakRows.length}</b>
+              <span>паттерна в зоне внимания</span>
+            </div>
+          ) : null}
         </aside>
       </section>
 

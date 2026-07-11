@@ -19,6 +19,15 @@ export type ReactPatternStats = {
   reason: string;
 };
 
+export type PatternRecommendation = {
+  patternId: string;
+  patternName: string;
+  severity: "info" | "warning" | "critical";
+  title: string;
+  reason: string;
+  action: string;
+};
+
 export const patternStatusLabel: Record<ReactPatternStatus, string> = {
   new: "Новый",
   promising: "Перспективный",
@@ -74,6 +83,20 @@ export function getWeakPatternRows(rows: ReactPatternStats[]) {
     .slice(0, 4);
 }
 
+export function getPatternRecommendations(rows: ReactPatternStats[]): PatternRecommendation[] {
+  return rows
+    .map(getPatternRecommendation)
+    .filter((item): item is PatternRecommendation => Boolean(item))
+    .sort((a, b) => severityWeight[b.severity] - severityWeight[a.severity])
+    .slice(0, 6);
+}
+
+const severityWeight: Record<PatternRecommendation["severity"], number> = {
+  info: 1,
+  warning: 2,
+  critical: 3
+};
+
 export function sortPatternRows(rows: ReactPatternStats[], sortMode: "quality" | "weak" | "sample" | "pressure" = "quality") {
   const sorted = [...rows];
   const sorters = {
@@ -99,6 +122,65 @@ function getPatternAnalyticsStatus(pattern: Pattern, totalSignals: number, succe
   if (totalSignals >= 100 && successRate15 >= 20) return "weak";
   if (totalSignals >= 100 && successRate15 < 20) return "ineffective";
   return "testing";
+}
+
+function getPatternRecommendation(row: ReactPatternStats): PatternRecommendation | null {
+  if (!row.pattern.enabled) {
+    return {
+      patternId: row.pattern.id,
+      patternName: row.pattern.name,
+      severity: "info",
+      title: "Паттерн выключен",
+      reason: "Он не участвует в поиске новых сигналов.",
+      action: "Верните в тест, если хотите снова собирать выборку."
+    };
+  }
+
+  if (row.totalSignals < 30) {
+    return {
+      patternId: row.pattern.id,
+      patternName: row.pattern.name,
+      severity: "info",
+      title: "Мало данных",
+      reason: `Сейчас ${row.totalSignals} сигналов. Для оценки нужно больше наблюдений.`,
+      action: "Держите паттерн в тесте и не делайте выводы по малой выборке."
+    };
+  }
+
+  if (row.status === "ineffective" || row.qualityScore < 25) {
+    return {
+      patternId: row.pattern.id,
+      patternName: row.pattern.name,
+      severity: "critical",
+      title: "Нужен пересмотр",
+      reason: `Оценка ${row.qualityScore}/100, подтверждение до 15 минут ${row.successRate15}%.`,
+      action: "Ужесточите условия или временно выключите паттерн."
+    };
+  }
+
+  if (row.status === "weak" || row.qualityScore < 45) {
+    return {
+      patternId: row.pattern.id,
+      patternName: row.pattern.name,
+      severity: "warning",
+      title: "Слабый сигнал",
+      reason: `Оценка ${row.qualityScore}/100, неподтверждено ${row.failedSignals}.`,
+      action: "Проверьте пороги давления, ударов и минуты срабатывания."
+    };
+  }
+
+  if (row.pendingSignals > row.totalSignals * 0.45 && row.totalSignals >= 30) {
+    return {
+      patternId: row.pattern.id,
+      patternName: row.pattern.name,
+      severity: "warning",
+      title: "Много событий в процессе",
+      reason: `Открытых событий: ${row.pendingSignals} из ${row.totalSignals}.`,
+      action: "Закройте старые события вручную, чтобы оценка стала честнее."
+    };
+  }
+
+  return null;
 }
 
 function getPatternStatusReason(status: ReactPatternStatus, totalSignals: number, successRate15: number) {

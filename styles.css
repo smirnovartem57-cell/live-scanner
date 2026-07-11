@@ -1598,6 +1598,43 @@ h2 {
   line-height: 1.35;
 }
 
+.recommendation-item {
+  border-left: 3px solid var(--accent-blue);
+}
+
+.recommendation-item.warning {
+  border-left-color: var(--warning);
+}
+
+.recommendation-item.critical {
+  border-left-color: var(--red);
+}
+
+.recommendation-item em {
+  display: block;
+  margin-top: 7px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.watchlist-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.watchlist-summary b {
+  color: var(--accent-cyan);
+  font-size: 22px;
+}
+
 .pattern-analytics-details {
   display: grid;
   grid-template-columns: 1fr;
