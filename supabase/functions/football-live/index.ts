@@ -62,6 +62,16 @@ type TeamStats = {
   xg?: number;
 };
 
+type LiveSnapshotResponse = {
+  ok: boolean;
+  provider: string;
+  message: string;
+  cached?: boolean;
+  data: ReturnType<typeof emptySnapshot>;
+};
+
+let cachedSnapshot: { expiresAt: number; response: LiveSnapshotResponse } | null = null;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-live-scanner-key",
@@ -97,18 +107,27 @@ Deno.serve(async (request) => {
     });
   }
 
+  const now = Date.now();
+  if (cachedSnapshot && cachedSnapshot.expiresAt > now) {
+    return json({ ...cachedSnapshot.response, cached: true });
+  }
+
   const apiBaseUrl = Deno.env.get("API_FOOTBALL_BASE_URL") || "https://v3.football.api-sports.io";
+  const cacheTtlSeconds = parsePositiveInteger(Deno.env.get("API_FOOTBALL_CACHE_TTL_SECONDS"), 45);
+  const maxFixtures = parsePositiveInteger(Deno.env.get("API_FOOTBALL_MAX_FIXTURES"), 30);
   const fixturesResponse = await apiFootball<{ response?: ApiFootballFixture[] }>(apiBaseUrl, apiKey, "/fixtures?live=all");
-  const fixtures = fixturesResponse.response || [];
+  const allFixtures = fixturesResponse.response || [];
+  const fixtures = allFixtures.slice(0, maxFixtures);
   const [statistics, events] = await Promise.all([
     getStatistics(apiBaseUrl, apiKey, fixtures),
     getEvents(apiBaseUrl, apiKey, fixtures)
   ]);
 
-  return json({
+  const response: LiveSnapshotResponse = {
     ok: true,
     provider: "api-football",
-    message: `Loaded ${fixtures.length} live matches.`,
+    message: `Loaded ${fixtures.length} of ${allFixtures.length} live matches.`,
+    cached: false,
     data: {
       matches: fixtures.map(toMatch),
       snapshots: fixtures.map((fixture) => toSnapshot(fixture, statistics.get(String(fixture.fixture.id)) || [])),
@@ -121,7 +140,14 @@ Deno.serve(async (request) => {
       teamProfiles: fixtures.flatMap(toTeamProfiles),
       feedbackItems: []
     }
-  });
+  };
+
+  cachedSnapshot = {
+    expiresAt: now + cacheTtlSeconds * 1000,
+    response
+  };
+
+  return json(response);
 });
 
 function hasAccess(request: Request) {
@@ -132,12 +158,17 @@ function hasAccess(request: Request) {
 async function getStatistics(apiBaseUrl: string, apiKey: string, fixtures: ApiFootballFixture[]) {
   const entries = await Promise.all(fixtures.map(async (fixture) => {
     const fixtureId = String(fixture.fixture.id);
-    const response = await apiFootball<{ response?: ApiFootballStatGroup[] }>(
-      apiBaseUrl,
-      apiKey,
-      `/fixtures/statistics?fixture=${fixtureId}`
-    );
-    return [fixtureId, response.response || []] as const;
+    try {
+      const response = await apiFootball<{ response?: ApiFootballStatGroup[] }>(
+        apiBaseUrl,
+        apiKey,
+        `/fixtures/statistics?fixture=${fixtureId}`
+      );
+      return [fixtureId, response.response || []] as const;
+    } catch (error) {
+      console.warn(`Failed to load statistics for fixture ${fixtureId}`, error);
+      return [fixtureId, []] as const;
+    }
   }));
 
   return new Map(entries);
@@ -146,12 +177,17 @@ async function getStatistics(apiBaseUrl: string, apiKey: string, fixtures: ApiFo
 async function getEvents(apiBaseUrl: string, apiKey: string, fixtures: ApiFootballFixture[]) {
   const entries = await Promise.all(fixtures.map(async (fixture) => {
     const fixtureId = String(fixture.fixture.id);
-    const response = await apiFootball<{ response?: ApiFootballEvent[] }>(
-      apiBaseUrl,
-      apiKey,
-      `/fixtures/events?fixture=${fixtureId}`
-    );
-    return [fixtureId, response.response || []] as const;
+    try {
+      const response = await apiFootball<{ response?: ApiFootballEvent[] }>(
+        apiBaseUrl,
+        apiKey,
+        `/fixtures/events?fixture=${fixtureId}`
+      );
+      return [fixtureId, response.response || []] as const;
+    } catch (error) {
+      console.warn(`Failed to load events for fixture ${fixtureId}`, error);
+      return [fixtureId, []] as const;
+    }
   }));
 
   return new Map(entries);
@@ -281,6 +317,12 @@ function parseNumber(value: number | string | null | undefined) {
   if (!value) return 0;
   const parsed = Number(String(value).replace("%", "").replace(",", "."));
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function parsePositiveInteger(value: string | undefined, fallback: number) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) return fallback;
+  return parsed;
 }
 
 function emptySnapshot() {

@@ -29,12 +29,15 @@ JOURNAL_ACCESS_TOKEN=long-random-private-token
 FOOTBALL_DATA_ACCESS_TOKEN=optional-long-random-private-token
 API_FOOTBALL_KEY=server-only-api-football-key
 API_FOOTBALL_BASE_URL=https://v3.football.api-sports.io
+API_FOOTBALL_CACHE_TTL_SECONDS=45
+API_FOOTBALL_MAX_FIXTURES=30
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` нельзя добавлять в GitHub Pages или frontend env.
 `JOURNAL_ACCESS_TOKEN` обязателен для закрытого личного доступа к чтению и записи журнала. Если secret не задан или в приложении указан другой токен, `journal-read` и `journal-ingest` вернут `403`.
 `football-live` использует `FOOTBALL_DATA_ACCESS_TOKEN`, а если он не задан, проверяет `JOURNAL_ACCESS_TOKEN`.
 `API_FOOTBALL_KEY` используется только внутри `football-live` и не должен попадать в браузер.
+`API_FOOTBALL_CACHE_TTL_SECONDS` защищает квоту API от частых обновлений, а `API_FOOTBALL_MAX_FIXTURES` ограничивает количество live-матчей, для которых подтягиваются подробные statistics/events.
 
 ## Следующий шаг
 
