@@ -6,9 +6,10 @@ import {
   JournalIngestClient
 } from "../../services/journalStorage";
 import type { PatternEvent } from "../../types/patterns";
+import { canUseJournalStorage, getJournalAccessToken } from "../domain/settings";
+import type { ReactSettings } from "../domain/settings";
 import type { FootballLabViewModel } from "./useFootballLabData";
 import type { JournalHistorySource } from "./useJournalHistory";
-import type { ReactSettings } from "../domain/settings";
 
 const sentSignalsKey = "football-pattern-lab-journal-auto-ingest";
 
@@ -30,14 +31,13 @@ export function useJournalAutoIngest({
   onSynced
 }: JournalAutoIngestOptions) {
   useEffect(() => {
-    if (!settings.journalStorageEnabled || historyLoading || historySource !== "supabase" || !data?.signals.length) {
+    if (!canUseJournalStorage(settings) || historyLoading || historySource !== "supabase" || !data?.signals.length) {
       return;
     }
 
     const supabaseUrl = settings.supabaseUrl.trim();
     const anonKey = settings.supabaseAnonKey.trim();
-    const accessToken = settings.journalAccessToken.trim();
-    if (!supabaseUrl || !anonKey) return;
+    const accessToken = getJournalAccessToken(settings);
 
     const currentData = data;
     const sentKeys = readSentKeys();

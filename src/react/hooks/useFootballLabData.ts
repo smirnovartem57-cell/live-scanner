@@ -5,7 +5,7 @@ import { evaluateMatch } from "../../services/patternEngine";
 import type { Match, MatchEvent, MatchStatsSnapshot, TeamProfile } from "../../types/football";
 import type { Pattern, PatternEvent, Signal } from "../../types/patterns";
 import type { FeedbackItem, UserProfile } from "../../types/user";
-import type { ReactSettings } from "../domain/settings";
+import { getFootballDataAccessToken, hasSupabaseConnectionSettings, type ReactSettings } from "../domain/settings";
 import { getBrowserMockData } from "../mockData";
 
 export type FootballLabViewModel = {
@@ -43,13 +43,19 @@ export function useFootballLabData(settings: ReactSettings) {
 
     try {
       const mockData = getBrowserMockData();
+      const footballDataAccessToken = getFootballDataAccessToken(settings);
+
+      if (!settings.mockMode && (!hasSupabaseConnectionSettings(settings) || !footballDataAccessToken)) {
+        throw new Error("Real-режим требует Supabase URL, anon key и access token. Включите демо-данные или заполните настройки защищенного доступа.");
+      }
+
       const provider = settings.mockMode
         ? new MockFootballProvider(mockData)
         : new RealFootballProvider(
           {
             supabaseUrl: settings.supabaseUrl,
             anonKey: settings.supabaseAnonKey,
-            accessToken: settings.footballDataAccessToken || settings.journalAccessToken,
+            accessToken: footballDataAccessToken,
             functionName: settings.footballDataFunctionName
           },
           mockData

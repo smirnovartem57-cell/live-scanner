@@ -1,7 +1,15 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import type { PatternEvent } from "../../types/patterns";
 import { formatDate } from "../domain/dateFormat";
-import { sendFootballDataTest, sendJournalSyncTest, sendTelegramTestMessage, type ReactSettings } from "../domain/settings";
+import {
+  canUseJournalStorage,
+  canUseRealFootballData,
+  hasSupabaseConnectionSettings,
+  sendFootballDataTest,
+  sendJournalSyncTest,
+  sendTelegramTestMessage,
+  type ReactSettings
+} from "../domain/settings";
 
 type SettingsViewProps = {
   settings: ReactSettings;
@@ -12,6 +20,9 @@ type SettingsViewProps = {
 export function SettingsView({ settings, setSettings, history }: SettingsViewProps) {
   const [journalSyncing, setJournalSyncing] = useState(false);
   const [footballDataChecking, setFootballDataChecking] = useState(false);
+  const hasConnection = hasSupabaseConnectionSettings(settings);
+  const journalReady = canUseJournalStorage(settings);
+  const realDataReady = canUseRealFootballData(settings);
 
   function updateSetting<Key extends keyof ReactSettings>(key: Key, value: ReactSettings[Key]) {
     setSettings((current) => ({ ...current, [key]: value }));
@@ -81,6 +92,14 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
           <span>Демо-данные</span>
         </label>
         <p className="muted">Слой данных подготовлен под MockFootballProvider и будущий RealFootballProvider.</p>
+        <div className="setting-stack">
+          <span className={settings.mockMode || realDataReady ? "status-pill ok" : "status-pill warning"}>
+            {settings.mockMode ? "Демо-режим активен" : realDataReady ? "Real-режим готов" : "Real-режим требует токен"}
+          </span>
+          <span className={journalReady ? "status-pill ok" : "status-pill warning"}>
+            {journalReady ? "Журнал защищен и готов" : hasConnection ? "Добавьте Journal access token" : "Добавьте Supabase URL и anon key"}
+          </span>
+        </div>
       </div>
 
       <div className="panel">

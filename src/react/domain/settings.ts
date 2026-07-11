@@ -74,6 +74,26 @@ export function writeReactSettings(settings: ReactSettings) {
   localStorage.setItem(settingsKey, JSON.stringify(settings));
 }
 
+export function getJournalAccessToken(settings: ReactSettings): string {
+  return settings.journalAccessToken.trim();
+}
+
+export function getFootballDataAccessToken(settings: ReactSettings): string {
+  return (settings.footballDataAccessToken || settings.journalAccessToken).trim();
+}
+
+export function hasSupabaseConnectionSettings(settings: ReactSettings): boolean {
+  return Boolean(settings.supabaseUrl.trim() && settings.supabaseAnonKey.trim());
+}
+
+export function canUseJournalStorage(settings: ReactSettings): boolean {
+  return settings.journalStorageEnabled && hasSupabaseConnectionSettings(settings) && Boolean(getJournalAccessToken(settings));
+}
+
+export function canUseRealFootballData(settings: ReactSettings): boolean {
+  return !settings.mockMode && hasSupabaseConnectionSettings(settings) && Boolean(getFootballDataAccessToken(settings));
+}
+
 export function sendTelegramTestMessage(settings: ReactSettings): TelegramTestResult {
   return {
     ok: true,
@@ -91,10 +111,14 @@ export async function sendJournalSyncTest(settings: ReactSettings, history: Patt
 
   const supabaseUrl = settings.supabaseUrl.trim();
   const anonKey = settings.supabaseAnonKey.trim();
-  const accessToken = settings.journalAccessToken.trim();
+  const accessToken = getJournalAccessToken(settings);
 
   if (!supabaseUrl || !anonKey) {
     return journalSyncResult(false, "supabase", "Укажите Supabase URL и anon key.", 0, 0);
+  }
+
+  if (!accessToken) {
+    return journalSyncResult(false, "supabase", "Укажите Journal access token.", 0, 0);
   }
 
   if (!history.length) {
@@ -129,10 +153,14 @@ export async function sendFootballDataTest(settings: ReactSettings): Promise<Foo
   const supabaseUrl = settings.supabaseUrl.trim();
   const anonKey = settings.supabaseAnonKey.trim();
   const functionName = settings.footballDataFunctionName.trim() || "football-live";
-  const accessToken = (settings.footballDataAccessToken || settings.journalAccessToken).trim();
+  const accessToken = getFootballDataAccessToken(settings);
 
   if (!supabaseUrl || !anonKey) {
     return footballDataTestResult(false, "not_configured", "Укажите Supabase URL и anon key.", 0, false);
+  }
+
+  if (!accessToken) {
+    return footballDataTestResult(false, "not_configured", "Укажите Data access token или Journal access token.", 0, false);
   }
 
   const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {

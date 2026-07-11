@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { buildPatternStatsDaily, JournalIngestClient, JournalReadClient } from "../../services/journalStorage";
 import type { PatternEvent } from "../../types/patterns";
-import type { ReactSettings } from "../domain/settings";
+import { canUseJournalStorage, getJournalAccessToken, type ReactSettings } from "../domain/settings";
 
 export type JournalHistorySource = "mock" | "supabase";
 
@@ -11,7 +11,7 @@ export function useJournalHistory(settings: ReactSettings, fallbackHistory: Patt
   const [closingEventId, setClosingEventId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const canReadRemote = settings.journalStorageEnabled && Boolean(settings.supabaseUrl.trim()) && Boolean(settings.supabaseAnonKey.trim());
+  const canReadRemote = canUseJournalStorage(settings);
 
   const loadRemoteHistory = useCallback(async () => {
     if (!canReadRemote) {
@@ -28,7 +28,7 @@ export function useJournalHistory(settings: ReactSettings, fallbackHistory: Patt
       const client = new JournalReadClient({
         supabaseUrl: settings.supabaseUrl.trim(),
         anonKey: settings.supabaseAnonKey.trim(),
-        accessToken: settings.journalAccessToken.trim()
+        accessToken: getJournalAccessToken(settings)
       });
       const result = await client.read({ limit: 200, includePatternStats: true, patternStatsDays: 30 });
       setRemoteHistory(result.history);
@@ -49,7 +49,7 @@ export function useJournalHistory(settings: ReactSettings, fallbackHistory: Patt
 
   const closeEvent = useCallback(async (event: PatternEvent, outcome: "win" | "lose", comment: string) => {
     if (!canReadRemote) {
-      setError("Постоянный журнал выключен.");
+      setError("Постоянный журнал требует Supabase URL, anon key и Journal access token.");
       return;
     }
 
@@ -76,7 +76,7 @@ export function useJournalHistory(settings: ReactSettings, fallbackHistory: Patt
       const client = new JournalIngestClient({
         supabaseUrl: settings.supabaseUrl.trim(),
         anonKey: settings.supabaseAnonKey.trim(),
-        accessToken: settings.journalAccessToken.trim()
+        accessToken: getJournalAccessToken(settings)
       });
       const nextHistory = [updatedEvent, ...history.filter((item) => item.id !== event.id)];
       await client.send({

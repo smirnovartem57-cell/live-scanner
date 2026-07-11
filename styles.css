@@ -3096,6 +3096,27 @@ input[type="text"] {
   color: var(--text-secondary);
 }
 
+.status-pill {
+  width: fit-content;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  background: rgba(8, 26, 48, 0.72);
+  padding: 7px 11px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.status-pill.ok {
+  border-color: rgba(45, 246, 219, 0.42);
+  color: var(--accent-cyan);
+}
+
+.status-pill.warning {
+  border-color: rgba(255, 176, 32, 0.42);
+  color: var(--warning);
+}
+
 .code-block {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
