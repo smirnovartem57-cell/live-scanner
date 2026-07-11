@@ -133,6 +133,14 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
     }
   }
 
+  function enableRealDataMode() {
+    setSettings((current) => ({
+      ...current,
+      mockMode: false,
+      journalStorageEnabled: true
+    }));
+  }
+
   return (
     <section className="settings-grid">
       <div className="panel real-readiness-panel">
@@ -155,6 +163,33 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
               <small>{item.value}</small>
             </span>
           ))}
+        </div>
+        <div className="real-wizard-grid">
+          <div className={`real-wizard-step ${hasConnection ? "ok" : "warning"}`}>
+            <b>1. Supabase</b>
+            <span>{hasConnection ? "URL и anon key заполнены." : "Заполните Supabase URL и anon key ниже."}</span>
+          </div>
+          <div className={`real-wizard-step ${!settings.mockMode && journalReady ? "ok" : "warning"}`}>
+            <b>2. Включить real-режим</b>
+            <span>{!settings.mockMode && journalReady ? "Real-режим и журнал включены." : "Отключит mock и включит запись журнала."}</span>
+            <button className="ghost-button" type="button" onClick={enableRealDataMode} disabled={!hasConnection}>
+              Применить
+            </button>
+          </div>
+          <div className={`real-wizard-step ${settings.lastJournalRoundtrip?.ok ? "ok" : "warning"}`}>
+            <b>3. Проверить журнал</b>
+            <span>{settings.lastJournalRoundtrip?.ok ? "Запись и чтение подтверждены." : "Создаст диагностическое событие и прочитает его обратно."}</span>
+            <button className="ghost-button" type="button" onClick={runJournalRoundtripTest} disabled={journalRoundtripChecking || !journalReady}>
+              {journalRoundtripChecking ? "Проверяем..." : "Проверить"}
+            </button>
+          </div>
+          <div className={`real-wizard-step ${settings.lastFootballDataTest?.ok ? "ok" : "warning"}`}>
+            <b>4. Проверить live source</b>
+            <span>{settings.lastFootballDataTest?.ok ? "Источник отвечает." : "Проверит Edge Function с live-снимком."}</span>
+            <button className="ghost-button" type="button" onClick={runFootballDataTest} disabled={footballDataChecking || !realDataReady}>
+              {footballDataChecking ? "Проверяем..." : "Проверить"}
+            </button>
+          </div>
         </div>
       </div>
 
