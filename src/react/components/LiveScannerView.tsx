@@ -83,7 +83,7 @@ export function LiveScannerView({ matches, signals, summary, onTeamSelect }: Liv
                   <>
                     <span className="signal-caption">Без сигнала</span>
                     <p>Паттерны не сработали</p>
-                    <span>Матч остается в наблюдении до следующего обновления статистики.</span>
+                    <span>Матч остаётся в наблюдении до следующего обновления статистики.</span>
                   </>
                 )}
               </div>

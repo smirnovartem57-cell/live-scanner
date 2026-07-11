@@ -6,7 +6,8 @@ export const patternNameByType: Record<string, string> = {
   favorite_losing_but_pressing: "Проигрывает, но давит",
   match_woke_up: "Матч ожил",
   corner_pressure: "Давление на угловой",
-  empty_pressure: "Пустое давление"
+  empty_pressure: "Пустое давление",
+  diagnostic_roundtrip: "Диагностика журнала"
 };
 
 export const signalStatusLabel: Record<SignalStatus, string> = {

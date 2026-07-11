@@ -34,6 +34,7 @@ export function App() {
   const { settings, setSettings } = useReactSettings();
   const { data, error, loading, refreshing, reload, summary } = useFootballLabData(settings);
   const journal = useJournalHistory(settings, data?.history || []);
+
   useJournalAutoIngest({
     settings,
     data,
@@ -42,6 +43,7 @@ export function App() {
     historyLoading: journal.loading,
     onSynced: journal.reload
   });
+
   const title = useMemo(() => navItems.find((item) => item.id === activeView)?.title || "Сканер матчей", [activeView]);
   const sourceLabel = data?.providerMode === "real" ? "Real API" : "Mock-данные";
   const updatedLabel = data?.lastLoadedAt
