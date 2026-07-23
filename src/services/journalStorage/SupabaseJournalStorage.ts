@@ -1,13 +1,10 @@
 import type { PatternEvent } from "../../types/patterns";
 import { createJournalDedupeKey } from "./createJournalDedupeKey";
+import { toPatternEvent, type JournalSignalRow } from "./JournalReadClient";
 import type { JournalIngestionRun, JournalSignalDedupeInput, JournalStorage, PatternStatsDaily } from "./JournalStorage";
 
 export type SupabaseClientLike = {
-  from(table: string): {
-    select(columns?: string): unknown;
-    upsert(values: unknown, options?: unknown): unknown;
-    insert(values: unknown, options?: unknown): unknown;
-  };
+  from(table: string): any;
 };
 
 export class SupabaseJournalStorage implements JournalStorage {
@@ -58,9 +55,20 @@ export class SupabaseJournalStorage implements JournalStorage {
     return events;
   }
 
-  async getRecentSignal(_input: JournalSignalDedupeInput, _windowMinutes: number): Promise<PatternEvent | null> {
-    // Read mapping will be connected when the real journal replaces mock history in the UI.
-    return null;
+  async getRecentSignal(input: JournalSignalDedupeInput, windowMinutes: number): Promise<PatternEvent | null> {
+    const since = new Date(new Date(input.createdAt).getTime() - windowMinutes * 60 * 1000).toISOString();
+    const result = await this.client
+      .from("journal_signals")
+      .select("*,journal_signal_results(*)")
+      .eq("match_id", input.matchId)
+      .eq("pattern_id", input.patternId)
+      .eq("team_side", input.teamSide)
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle() as { data?: JournalSignalRow | null; error?: Error | null };
+    if (result.error) throw result.error;
+    return result.data ? toPatternEvent(result.data) : null;
   }
 
   async upsertSignalResult(event: PatternEvent): Promise<void> {
@@ -84,9 +92,15 @@ export class SupabaseJournalStorage implements JournalStorage {
     );
   }
 
-  async listSignalHistory(_limit = 100): Promise<PatternEvent[]> {
-    // Read mapping will be implemented after Supabase credentials are added.
-    return [];
+  async listSignalHistory(limit = 100): Promise<PatternEvent[]> {
+    const safeLimit = Math.max(1, Math.min(500, Math.floor(limit)));
+    const result = await this.client
+      .from("journal_signals")
+      .select("*,journal_signal_results(*)")
+      .order("created_at", { ascending: false })
+      .limit(safeLimit) as { data?: JournalSignalRow[] | null; error?: Error | null };
+    if (result.error) throw result.error;
+    return (result.data || []).map(toPatternEvent);
   }
 
   async upsertPatternStatsDaily(stats: PatternStatsDaily[]): Promise<void> {

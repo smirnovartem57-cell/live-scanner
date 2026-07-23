@@ -38,14 +38,14 @@
 - Монитор качества данных: покрытие статистики, покрытие событий, свежесть обновления и оценка качества источника.
 - Статусы паттернов: `new`, `promising`, `working`, `weak`, `ineffective`, `testing`.
 - Профиль команды показывает последние матчи, средние значения, средние по таймам, характерные паттерны и важные матчи.
-- Экран настроек подготовлен к будущему real football API и личному профилю.
+- Экран настроек подключает real football API, журнал, Telegram и личный профиль через защищённые Edge Functions.
 - В настройках добавлена проверка записи постоянного журнала через Supabase Edge Function.
 - Экран истории умеет читать постоянный журнал через `journal-read`, если Supabase включен в настройках.
 - Найденные сигналы автоматически записываются в постоянный журнал через `journal-ingest`, если Supabase включен.
 - События журнала можно закрывать вручную как `Win` или `Lose` с комментарием, результат сохраняется в Supabase.
-- FootballDataProvider с контрактом, MockFootballProvider и RealFootballProvider-заглушкой.
+- FootballDataProvider с контрактом, MockFootballProvider и рабочим RealFootballProvider.
 - RealFootballProvider подключается только к защищённой Supabase Edge Function `football-live`.
-- UI Telegram-уведомлений и service-заглушка для тестового сообщения и отправки аналитического сигнала.
+- UI Telegram-уведомлений, тестовая отправка и автоматические сообщения о новых сигналах.
 - Раздел `Профиль` с backend-архитектурой пользователя, будущего публичного профиля и социального доверия.
 - Раздел `Идеи` с backend-данными для идей, feedback, статусов, приоритетов и голосования.
 - PWA manifest и service worker.
@@ -104,7 +104,7 @@ data/mock-data.js
 services/football-provider.js
                 слой данных, который позже заменяется на реальный API
 supabase/functions/football-live/
-                защищённая серверная точка для будущего real football API
+                защищённая серверная точка real football API
 services/pattern-engine.js
                 pressure score, оценка матчей и создание сигналов
 services/signal-result-engine.js
@@ -120,7 +120,7 @@ src/services/storage/
 src/types/
                 доменные типы матчей, статистики, сигналов, паттернов, пользователей и feedback
 services/telegram-service.js
-                Telegram-заглушка без внешней отправки
+                резервная legacy-заглушка Telegram; React использует Edge Function
 services/formatters.js
                 форматирование дат, статусов, результатов и безопасный вывод текста
 services/storage.js
@@ -132,7 +132,7 @@ services/pattern-analytics-service.js
 services/team-profile-service.js
                 сбор профиля команды, заметки, журнал заметок и команды с наблюдениями
 services/settings-service.js
-                обновление настроек и отображение статуса Telegram-заглушки
+                обновление настроек и отображение статуса интеграций
 services/social-feedback-service.js
                 сводка профиля, социального доверия и раздела Ideas / Feedback
 manifest.webmanifest
@@ -323,7 +323,7 @@ MockFootballProvider
 RealFootballProvider
 ```
 
-`RealFootballProvider` пока возвращает пустые значения и оставлен как точка подключения будущего football API.
+`RealFootballProvider` получает нормализованный live-снимок через защищённую Edge Function `football-live`.
 
 ## Telegram-уведомления
 

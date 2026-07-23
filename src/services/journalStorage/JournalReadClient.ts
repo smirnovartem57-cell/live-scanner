@@ -22,7 +22,7 @@ export type JournalReadResult = {
   patternStats: PatternStatsDaily[];
 };
 
-type JournalSignalRow = {
+export type JournalSignalRow = {
   id: string;
   match_id: string;
   match_name: string;

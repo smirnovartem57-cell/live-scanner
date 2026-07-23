@@ -218,7 +218,7 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
           />
           <span>Демо-данные</span>
         </label>
-        <p className="muted">Слой данных подготовлен под MockFootballProvider и будущий RealFootballProvider.</p>
+        <p className="muted">MockFootballProvider используется для демо, RealFootballProvider — для защищённого live-источника.</p>
         <div className="setting-stack">
           <span className={settings.mockMode || realDataReady ? "status-pill ok" : "status-pill warning"}>
             {settings.mockMode ? "Демо-режим активен" : realDataReady ? "Real-режим готов" : "Real-режим требует токен"}

@@ -46,7 +46,7 @@ SOCIAL_DATA_ACCESS_TOKEN=optional-long-random-private-token
 `telegram-send` использует `TELEGRAM_ACCESS_TOKEN`, а если он не задан — `JOURNAL_ACCESS_TOKEN`. Токен бота хранится только в секрете `TELEGRAM_BOT_TOKEN` и никогда не передаётся в браузер.
 `social-data` читает и обновляет профиль и идеи через service-role доступ. Функция использует `SOCIAL_DATA_ACCESS_TOKEN`, а если он не задан — `JOURNAL_ACCESS_TOKEN`. Таблицы закрыты RLS и напрямую из браузера не читаются.
 
-## Следующий шаг
+## Развёртывание
 
 Развернуть Edge Functions `journal-ingest`, `journal-read` и `football-live`.
 
