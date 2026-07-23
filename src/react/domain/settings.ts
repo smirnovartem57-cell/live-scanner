@@ -40,6 +40,29 @@ export type FootballDataTestResult = {
   createdAt: string;
 };
 
+export type SystemHealthResult = {
+  ok: boolean;
+  status: "healthy" | "degraded";
+  checkedAt: string;
+  environment: {
+    ready: boolean;
+    missingSecrets: string[];
+  };
+  migrations: {
+    journal: boolean;
+    sharedCache: boolean;
+    telegramDedupe: boolean;
+  };
+  latestScan: Record<string, unknown> | null;
+  cache: Record<string, unknown> | null;
+  telegram: {
+    tracked: number;
+    sent: number;
+    pending: number;
+    failed: number;
+  };
+};
+
 export type ReactSettings = {
   mockMode: boolean;
   autoRefreshEnabled: boolean;
@@ -56,6 +79,7 @@ export type ReactSettings = {
   journalAccessToken: string;
   footballDataFunctionName: string;
   footballDataAccessToken: string;
+  systemHealthFunctionName: string;
   patternRuleOverrides: Record<string, Array<{ value: number | string }>>;
   patternEnabledOverrides: Record<string, boolean>;
   patternConditionProfiles: PatternConditionProfile[];
@@ -64,6 +88,7 @@ export type ReactSettings = {
   lastJournalSync: JournalSyncTestResult | null;
   lastJournalRoundtrip: JournalRoundtripTestResult | null;
   lastFootballDataTest: FootballDataTestResult | null;
+  lastSystemHealth: SystemHealthResult | null;
 };
 
 const settingsKey = "football-pattern-lab-settings";
@@ -86,6 +111,7 @@ export const defaultReactSettings: ReactSettings = {
   journalAccessToken: "",
   footballDataFunctionName: "football-live",
   footballDataAccessToken: "",
+  systemHealthFunctionName: "system-health",
   patternRuleOverrides: {},
   patternEnabledOverrides: {},
   patternConditionProfiles: [],
@@ -93,7 +119,8 @@ export const defaultReactSettings: ReactSettings = {
   lastTelegramTest: null,
   lastJournalSync: null,
   lastJournalRoundtrip: null,
-  lastFootballDataTest: null
+  lastFootballDataTest: null,
+  lastSystemHealth: null
 };
 
 export function readReactSettings(): ReactSettings {
@@ -333,6 +360,29 @@ export async function sendFootballDataTest(settings: ReactSettings): Promise<Foo
     payload.data?.teamProfiles?.length || 0,
     Boolean(payload.cached)
   );
+}
+
+export async function sendSystemHealthTest(settings: ReactSettings): Promise<SystemHealthResult> {
+  const supabaseUrl = settings.supabaseUrl.trim();
+  const anonKey = settings.supabaseAnonKey.trim();
+  const accessToken = getJournalAccessToken(settings);
+  const functionName = settings.systemHealthFunctionName.trim() || "system-health";
+  if (!supabaseUrl || !anonKey || !accessToken) {
+    throw new Error("Для диагностики нужны Supabase URL, publishable key и Journal access token.");
+  }
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
+    method: "POST",
+    headers: {
+      apikey: anonKey,
+      authorization: `Bearer ${anonKey}`,
+      "x-live-scanner-key": accessToken,
+      "content-type": "application/json"
+    },
+    body: "{}"
+  });
+  if (!response.ok) throw new Error(`Диагностика недоступна: ${await response.text()}`);
+  return await response.json() as SystemHealthResult;
 }
 
 function buildDiagnosticJournalEvent(createdAt: string): PatternEvent {

@@ -10,6 +10,7 @@ import {
   sendJournalRoundtripTest,
   sendFootballDataTest,
   sendJournalSyncTest,
+  sendSystemHealthTest,
   sendTelegramTestMessage,
   type ReactSettings
 } from "../domain/settings";
@@ -26,6 +27,7 @@ export function SettingsView({ settings, setSettings, history, auth }: SettingsV
   const [journalRoundtripChecking, setJournalRoundtripChecking] = useState(false);
   const [footballDataChecking, setFootballDataChecking] = useState(false);
   const [telegramChecking, setTelegramChecking] = useState(false);
+  const [systemHealthChecking, setSystemHealthChecking] = useState(false);
   const hasConnection = hasSupabaseConnectionSettings(settings);
   const journalReady = canUseJournalStorage(settings);
   const realDataReady = canUseRealFootballData(settings);
@@ -148,6 +150,33 @@ export function SettingsView({ settings, setSettings, history, auth }: SettingsV
       }));
     } finally {
       setFootballDataChecking(false);
+    }
+  }
+
+  async function runSystemHealthTest() {
+    setSystemHealthChecking(true);
+    try {
+      const result = await sendSystemHealthTest(settings);
+      setSettings((current) => ({ ...current, lastSystemHealth: result }));
+    } catch (error) {
+      setSettings((current) => ({
+        ...current,
+        lastSystemHealth: {
+          ok: false,
+          status: "degraded",
+          checkedAt: new Date().toISOString(),
+          environment: {
+            ready: false,
+            missingSecrets: [error instanceof Error ? error.message : "Диагностика не выполнена"]
+          },
+          migrations: { journal: false, sharedCache: false, telegramDedupe: false },
+          latestScan: null,
+          cache: null,
+          telegram: { tracked: 0, sent: 0, pending: 0, failed: 0 }
+        }
+      }));
+    } finally {
+      setSystemHealthChecking(false);
     }
   }
 
@@ -449,6 +478,53 @@ export function SettingsView({ settings, setSettings, history, auth }: SettingsV
   getUserProfile()
   getFeedbackItems()</pre>
         <p className="muted">Интерфейс независим от поставщика данных: сейчас работает MockFootballProvider, дальше подключается RealFootballProvider.</p>
+      </div>
+
+      <div className="panel">
+        <h2>Состояние системы</h2>
+        <label className="input-label">
+          Edge Function
+          <input
+            type="text"
+            value={settings.systemHealthFunctionName}
+            placeholder="system-health"
+            onChange={(event) => updateSetting("systemHealthFunctionName", event.target.value)}
+          />
+        </label>
+        <button
+          className="primary-button"
+          type="button"
+          onClick={runSystemHealthTest}
+          disabled={systemHealthChecking}
+        >
+          {systemHealthChecking ? "Проверяем..." : "Проверить без расхода API-квоты"}
+        </button>
+        {settings.lastSystemHealth ? (
+          <div className={`live-source-diagnostics ${settings.lastSystemHealth.ok ? "ok" : "warning"}`}>
+            <div className="live-source-diagnostics-header">
+              <div>
+                <b>{settings.lastSystemHealth.ok ? "Все серверные проверки пройдены" : "Есть незавершённые настройки"}</b>
+                <span>
+                  Миграции: журнал {settings.lastSystemHealth.migrations.journal ? "✓" : "—"},
+                  кэш {settings.lastSystemHealth.migrations.sharedCache ? "✓" : "—"},
+                  Telegram {settings.lastSystemHealth.migrations.telegramDedupe ? "✓" : "—"}
+                </span>
+              </div>
+              <em>{settings.lastSystemHealth.status}</em>
+            </div>
+            <div className="live-source-metrics">
+              <span><b>{settings.lastSystemHealth.telegram.sent}</b>отправлено</span>
+              <span><b>{settings.lastSystemHealth.telegram.pending}</b>в очереди</span>
+              <span><b>{settings.lastSystemHealth.telegram.failed}</b>ошибок</span>
+            </div>
+            {settings.lastSystemHealth.environment.missingSecrets.length ? (
+              <p>Не настроено: {settings.lastSystemHealth.environment.missingSecrets.join(", ")}</p>
+            ) : null}
+            <small>{formatDate(settings.lastSystemHealth.checkedAt)}</small>
+          </div>
+        ) : (
+          <p className="muted">Проверка читает только служебное состояние Supabase и не вызывает API-FOOTBALL.</p>
+        )}
       </div>
     </section>
   );

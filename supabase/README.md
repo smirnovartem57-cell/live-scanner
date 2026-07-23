@@ -16,7 +16,7 @@
 1. Создать Supabase project.
 2. Открыть SQL Editor.
 3. Выполнить по порядку `migrations/001_journal_storage.sql` и `migrations/002_social_data.sql`.
-4. Развернуть Edge Functions `journal-ingest`, `journal-read`, `football-live`, `telegram-send`, `social-data` и `live-scan`.
+4. Развернуть Edge Functions `journal-ingest`, `journal-read`, `football-live`, `telegram-send`, `social-data`, `live-scan` и `system-health`.
 5. Добавить secrets `SUPABASE_SERVICE_ROLE_KEY`, `JOURNAL_ACCESS_TOKEN`, `API_FOOTBALL_KEY`, `TELEGRAM_BOT_TOKEN` и при необходимости отдельные `FOOTBALL_DATA_ACCESS_TOKEN`, `TELEGRAM_ACCESS_TOKEN` и `SOCIAL_DATA_ACCESS_TOKEN` в Supabase Functions.
 6. Когда появятся логины, добавить политики чтения для authenticated users.
 
@@ -38,6 +38,7 @@ TELEGRAM_BOT_TOKEN=server-only-telegram-bot-token
 TELEGRAM_ACCESS_TOKEN=optional-long-random-private-token
 SOCIAL_DATA_ACCESS_TOKEN=optional-long-random-private-token
 LIVE_SCAN_ACCESS_TOKEN=optional-long-random-private-token
+SYSTEM_HEALTH_ACCESS_TOKEN=optional-long-random-private-token
 TELEGRAM_CHANNEL=@channel-or-chat-id
 ```
 
@@ -50,6 +51,7 @@ TELEGRAM_CHANNEL=@channel-or-chat-id
 `telegram-send` использует `TELEGRAM_ACCESS_TOKEN`, а если он не задан — `JOURNAL_ACCESS_TOKEN`. Токен бота хранится только в секрете `TELEGRAM_BOT_TOKEN` и никогда не передаётся в браузер.
 `social-data` читает и обновляет профиль и идеи через service-role доступ. Функция использует `SOCIAL_DATA_ACCESS_TOKEN`, а если он не задан — `JOURNAL_ACCESS_TOKEN`. Таблицы закрыты RLS и напрямую из браузера не читаются.
 `live-scan` запускает тот же Pattern Engine на сервере, записывает новые сигналы и результаты в журнал и отправляет новые сигналы в `TELEGRAM_CHANNEL`. Для защиты используется `LIVE_SCAN_ACCESS_TOKEN`, а если он не задан — `JOURNAL_ACCESS_TOKEN`.
+`system-health` проверяет серверную конфигурацию, наличие миграций, состояние общего кэша, последний запуск сканера и Telegram-доставку. Функция не обращается к API-FOOTBALL и поэтому не расходует его квоту.
 
 ## Фоновый сканер
 

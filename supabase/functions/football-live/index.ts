@@ -7,6 +7,13 @@ import {
   type ApiFootballFixture,
   type ApiFootballStatGroup
 } from "../../../src/services/apiFootball/normalizeApiFootball.ts";
+import {
+  allowedDetailFixtureCount,
+  DEFAULT_CACHE_TTL_SECONDS,
+  DEFAULT_DAILY_RESERVE,
+  DEFAULT_MAX_FIXTURES,
+  MAX_FIXTURES_PER_REFRESH
+} from "../../../src/services/apiFootball/quotaPolicy.ts";
 
 type FootballLivePayload = {
   scope?: "live-snapshot";
@@ -89,9 +96,19 @@ Deno.serve(async (request) => {
   }
 
   const apiBaseUrl = Deno.env.get("API_FOOTBALL_BASE_URL") || "https://v3.football.api-sports.io";
-  const cacheTtlSeconds = parsePositiveInteger(Deno.env.get("API_FOOTBALL_CACHE_TTL_SECONDS"), 2700);
-  const maxFixtures = clamp(parsePositiveInteger(Deno.env.get("API_FOOTBALL_MAX_FIXTURES"), 1), 1, 4);
-  const dailyReserve = parsePositiveInteger(Deno.env.get("API_FOOTBALL_DAILY_RESERVE"), 5);
+  const cacheTtlSeconds = parsePositiveInteger(
+    Deno.env.get("API_FOOTBALL_CACHE_TTL_SECONDS"),
+    DEFAULT_CACHE_TTL_SECONDS
+  );
+  const maxFixtures = clamp(
+    parsePositiveInteger(Deno.env.get("API_FOOTBALL_MAX_FIXTURES"), DEFAULT_MAX_FIXTURES),
+    1,
+    MAX_FIXTURES_PER_REFRESH
+  );
+  const dailyReserve = parsePositiveInteger(
+    Deno.env.get("API_FOOTBALL_DAILY_RESERVE"),
+    DEFAULT_DAILY_RESERVE
+  );
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const [persistentCache, latestQuotaCache] = supabaseUrl && serviceRoleKey
@@ -151,7 +168,8 @@ Deno.serve(async (request) => {
       quota
     );
     const allFixtures = fixturesResponse.response || [];
-    const fixtures = orderFixtures(allFixtures, preferredFixtureIds).slice(0, maxFixtures);
+    const allowedFixtures = allowedDetailFixtureCount(quota.dailyRemaining, maxFixtures, dailyReserve);
+    const fixtures = orderFixtures(allFixtures, preferredFixtureIds).slice(0, allowedFixtures);
     const [statistics, events] = await Promise.all([
       getStatistics(apiBaseUrl, apiKey, fixtures, quota),
       getEvents(apiBaseUrl, apiKey, fixtures, quota)

@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const moduleUrl = pathToFileURL(join(root, "dist-test", "services", "apiFootball", "normalizeApiFootball.js")).href;
 const normalizer = await import(moduleUrl);
+const quotaPolicyUrl = pathToFileURL(join(root, "dist-test", "services", "apiFootball", "quotaPolicy.js")).href;
+const quotaPolicy = await import(quotaPolicyUrl);
 
 const fixture = {
   fixture: {
@@ -84,5 +86,13 @@ assert.equal(event.teamId, "10");
 const profiles = normalizer.normalizeApiFootballTeamProfiles(fixture);
 assert.equal(profiles.length, 2);
 assert.equal(profiles[0].name, "Barcelona");
+
+assert.equal(quotaPolicy.providerRequestsForFixtureCount(0), 1);
+assert.equal(quotaPolicy.providerRequestsForFixtureCount(1), 3);
+assert.equal(quotaPolicy.providerRequestsForFixtureCount(4), 9);
+assert.equal(quotaPolicy.allowedDetailFixtureCount(null, 4, 5), 4);
+assert.equal(quotaPolicy.allowedDetailFixtureCount(7, 4, 5), 1);
+assert.equal(quotaPolicy.allowedDetailFixtureCount(6, 4, 5), 0);
+assert.equal(quotaPolicy.allowedDetailFixtureCount(100, 99, 5), 4);
 
 console.log("API-FOOTBALL normalizer tests passed.");
