@@ -1,6 +1,8 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import type { PatternEvent } from "../../types/patterns";
 import { formatDate } from "../domain/dateFormat";
+import type { SupabaseAuthController } from "../hooks/useSupabaseAuth";
+import { AuthCard } from "./AuthCard";
 import {
   canUseJournalStorage,
   canUseRealFootballData,
@@ -16,9 +18,10 @@ type SettingsViewProps = {
   settings: ReactSettings;
   setSettings: Dispatch<SetStateAction<ReactSettings>>;
   history: PatternEvent[];
+  auth: SupabaseAuthController;
 };
 
-export function SettingsView({ settings, setSettings, history }: SettingsViewProps) {
+export function SettingsView({ settings, setSettings, history, auth }: SettingsViewProps) {
   const [journalSyncing, setJournalSyncing] = useState(false);
   const [journalRoundtripChecking, setJournalRoundtripChecking] = useState(false);
   const [footballDataChecking, setFootballDataChecking] = useState(false);
@@ -238,6 +241,24 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
             {journalReady ? "Журнал защищен и готов" : hasConnection ? "Добавьте Journal access token" : "Добавьте Supabase URL и anon key"}
           </span>
         </div>
+      </div>
+
+      <AuthCard auth={auth} />
+
+      <div className="panel">
+        <h2>Защита входом</h2>
+        <label className="switch field-row">
+          <input
+            type="checkbox"
+            checked={settings.authRequired}
+            disabled={!auth.user}
+            onChange={(event) => updateSetting("authRequired", event.target.checked)}
+          />
+          <span>Требовать вход при открытии приложения</span>
+        </label>
+        <p className="muted">
+          Переключатель можно включить только после входа, чтобы случайно не закрыть себе доступ.
+        </p>
       </div>
 
       <div className="panel">

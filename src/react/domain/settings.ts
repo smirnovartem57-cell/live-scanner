@@ -43,6 +43,7 @@ export type FootballDataTestResult = {
 export type ReactSettings = {
   mockMode: boolean;
   autoRefreshEnabled: boolean;
+  authRequired: boolean;
   telegramEnabled: boolean;
   telegramChannel: string;
   telegramFunctionName: string;
@@ -72,6 +73,7 @@ const defaultSupabaseAnonKey = "sb_publishable___RMv9rrvDsDZSGvS_462g_gJ1pw6HG";
 export const defaultReactSettings: ReactSettings = {
   mockMode: true,
   autoRefreshEnabled: true,
+  authRequired: false,
   telegramEnabled: false,
   telegramChannel: "",
   telegramFunctionName: "telegram-send",

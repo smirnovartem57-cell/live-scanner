@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { AnalyticsView } from "./components/AnalyticsView";
 import { AppShell } from "./components/AppShell";
+import { AuthCard } from "./components/AuthCard";
 import { HistoryView } from "./components/HistoryView";
 import { IdeasView } from "./components/IdeasView";
 import { LiveScannerView } from "./components/LiveScannerView";
@@ -14,6 +15,7 @@ import { useJournalAutoIngest } from "./hooks/useJournalAutoIngest";
 import { useJournalHistory } from "./hooks/useJournalHistory";
 import { useReactSettings } from "./hooks/useReactSettings";
 import { useTelegramNotifications } from "./hooks/useTelegramNotifications";
+import { useSupabaseAuth } from "./hooks/useSupabaseAuth";
 import { buildTeamProfileViewModel, type TeamProfileSelection } from "./domain/teamProfile";
 import type { FootballDataSourceStatus } from "../services/footballDataProvider";
 import type { ReactNavItem, ReactViewId } from "./types";
@@ -33,12 +35,20 @@ export function App() {
   const [activeView, setActiveView] = useState<ReactViewId>("scanner");
   const [selectedTeam, setSelectedTeam] = useState<TeamProfileSelection | null>(null);
   const { settings, setSettings } = useReactSettings();
-  const { data, error, loading, refreshing, reload, summary, voteFeedback } = useFootballLabData(settings);
-  const journal = useJournalHistory(settings, data?.history || []);
-  useTelegramNotifications(settings, data?.signals || []);
+  const auth = useSupabaseAuth(settings.supabaseUrl, settings.supabaseAnonKey);
+  const accessBlocked = settings.authRequired && !auth.user;
+  const runtimeSettings = useMemo(() => accessBlocked ? {
+    ...settings,
+    mockMode: true,
+    journalStorageEnabled: false,
+    telegramEnabled: false
+  } : settings, [accessBlocked, settings]);
+  const { data, error, loading, refreshing, reload, summary, voteFeedback } = useFootballLabData(runtimeSettings);
+  const journal = useJournalHistory(runtimeSettings, data?.history || []);
+  useTelegramNotifications(runtimeSettings, data?.signals || []);
 
   useJournalAutoIngest({
-    settings,
+    settings: runtimeSettings,
     data,
     history: journal.history,
     historySource: journal.source,
@@ -63,6 +73,22 @@ export function App() {
       profiles: data.teamProfiles
     });
   }, [data, journal.history, selectedTeam]);
+
+  if (settings.authRequired && auth.loading) {
+    return <main className="auth-gate"><div className="empty-state">Проверяем вход...</div></main>;
+  }
+
+  if (accessBlocked) {
+    return (
+      <main className="auth-gate">
+        <AuthCard
+          auth={auth}
+          title="Вход в Live Scanner"
+          description="Для этого устройства включён обязательный вход."
+        />
+      </main>
+    );
+  }
 
   return (
     <AppShell
@@ -116,7 +142,9 @@ export function App() {
           ) : null}
           {activeView === "profile" ? <ProfileView profile={data.userProfile} history={journal.history} /> : null}
           {activeView === "ideas" ? <IdeasView items={data.feedbackItems} onVote={settings.mockMode ? undefined : voteFeedback} /> : null}
-          {activeView === "settings" ? <SettingsView settings={settings} setSettings={setSettings} history={journal.history} /> : null}
+          {activeView === "settings" ? (
+            <SettingsView settings={settings} setSettings={setSettings} history={journal.history} auth={auth} />
+          ) : null}
           {activeView !== "scanner" && activeView !== "signals" && activeView !== "patterns" && activeView !== "history" && activeView !== "analytics" && activeView !== "profile" && activeView !== "ideas" && activeView !== "settings" ? (
             <section className="panel">
               <p className="eyebrow">Раздел</p>

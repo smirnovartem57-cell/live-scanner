@@ -11,7 +11,13 @@ export default defineConfig({
     outDir: "dist-react",
     emptyOutDir: true,
     rollupOptions: {
-      input: resolve(currentDirectory, "index.html")
+      input: resolve(currentDirectory, "index.html"),
+      output: {
+        manualChunks(id) {
+          if (id.includes("@supabase")) return "supabase";
+          if (id.includes("node_modules/react")) return "react";
+        }
+      }
     }
   }
 });
