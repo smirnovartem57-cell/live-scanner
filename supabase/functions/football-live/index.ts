@@ -10,6 +10,7 @@ import {
 
 type FootballLivePayload = {
   scope?: "live-snapshot";
+  fixtureIds?: string[];
 };
 
 type LiveSnapshotResponse = {
@@ -23,8 +24,7 @@ type LiveSnapshotResponse = {
   data: ReturnType<typeof emptySnapshot>;
 };
 
-let cachedSnapshot: { expiresAt: number; response: LiveSnapshotResponse } | null = null;
-const cacheKey = "live-snapshot";
+const cachedSnapshots = new Map<string, { expiresAt: number; response: LiveSnapshotResponse }>();
 
 type ApiQuota = {
   dailyLimit: number | null;
@@ -69,6 +69,8 @@ Deno.serve(async (request) => {
   if (payload.scope !== "live-snapshot") {
     return json({ error: "Unsupported scope" }, 400);
   }
+  const preferredFixtureIds = normalizeFixtureIds(payload.fixtureIds);
+  const activeCacheKey = buildCacheKey(preferredFixtureIds);
 
   const apiKey = Deno.env.get("API_FOOTBALL_KEY");
   if (!apiKey) {
@@ -81,8 +83,9 @@ Deno.serve(async (request) => {
   }
 
   const now = Date.now();
-  if (cachedSnapshot && cachedSnapshot.expiresAt > now) {
-    return json({ ...cachedSnapshot.response, cached: true });
+  const memoryCache = cachedSnapshots.get(activeCacheKey);
+  if (memoryCache && memoryCache.expiresAt > now) {
+    return json({ ...memoryCache.response, cached: true });
   }
 
   const apiBaseUrl = Deno.env.get("API_FOOTBALL_BASE_URL") || "https://v3.football.api-sports.io";
@@ -91,33 +94,47 @@ Deno.serve(async (request) => {
   const dailyReserve = parsePositiveInteger(Deno.env.get("API_FOOTBALL_DAILY_RESERVE"), 5);
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const persistentCache = supabaseUrl && serviceRoleKey
-    ? await readPersistentCache(supabaseUrl, serviceRoleKey)
-    : null;
+  const [persistentCache, latestQuotaCache] = supabaseUrl && serviceRoleKey
+    ? await Promise.all([
+      readPersistentCache(supabaseUrl, serviceRoleKey, activeCacheKey),
+      readLatestQuotaCache(supabaseUrl, serviceRoleKey)
+    ])
+    : [null, null];
 
   if (persistentCache && isFresh(persistentCache.expires_at, now) && persistentCache.payload?.data) {
     const response = { ...persistentCache.payload, cached: true, stale: false };
-    cachedSnapshot = { expiresAt: Date.parse(persistentCache.expires_at!), response };
+    cachedSnapshots.set(activeCacheKey, { expiresAt: Date.parse(persistentCache.expires_at!), response });
     return json(response);
   }
 
-  if (persistentCache?.daily_remaining != null && persistentCache.daily_remaining <= dailyReserve) {
+  if (latestQuotaCache?.daily_remaining != null && latestQuotaCache.daily_remaining <= dailyReserve) {
     return json(staleResponse(
-      persistentCache,
-      `API daily reserve reached (${persistentCache.daily_remaining} requests remaining).`
+      persistentCache || latestQuotaCache,
+      `API daily reserve reached (${latestQuotaCache.daily_remaining} requests remaining).`
     ));
   }
 
   if (supabaseUrl && serviceRoleKey) {
-    const claimed = await claimPersistentRefresh(supabaseUrl, serviceRoleKey);
-    if (!claimed && persistentCache?.payload?.data) {
-      return json({
-        ...persistentCache.payload,
-        cached: true,
-        stale: true,
-        refreshing: true,
-        message: "Another worker is refreshing API-FOOTBALL data."
-      });
+    const claimed = await claimPersistentRefresh(supabaseUrl, serviceRoleKey, activeCacheKey);
+    if (!claimed) {
+      const currentCache = persistentCache || await readPersistentCache(supabaseUrl, serviceRoleKey, activeCacheKey);
+      return json(currentCache?.payload?.data
+        ? {
+          ...currentCache.payload,
+          cached: true,
+          stale: true,
+          refreshing: true,
+          message: "Another worker is refreshing API-FOOTBALL data."
+        }
+        : {
+          ok: true,
+          provider: "api-football-cache",
+          cached: true,
+          stale: true,
+          refreshing: true,
+          message: "Another worker is preparing the first API-FOOTBALL snapshot.",
+          data: emptySnapshot()
+        });
     }
   }
 
@@ -128,11 +145,13 @@ Deno.serve(async (request) => {
     const fixturesResponse = await apiFootball<{ response?: ApiFootballFixture[] }>(
       apiBaseUrl,
       apiKey,
-      "/fixtures?live=all",
+      preferredFixtureIds.length
+        ? `/fixtures?ids=${preferredFixtureIds.join("-")}`
+        : "/fixtures?live=all",
       quota
     );
     const allFixtures = fixturesResponse.response || [];
-    const fixtures = allFixtures.slice(0, maxFixtures);
+    const fixtures = orderFixtures(allFixtures, preferredFixtureIds).slice(0, maxFixtures);
     const [statistics, events] = await Promise.all([
       getStatistics(apiBaseUrl, apiKey, fixtures, quota),
       getEvents(apiBaseUrl, apiKey, fixtures, quota)
@@ -169,13 +188,13 @@ Deno.serve(async (request) => {
     throw error;
   }
 
-  cachedSnapshot = {
+  cachedSnapshots.set(activeCacheKey, {
     expiresAt: now + cacheTtlSeconds * 1000,
     response
-  };
+  });
 
   if (supabaseUrl && serviceRoleKey) {
-    await writePersistentCache(supabaseUrl, serviceRoleKey, response, cacheTtlSeconds, quota);
+    await writePersistentCache(supabaseUrl, serviceRoleKey, activeCacheKey, response, cacheTtlSeconds, quota);
   }
 
   return json(response);
@@ -280,10 +299,10 @@ function minNullable(current: number | null, next: number | null) {
   return current == null ? next : Math.min(current, next);
 }
 
-async function readPersistentCache(supabaseUrl: string, key: string): Promise<CacheRow | null> {
+async function readPersistentCache(supabaseUrl: string, key: string, requestedCacheKey: string): Promise<CacheRow | null> {
   try {
     const response = await fetch(
-      `${supabaseUrl}/rest/v1/football_live_cache?cache_key=eq.${cacheKey}&select=*&limit=1`,
+      `${supabaseUrl}/rest/v1/football_live_cache?cache_key=eq.${encodeURIComponent(requestedCacheKey)}&select=*&limit=1`,
       { headers: restHeaders(key) }
     );
     if (!response.ok) throw new Error(await response.text());
@@ -295,12 +314,27 @@ async function readPersistentCache(supabaseUrl: string, key: string): Promise<Ca
   }
 }
 
-async function claimPersistentRefresh(supabaseUrl: string, key: string) {
+async function readLatestQuotaCache(supabaseUrl: string, key: string): Promise<CacheRow | null> {
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/football_live_cache?select=*&daily_remaining=not.is.null&order=updated_at.desc&limit=1`,
+      { headers: restHeaders(key) }
+    );
+    if (!response.ok) throw new Error(await response.text());
+    const rows = await response.json() as CacheRow[];
+    return rows[0] || null;
+  } catch (error) {
+    console.warn("Persistent football quota telemetry is unavailable", error);
+    return null;
+  }
+}
+
+async function claimPersistentRefresh(supabaseUrl: string, key: string, requestedCacheKey: string) {
   try {
     const response = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_football_live_refresh`, {
       method: "POST",
       headers: restHeaders(key),
-      body: JSON.stringify({ requested_cache_key: cacheKey, lock_seconds: 120 })
+      body: JSON.stringify({ requested_cache_key: requestedCacheKey, lock_seconds: 120 })
     });
     if (!response.ok) throw new Error(await response.text());
     return Boolean(await response.json());
@@ -313,6 +347,7 @@ async function claimPersistentRefresh(supabaseUrl: string, key: string) {
 async function writePersistentCache(
   supabaseUrl: string,
   key: string,
+  requestedCacheKey: string,
   responseBody: LiveSnapshotResponse,
   ttlSeconds: number,
   quota: ApiQuota
@@ -328,7 +363,7 @@ async function writePersistentCache(
           prefer: "resolution=merge-duplicates"
         },
         body: JSON.stringify({
-          cache_key: cacheKey,
+          cache_key: requestedCacheKey,
           payload: responseBody,
           provider: responseBody.provider,
           message: responseBody.message,
@@ -373,6 +408,28 @@ function staleResponse(cache: CacheRow, message: string): LiveSnapshotResponse {
 
 function isFresh(expiresAt: string | undefined, now: number) {
   return Boolean(expiresAt && Date.parse(expiresAt) > now);
+}
+
+function normalizeFixtureIds(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value
+    .map((item) => String(item).trim())
+    .filter((item) => /^\d+$/.test(item)))]
+    .slice(0, 4);
+}
+
+function buildCacheKey(fixtureIds: string[]) {
+  return fixtureIds.length ? `live-snapshot:${[...fixtureIds].sort().join("-")}` : "live-snapshot";
+}
+
+function orderFixtures(fixtures: ApiFootballFixture[], preferredFixtureIds: string[]) {
+  if (!preferredFixtureIds.length) return fixtures;
+  const priority = new Map(preferredFixtureIds.map((id, index) => [id, index]));
+  return [...fixtures].sort((left, right) => {
+    const leftPriority = priority.get(String(left.fixture.id)) ?? Number.MAX_SAFE_INTEGER;
+    const rightPriority = priority.get(String(right.fixture.id)) ?? Number.MAX_SAFE_INTEGER;
+    return leftPriority - rightPriority;
+  });
 }
 
 function restHeaders(key: string) {

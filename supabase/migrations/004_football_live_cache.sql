@@ -36,6 +36,10 @@ as $$
 declare
   affected_rows integer;
 begin
+  insert into public.football_live_cache (cache_key)
+  values (requested_cache_key)
+  on conflict (cache_key) do nothing;
+
   update public.football_live_cache
   set refresh_locked_until = now() + make_interval(secs => greatest(30, least(lock_seconds, 300))),
       updated_at = now()

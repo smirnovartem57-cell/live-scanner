@@ -36,14 +36,17 @@ Deno.serve(async (request) => {
 
   try {
     const config = getConfig();
-    const [snapshotResponse, journal] = await Promise.all([
-      loadFootballSnapshot(config),
-      new JournalReadClient({
-        supabaseUrl: config.supabaseUrl,
-        anonKey: config.anonKey,
-        accessToken: config.journalToken
-      }).read({ limit: 500, includePatternStats: true, patternStatsDays: 365 })
-    ]);
+    const journal = await new JournalReadClient({
+      supabaseUrl: config.supabaseUrl,
+      anonKey: config.anonKey,
+      accessToken: config.journalToken
+    }).read({ limit: 500, includePatternStats: true, patternStatsDays: 365 });
+    const openFixtureIds = [...new Set(journal.history
+      .filter((event) => event.resultSource === "auto" && !event.result.manualOutcome)
+      .filter((event) => event.status === "new" || event.status === "in_progress")
+      .map((event) => event.matchId))]
+      .slice(0, 4);
+    const snapshotResponse = await loadFootballSnapshot(config, openFixtureIds);
 
     const snapshot = snapshotResponse.data || {};
     const matches = snapshot.matches || [];
@@ -116,11 +119,11 @@ function getConfig() {
   return { supabaseUrl, anonKey, journalToken, footballToken, telegramToken, telegramChannel };
 }
 
-async function loadFootballSnapshot(config: ReturnType<typeof getConfig>) {
+async function loadFootballSnapshot(config: ReturnType<typeof getConfig>, fixtureIds: string[]) {
   const response = await fetch(`${config.supabaseUrl}/functions/v1/football-live`, {
     method: "POST",
     headers: functionHeaders(config.anonKey, config.footballToken),
-    body: JSON.stringify({ scope: "live-snapshot" })
+    body: JSON.stringify({ scope: "live-snapshot", fixtureIds })
   });
 
   if (!response.ok) throw new Error(`football-live failed: ${await response.text()}`);
