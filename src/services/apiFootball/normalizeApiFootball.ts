@@ -1,5 +1,4 @@
-import type { Match, MatchEvent, MatchStatsSnapshot, MatchStatus, TeamSide, TeamStats } from "../../types/football";
-import type { TeamProfile } from "../../types/football";
+import type { Match, MatchEvent, MatchStatsSnapshot, MatchStatus, TeamProfile, TeamSide, TeamStats } from "../../types/football.ts";
 
 export type ApiFootballFixture = {
   fixture: {
