@@ -1,4 +1,4 @@
-import type { PatternEvent, Signal } from "../../types/patterns";
+import type { PatternEvent, Signal } from "../../types/patterns.ts";
 
 export type JournalStorageMode = "mock" | "supabase";
 

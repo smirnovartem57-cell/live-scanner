@@ -1,4 +1,4 @@
-import type { TeamSide, TeamStats } from "./football";
+import type { TeamSide, TeamStats } from "./football.ts";
 
 export type PatternRule = {
   label?: string;

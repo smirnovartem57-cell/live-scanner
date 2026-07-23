@@ -1,5 +1,5 @@
-import type { PatternEvent } from "../../types/patterns";
-import type { JournalIngestionRun, PatternStatsDaily } from "./JournalStorage";
+import type { PatternEvent } from "../../types/patterns.ts";
+import type { JournalIngestionRun, PatternStatsDaily } from "./JournalStorage.ts";
 
 export type JournalIngestClientConfig = {
   supabaseUrl: string;

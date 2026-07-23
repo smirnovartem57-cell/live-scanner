@@ -1,6 +1,6 @@
-import type { Match, MatchStatsSnapshot } from "../../types/football";
-import type { Pattern, Signal } from "../../types/patterns";
-import { evaluatePattern } from "./evaluatePattern";
+import type { Match, MatchStatsSnapshot } from "../../types/football.ts";
+import type { Pattern, Signal } from "../../types/patterns.ts";
+import { evaluatePattern } from "./evaluatePattern.ts";
 
 const SIGNAL_WINDOW_MINUTES = 10;
 

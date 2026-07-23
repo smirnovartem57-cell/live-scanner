@@ -1,8 +1,8 @@
-import type { Match, MatchStatsSnapshot, TeamSide, TeamStats } from "../../types/football";
-import type { Pattern, PatternRule, Signal } from "../../types/patterns";
-import { calculatePressureScore } from "./calculatePressureScore";
-import { getPatternStatus } from "./getPatternStatus";
-import { getSignalStrength } from "./getSignalStrength";
+import type { Match, MatchStatsSnapshot, TeamSide, TeamStats } from "../../types/football.ts";
+import type { Pattern, PatternRule, Signal } from "../../types/patterns.ts";
+import { calculatePressureScore } from "./calculatePressureScore.ts";
+import { getPatternStatus } from "./getPatternStatus.ts";
+import { getSignalStrength } from "./getSignalStrength.ts";
 
 const SIGNAL_BUCKET_MINUTES = 10;
 

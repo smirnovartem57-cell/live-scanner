@@ -1,4 +1,4 @@
-import type { SignalStrength } from "../../types/patterns";
+import type { SignalStrength } from "../../types/patterns.ts";
 
 export function getSignalStrength(pressureScore: number): SignalStrength {
   if (pressureScore >= 75) return "HIGH";

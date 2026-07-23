@@ -1,6 +1,6 @@
-import type { PatternEvent, SignalKind, SignalResult, SignalStatus, SignalStrength } from "../../types/patterns";
-import type { TeamSide, TeamStats } from "../../types/football";
-import type { PatternStatsDaily } from "./JournalStorage";
+import type { PatternEvent, SignalKind, SignalResult, SignalStatus, SignalStrength } from "../../types/patterns.ts";
+import type { TeamSide, TeamStats } from "../../types/football.ts";
+import type { PatternStatsDaily } from "./JournalStorage.ts";
 
 export type JournalReadClientConfig = {
   supabaseUrl: string;

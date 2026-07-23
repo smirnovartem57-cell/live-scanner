@@ -1,6 +1,6 @@
-import type { Match, MatchEvent } from "../../types/football";
-import type { PatternEvent, Signal, SignalResult, SignalStatus } from "../../types/patterns";
-import type { PatternStatsDaily } from "./JournalStorage";
+import type { Match, MatchEvent } from "../../types/football.ts";
+import type { PatternEvent, Signal, SignalResult, SignalStatus } from "../../types/patterns.ts";
+import type { PatternStatsDaily } from "./JournalStorage.ts";
 
 export function buildPatternEvent(signal: Signal, match: Match, events: MatchEvent[] = []): PatternEvent {
   const evaluated = evaluateSignalResult(signal, match, events);

@@ -16,7 +16,7 @@
 1. Создать Supabase project.
 2. Открыть SQL Editor.
 3. Выполнить по порядку `migrations/001_journal_storage.sql` и `migrations/002_social_data.sql`.
-4. Развернуть Edge Functions `journal-ingest`, `journal-read`, `football-live`, `telegram-send` и `social-data`.
+4. Развернуть Edge Functions `journal-ingest`, `journal-read`, `football-live`, `telegram-send`, `social-data` и `live-scan`.
 5. Добавить secrets `SUPABASE_SERVICE_ROLE_KEY`, `JOURNAL_ACCESS_TOKEN`, `API_FOOTBALL_KEY`, `TELEGRAM_BOT_TOKEN` и при необходимости отдельные `FOOTBALL_DATA_ACCESS_TOKEN`, `TELEGRAM_ACCESS_TOKEN` и `SOCIAL_DATA_ACCESS_TOKEN` в Supabase Functions.
 6. Когда появятся логины, добавить политики чтения для authenticated users.
 
@@ -36,6 +36,8 @@ API_FOOTBALL_MAX_FIXTURES=30
 TELEGRAM_BOT_TOKEN=server-only-telegram-bot-token
 TELEGRAM_ACCESS_TOKEN=optional-long-random-private-token
 SOCIAL_DATA_ACCESS_TOKEN=optional-long-random-private-token
+LIVE_SCAN_ACCESS_TOKEN=optional-long-random-private-token
+TELEGRAM_CHANNEL=@channel-or-chat-id
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` нельзя добавлять в GitHub Pages или frontend env.
@@ -45,6 +47,28 @@ SOCIAL_DATA_ACCESS_TOKEN=optional-long-random-private-token
 `API_FOOTBALL_CACHE_TTL_SECONDS` защищает квоту API от частых обновлений, а `API_FOOTBALL_MAX_FIXTURES` ограничивает количество live-матчей, для которых подтягиваются подробные statistics/events.
 `telegram-send` использует `TELEGRAM_ACCESS_TOKEN`, а если он не задан — `JOURNAL_ACCESS_TOKEN`. Токен бота хранится только в секрете `TELEGRAM_BOT_TOKEN` и никогда не передаётся в браузер.
 `social-data` читает и обновляет профиль и идеи через service-role доступ. Функция использует `SOCIAL_DATA_ACCESS_TOKEN`, а если он не задан — `JOURNAL_ACCESS_TOKEN`. Таблицы закрыты RLS и напрямую из браузера не читаются.
+`live-scan` запускает тот же Pattern Engine на сервере, записывает новые сигналы и результаты в журнал и отправляет новые сигналы в `TELEGRAM_CHANNEL`. Для защиты используется `LIVE_SCAN_ACCESS_TOKEN`, а если он не задан — `JOURNAL_ACCESS_TOKEN`.
+
+## Фоновый сканер
+
+Миграция `003_live_scan_cron.sql` добавляет защищённый вызов `live-scan` через Supabase Cron и pg_net. Расписание намеренно не включается автоматически.
+
+Перед включением добавьте в Supabase Vault три секрета:
+
+```sql
+select vault.create_secret('https://PROJECT.supabase.co', 'live_scanner_project_url');
+select vault.create_secret('YOUR_PUBLISHABLE_KEY', 'live_scanner_publishable_key');
+select vault.create_secret('YOUR_PRIVATE_ACCESS_TOKEN', 'live_scanner_access_token');
+```
+
+Включение и выключение выполняется из SQL Editor:
+
+```sql
+select public.enable_live_scanner_cron('*/2 * * * *');
+select public.disable_live_scanner_cron();
+```
+
+Интервал `*/2 * * * *` рассчитан на платный API-FOOTBALL Pro при дополнительном ограничении числа матчей. На Free плане автоматический частый запуск включать нельзя: доступно только 100 запросов в сутки и 10 запросов в минуту.
 
 ## Развёртывание
 
