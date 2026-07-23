@@ -23,8 +23,8 @@ export function AppShell({ title, activeView, navItems, onViewChange, onRefresh,
             <img src="/icons/live-scanner-icon-192.png" alt="" />
           </div>
           <div>
-            <strong>Лаборатория паттернов</strong>
-            <span>Live Scanner</span>
+            <strong>Live Scanner</strong>
+            <span>Football Pattern Lab</span>
           </div>
         </div>
         <nav className="side-nav">
@@ -61,6 +61,7 @@ export function AppShell({ title, activeView, navItems, onViewChange, onRefresh,
             <button className="topbar-button" type="button" onClick={onRefresh} disabled={refreshing}>
               {refreshing ? "Обновляем..." : "Обновить"}
             </button>
+            <button className="topbar-button ghost" type="button" onClick={() => onViewChange("settings")}>Настроить</button>
             <button className="topbar-button ghost" type="button" onClick={() => onViewChange("profile")}>Профиль</button>
           </div>
         </header>
