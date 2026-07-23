@@ -53,6 +53,8 @@ end;
 $$;
 
 revoke all on function public.claim_football_live_refresh(text, integer) from public, anon, authenticated;
+grant execute on function public.claim_football_live_refresh(text, integer) to service_role;
+grant select, insert, update on table public.football_live_cache to service_role;
 
 create index if not exists idx_football_live_cache_expires
   on public.football_live_cache(expires_at);

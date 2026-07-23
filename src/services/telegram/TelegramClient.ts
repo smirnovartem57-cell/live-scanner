@@ -1,7 +1,7 @@
 import type { PatternEvent, Signal } from "../../types/patterns.ts";
 
 export type TelegramClientConfig = { supabaseUrl: string; anonKey: string; accessToken: string; functionName?: string };
-export type TelegramSendResult = { ok: boolean; mode: "telegram"; channel: string; message: string; createdAt: string };
+export type TelegramSendResult = { ok: boolean; duplicate?: boolean; mode: "telegram"; channel: string; message: string; createdAt: string };
 
 export class TelegramClient {
   private readonly functionName: string;
