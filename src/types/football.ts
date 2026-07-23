@@ -5,6 +5,8 @@ export type MatchStatus = "live" | "halftime" | "finished" | "scheduled";
 export type Match = {
   id: string;
   league: string;
+  leagueId?: number;
+  season?: number;
   country?: string;
   homeTeamId?: string;
   awayTeamId?: string;
@@ -65,6 +67,8 @@ export type TeamProfile = {
   characteristicPatterns?: TeamPatternSummary[];
   importantMatches?: unknown[];
   updatedAt?: string;
+  dataStatus?: "ready" | "partial" | "unavailable";
+  dataMessage?: string;
 };
 
 export type TeamRecentMatch = {

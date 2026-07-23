@@ -169,7 +169,7 @@ export function SettingsView({ settings, setSettings, history, auth }: SettingsV
             ready: false,
             missingSecrets: [error instanceof Error ? error.message : "Диагностика не выполнена"]
           },
-          migrations: { journal: false, sharedCache: false, telegramDedupe: false },
+          migrations: { journal: false, sharedCache: false, telegramDedupe: false, teamProfileCache: false },
           latestScan: null,
           cache: null,
           telegram: { tracked: 0, sent: 0, pending: 0, failed: 0 }
@@ -491,6 +491,15 @@ export function SettingsView({ settings, setSettings, history, auth }: SettingsV
             onChange={(event) => updateSetting("systemHealthFunctionName", event.target.value)}
           />
         </label>
+        <label className="input-label">
+          Team Profile Edge Function
+          <input
+            type="text"
+            value={settings.teamProfileFunctionName}
+            placeholder="team-profile"
+            onChange={(event) => updateSetting("teamProfileFunctionName", event.target.value)}
+          />
+        </label>
         <button
           className="primary-button"
           type="button"
@@ -507,7 +516,8 @@ export function SettingsView({ settings, setSettings, history, auth }: SettingsV
                 <span>
                   Миграции: журнал {settings.lastSystemHealth.migrations.journal ? "✓" : "—"},
                   кэш {settings.lastSystemHealth.migrations.sharedCache ? "✓" : "—"},
-                  Telegram {settings.lastSystemHealth.migrations.telegramDedupe ? "✓" : "—"}
+                  Telegram {settings.lastSystemHealth.migrations.telegramDedupe ? "✓" : "—"},
+                  профили {settings.lastSystemHealth.migrations.teamProfileCache ? "✓" : "—"}
                 </span>
               </div>
               <em>{settings.lastSystemHealth.status}</em>

@@ -9,6 +9,7 @@
   "include": [
     "src/services/apiFootball/normalizeApiFootball.ts",
     "src/services/apiFootball/quotaPolicy.ts",
+    "src/services/patternEngine/*.ts",
     "src/services/journalStorage/JournalReadClient.ts",
     "src/services/journalStorage/buildJournalEvents.ts",
     "src/services/journalStorage/JournalStorage.ts",

@@ -46,7 +46,7 @@ src/services/apiFootball/          нормализация и политика 
 src/services/footballDataProvider/ mock/real источники данных
 src/services/journalStorage/       клиенты постоянного журнала
 supabase/functions/                Edge Functions
-supabase/migrations/               SQL-миграции 001–006
+supabase/migrations/               SQL-миграции 001–007
 data/mock-data.js                  данные демо-режима
 ```
 
@@ -60,6 +60,7 @@ data/mock-data.js                  данные демо-режима
 4. `004_football_live_cache.sql`
 5. `005_telegram_delivery_dedupe.sql`
 6. `006_social_data_service_role.sql`
+7. `007_team_profile_cache.sql`
 
 Развернуть функции:
 
@@ -71,6 +72,7 @@ supabase functions deploy telegram-send --no-verify-jwt
 supabase functions deploy social-data --no-verify-jwt
 supabase functions deploy live-scan --no-verify-jwt
 supabase functions deploy system-health --no-verify-jwt
+supabase functions deploy team-profile --no-verify-jwt
 ```
 
 Обязательные secrets:

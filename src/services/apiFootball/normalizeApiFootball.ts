@@ -10,8 +10,10 @@ export type ApiFootballFixture = {
     };
   };
   league?: {
+    id?: number;
     name?: string;
     country?: string;
+    season?: number;
   };
   teams: {
     home: ApiFootballTeam;
@@ -50,6 +52,8 @@ export function normalizeApiFootballMatch(fixture: ApiFootballFixture): Match {
   return {
     id: String(fixture.fixture.id),
     league: fixture.league?.name || "Unknown league",
+    leagueId: fixture.league?.id,
+    season: fixture.league?.season,
     country: fixture.league?.country,
     homeTeamId: String(fixture.teams.home.id),
     awayTeamId: String(fixture.teams.away.id),
@@ -151,7 +155,7 @@ function normalizeStatName(value: string) {
 
 function parseNumber(value: number | string | null | undefined) {
   if (typeof value === "number") return value;
-  if (!value) return 0;
+  if (value === null || value === undefined || value === "") return undefined;
   const parsed = Number(String(value).replace("%", "").replace(",", "."));
-  return Number.isFinite(parsed) ? parsed : 0;
+  return Number.isFinite(parsed) ? parsed : undefined;
 }

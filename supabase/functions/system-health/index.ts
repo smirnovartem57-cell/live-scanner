@@ -22,7 +22,7 @@ Deno.serve(async (request) => {
     return json({ error: "Supabase server connection is unavailable" }, 500);
   }
 
-  const [runs, cache, deliveries] = await Promise.all([
+  const [runs, cache, deliveries, teamProfiles] = await Promise.all([
     readRows(
       supabaseUrl,
       serviceRoleKey,
@@ -37,6 +37,11 @@ Deno.serve(async (request) => {
       supabaseUrl,
       serviceRoleKey,
       "telegram_signal_deliveries?select=status,attempt_count,last_error,sent_at,updated_at&order=updated_at.desc&limit=50"
+    ),
+    readRows(
+      supabaseUrl,
+      serviceRoleKey,
+      "team_profile_cache?select=team_id,expires_at,updated_at&order=updated_at.desc&limit=1"
     )
   ]);
 
@@ -52,7 +57,8 @@ Deno.serve(async (request) => {
   const migrationChecks = {
     journal: runs.ok,
     sharedCache: cache.ok,
-    telegramDedupe: deliveries.ok
+    telegramDedupe: deliveries.ok,
+    teamProfileCache: teamProfiles.ok
   };
   const degraded = missingSecrets.length > 0 ||
     Object.values(migrationChecks).some((ready) => !ready) ||
@@ -73,7 +79,8 @@ Deno.serve(async (request) => {
     unavailable: {
       journal: runs.ok ? null : compactError(runs),
       sharedCache: cache.ok ? null : compactError(cache),
-      telegramDedupe: deliveries.ok ? null : compactError(deliveries)
+      telegramDedupe: deliveries.ok ? null : compactError(deliveries),
+      teamProfileCache: teamProfiles.ok ? null : compactError(teamProfiles)
     }
   });
 });

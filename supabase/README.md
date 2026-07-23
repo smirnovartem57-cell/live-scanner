@@ -15,8 +15,8 @@
 
 1. Создать Supabase project.
 2. Открыть SQL Editor.
-3. Выполнить по порядку миграции `001`–`006`.
-4. Развернуть Edge Functions `journal-ingest`, `journal-read`, `football-live`, `telegram-send`, `social-data`, `live-scan` и `system-health`.
+3. Выполнить по порядку миграции `001`–`007`.
+4. Развернуть Edge Functions `journal-ingest`, `journal-read`, `football-live`, `telegram-send`, `social-data`, `live-scan`, `system-health` и `team-profile`.
 5. Добавить secrets `SUPABASE_SERVICE_ROLE_KEY`, `JOURNAL_ACCESS_TOKEN`, `API_FOOTBALL_KEY`, `TELEGRAM_BOT_TOKEN` и при необходимости отдельные `FOOTBALL_DATA_ACCESS_TOKEN`, `TELEGRAM_ACCESS_TOKEN` и `SOCIAL_DATA_ACCESS_TOKEN` в Supabase Functions.
 6. Для будущего разделения данных между несколькими пользователями добавить `user_id` и отдельные authenticated RLS policies; текущие таблицы доступны только Edge Functions через service-role.
 
@@ -52,12 +52,14 @@ TELEGRAM_CHANNEL=@channel-or-chat-id
 `social-data` читает и обновляет профиль и идеи через service-role доступ. Функция использует `SOCIAL_DATA_ACCESS_TOKEN`, а если он не задан — `JOURNAL_ACCESS_TOKEN`. Таблицы закрыты RLS и напрямую из браузера не читаются.
 `live-scan` запускает тот же Pattern Engine на сервере, записывает новые сигналы и результаты в журнал и отправляет новые сигналы в `TELEGRAM_CHANNEL`. Для защиты используется `LIVE_SCAN_ACCESS_TOKEN`, а если он не задан — `JOURNAL_ACCESS_TOKEN`.
 `system-health` проверяет серверную конфигурацию, наличие миграций, состояние общего кэша, последний запуск сканера и Telegram-доставку. Функция не обращается к API-FOOTBALL и поэтому не расходует его квоту.
+`team-profile` по запросу интерфейса загружает последние пять матчей и сезонные средние выбранной команды. Результат кэшируется на сутки и учитывает дневной резерв API.
 
 ## Фоновый сканер
 
 Миграция `003_live_scan_cron.sql` добавляет защищённый вызов `live-scan` через Supabase Cron и pg_net. Расписание намеренно не включается автоматически. Миграция `004_football_live_cache.sql` добавляет общий для всех Edge Function isolates кэш, блокировку параллельного обновления и телеметрию оставшейся квоты API.
 Миграция `005_telegram_delivery_dedupe.sql` добавляет атомарный журнал Telegram-доставки. Повторный вызов для той же пары «сигнал + канал» не создаёт второе сообщение, независимо от устройства или источника запуска.
 Миграция `006_social_data_service_role.sql` явно возвращает Edge Function серверные права на профиль, идеи и атомарное голосование после закрытия RPC от публичных ролей.
+Миграция `007_team_profile_cache.sql` добавляет суточный кэш и блокировку параллельной загрузки подробного профиля команды.
 
 Перед включением добавьте в Supabase Vault три секрета:
 

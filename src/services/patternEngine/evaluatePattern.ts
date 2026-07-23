@@ -18,46 +18,45 @@ export function evaluatePattern(
   const pressureScore = calculatePressureScore(team);
   const scoreDifference = Math.abs(match.scoreHome - match.scoreAway);
   const teamIsLosing = side === "home" ? match.scoreHome < match.scoreAway : match.scoreAway < match.scoreHome;
-  const recent = snapshot.last10?.[side] || snapshot.recent?.[side] || team;
-  const previous = snapshot.previous10?.[side] || snapshot.previous?.[side] || team;
   const rules = getRuleValues(pattern);
 
   const checks: Record<string, boolean> = {
     pressure_without_goal:
       match.minute >= getRuleValue(rules, "minute", ">=", 25) &&
-      match.minute <= getRuleValue(rules, "minute", "<=", 70) &&
+      match.minute <= getRuleValue(rules, "minute", "<=", 75) &&
       match.scoreHome + match.scoreAway === getRuleValue(rules, "scoreTotal", "==", 0) &&
-      (team.dangerousAttacks || 0) >= getRuleValue(rules, "dangerousAttacks", ">=", 50) &&
       (team.shotsTotal || 0) >= getRuleValue(rules, "shotsTotal", ">=", 8) &&
       (team.shotsOnTarget || 0) >= getRuleValue(rules, "shotsOnTarget", ">=", 2) &&
       (team.corners || 0) >= getRuleValue(rules, "corners", ">=", 3) &&
-      pressureScore >= getRuleValue(rules, "pressureScore", ">=", 70),
+      pressureScore >= getRuleValue(rules, "pressureScore", ">=", 55),
     late_goal:
       match.minute >= getRuleValue(rules, "minute", ">=", 65) &&
       scoreDifference <= getRuleValue(rules, "scoreDiff", "<=", 1) &&
-      (team.dangerousAttacks || 0) >= getRuleValue(rules, "dangerousAttacks", ">=", 45) &&
       (team.shotsTotal || 0) >= getRuleValue(rules, "shotsTotal", ">=", 7) &&
-      pressureScore >= getRuleValue(rules, "pressureScore", ">=", 65),
+      (team.shotsOnTarget || 0) >= getRuleValue(rules, "shotsOnTarget", ">=", 2) &&
+      pressureScore >= getRuleValue(rules, "pressureScore", ">=", 50),
     match_woke_up:
       match.minute >= getRuleValue(rules, "minute", ">=", 30) &&
-      (recent.dangerousAttacks || 0) >= (previous.dangerousAttacks || 0) * getRuleValue(rules, "dangerousAttacks", ">=", 1.7, "last_10") &&
-      (recent.shotsTotal || 0) >= getRuleValue(rules, "shotsTotal", ">=", 2, "last_10") &&
-      pressureScore >= getRuleValue(rules, "pressureScore", ">=", 60),
+      (team.shotsTotal || 0) >= getRuleValue(rules, "shotsTotal", ">=", 6) &&
+      (team.shotsOnTarget || 0) >= getRuleValue(rules, "shotsOnTarget", ">=", 2) &&
+      (team.corners || 0) >= getRuleValue(rules, "corners", ">=", 2) &&
+      pressureScore >= getRuleValue(rules, "pressureScore", ">=", 45),
     favorite_losing_but_pressing:
       teamIsLosing &&
-      (team.dangerousAttacks || 0) >= (opponent.dangerousAttacks || 0) * getRuleValue(rules, "dangerousRatio", ">=", 1.6) &&
+      (team.shotsTotal || 0) >= getRuleValue(rules, "shotsTotal", ">=", 5) &&
       (team.shotsTotal || 0) >= (opponent.shotsTotal || 0) * getRuleValue(rules, "shotsRatio", ">=", 1.4) &&
-      pressureScore >= getRuleValue(rules, "pressureScore", ">=", 65),
+      (team.shotsOnTarget || 0) >= getRuleValue(rules, "shotsOnTarget", ">=", 2) &&
+      pressureScore >= getRuleValue(rules, "pressureScore", ">=", 45),
     corner_pressure:
       match.minute >= getRuleValue(rules, "minute", ">=", 20) &&
-      (team.attacks || 0) >= getRuleValue(rules, "attacks", ">=", 60) &&
-      (team.dangerousAttacks || 0) >= getRuleValue(rules, "dangerousAttacks", ">=", 40) &&
-      (team.corners || 0) >= getRuleValue(rules, "corners", ">=", 4),
+      (team.shotsTotal || 0) >= getRuleValue(rules, "shotsTotal", ">=", 6) &&
+      (team.corners || 0) >= getRuleValue(rules, "corners", ">=", 4) &&
+      (team.possession || 0) >= getRuleValue(rules, "possession", ">=", 52),
     empty_pressure:
-      (team.attacks || 0) >= getRuleValue(rules, "attacks", ">=", 70) &&
-      (team.dangerousAttacks || 0) >= getRuleValue(rules, "dangerousAttacks", ">=", 45) &&
+      (team.possession || 0) >= getRuleValue(rules, "possession", ">=", 58) &&
+      (team.shotsTotal || 0) >= getRuleValue(rules, "shotsTotal", ">=", 7) &&
       (team.shotsOnTarget || 0) <= getRuleValue(rules, "shotsOnTarget", "<=", 1) &&
-      (team.corners || 0) <= getRuleValue(rules, "corners", "<=", 2)
+      pressureScore >= getRuleValue(rules, "pressureScore", ">=", 30)
   };
 
   if (!checks[pattern.type]) return null;
@@ -77,7 +76,7 @@ export function evaluatePattern(
     status: getPatternStatus(pattern.type),
     signalKind: pattern.type === "empty_pressure" ? "warning" : "signal",
     statsAtSignal: { ...team },
-    explanation: buildSignalExplanation(pattern.type, match, team, opponent, side, pressureScore, recent, previous),
+    explanation: buildSignalExplanation(pattern.type, match, team, opponent, side, pressureScore),
     createdAt: now.toISOString(),
     updatedAt: now.toISOString()
   };
@@ -117,33 +116,27 @@ function buildSignalExplanation(
   team: TeamStats,
   opponent: TeamStats,
   side: TeamSide,
-  pressureScore: number,
-  recent: TeamStats,
-  previous: TeamStats
+  pressureScore: number
 ): string {
   const teamName = side === "home" ? match.homeTeam : match.awayTeam;
   const score = `${match.scoreHome}:${match.scoreAway}`;
-  const recentGrowth = previous.dangerousAttacks
-    ? Math.round(((recent.dangerousAttacks || 0) / previous.dangerousAttacks) * 100)
-    : 0;
-
   if (type === "pressure_without_goal") {
-    return `${teamName}: счет ${score}, ${(team.dangerousAttacks || 0)} опасных атак, ${(team.shotsTotal || 0)} ударов, ${(team.corners || 0)} угловых, индекс давления ${pressureScore}.`;
+    return `${teamName}: счет ${score}, ${(team.shotsTotal || 0)} ударов, ${(team.shotsOnTarget || 0)} в створ, ${(team.corners || 0)} угловых, индекс давления ${pressureScore}.`;
   }
   if (type === "late_goal") {
     return `${teamName}: ${match.minute}-я минута, разница в счете не больше одного мяча, индекс давления ${pressureScore}.`;
   }
   if (type === "match_woke_up") {
-    return `${teamName}: последние 10 минут активнее предыдущего отрезка, рост опасных атак до ${recentGrowth}%, индекс давления ${pressureScore}.`;
+    return `${teamName}: плотная атакующая активность — ${(team.shotsTotal || 0)} ударов, ${(team.shotsOnTarget || 0)} в створ и ${(team.corners || 0)} угловых, индекс ${pressureScore}.`;
   }
   if (type === "favorite_losing_but_pressing") {
-    return `${teamName} уступает в счете, но превосходит соперника по давлению: опасные атаки ${(team.dangerousAttacks || 0)} против ${(opponent.dangerousAttacks || 0)}.`;
+    return `${teamName} уступает в счёте, но превосходит соперника по ударам: ${(team.shotsTotal || 0)} против ${(opponent.shotsTotal || 0)}, индекс ${pressureScore}.`;
   }
   if (type === "corner_pressure") {
-    return `${teamName}: ${(team.attacks || 0)} атак, ${(team.dangerousAttacks || 0)} опасных атак и ${(team.corners || 0)} угловых.`;
+    return `${teamName}: ${(team.shotsTotal || 0)} ударов, ${(team.corners || 0)} угловых и ${(team.possession || 0)}% владения.`;
   }
   if (type === "empty_pressure") {
-    return `${teamName}: атак много, но ударов в створ ${(team.shotsOnTarget || 0)} и угловых ${(team.corners || 0)}. Это предупреждение о низком качестве давления.`;
+    return `${teamName}: владение ${(team.possession || 0)}%, ударов ${(team.shotsTotal || 0)}, но в створ только ${(team.shotsOnTarget || 0)}. Это предупреждение о низком качестве давления.`;
   }
 
   return `${teamName}: найдено совпадение с условиями паттерна, индекс давления ${pressureScore}.`;

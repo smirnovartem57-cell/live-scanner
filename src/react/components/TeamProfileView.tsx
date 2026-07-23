@@ -7,10 +7,12 @@ import { formatImportance, formatMatchResult, formatTeamPatternLabel } from "../
 
 type TeamProfileViewProps = {
   profile: TeamProfileViewModel;
+  loadingDetails?: boolean;
+  detailsError?: string | null;
   onClose: () => void;
 };
 
-export function TeamProfileView({ profile, onClose }: TeamProfileViewProps) {
+export function TeamProfileView({ profile, loadingDetails, detailsError, onClose }: TeamProfileViewProps) {
   const averages = profile.averages || {};
   const patterns = profile.characteristicPatterns || [];
   const recentMatches = profile.recentMatches || [];
@@ -37,14 +39,16 @@ export function TeamProfileView({ profile, onClose }: TeamProfileViewProps) {
       </div>
 
       <div className="team-profile-body">
+        {loadingDetails ? <p className="muted">Загружаем последние матчи и сезонные средние...</p> : null}
+        {detailsError ? <p className="telegram-status is-warning">{detailsError}</p> : null}
         <article>
           <h3>Текущая статистика</h3>
           <div className="team-quick-stats">
-            <QuickStat label="Атаки" value={profile.stats.attacks || 0} />
-            <QuickStat label="Опасные" value={profile.stats.dangerousAttacks || 0} />
-            <QuickStat label="Удары" value={profile.stats.shotsTotal || 0} />
-            <QuickStat label="В створ" value={profile.stats.shotsOnTarget || 0} />
-            <QuickStat label="Угловые" value={profile.stats.corners || 0} />
+            <QuickStat label="Владение" value={formatOptional(profile.stats.possession, "%")} />
+            <QuickStat label="xG" value={formatOptional(profile.stats.xG ?? profile.stats.xg)} />
+            <QuickStat label="Удары" value={formatOptional(profile.stats.shotsTotal)} />
+            <QuickStat label="В створ" value={formatOptional(profile.stats.shotsOnTarget)} />
+            <QuickStat label="Угловые" value={formatOptional(profile.stats.corners)} />
           </div>
         </article>
         <article>
@@ -56,9 +60,10 @@ export function TeamProfileView({ profile, onClose }: TeamProfileViewProps) {
         </article>
         <article>
           <h3>Средние значения</h3>
-          <p>Матчей в профиле: {averages.matchesCount || 0}</p>
-          <p>Опасные атаки: {averages.dangerousAttacks || 0}</p>
-          <p>Средний индекс: {averages.pressureScore || 0}</p>
+          <p>Матчей в сезоне: {formatOptional(averages.matchesCount)}</p>
+          <p>Голов за матч: {formatOptional(averages.goalsFor)}</p>
+          <p>Пропущено за матч: {formatOptional(averages.goalsAgainst)}</p>
+          <p>Доля побед: {formatOptional(averages.winRate, "%")}</p>
         </article>
       </div>
 
@@ -86,6 +91,10 @@ function TeamKpiCard({ label, value, progress }: { label: string; value: string 
 
 function QuickStat({ label, value }: { label: string; value: string | number }) {
   return <span><b>{value}</b>{label}</span>;
+}
+
+function formatOptional(value: number | undefined, suffix = "") {
+  return typeof value === "number" ? `${value}${suffix}` : "—";
 }
 
 function TeamPatterns({ patterns }: { patterns: TeamPatternSummary[] }) {
@@ -135,17 +144,18 @@ function TeamRecentMatches({ matches }: { matches: TeamRecentMatch[] }) {
 function TeamAverages({ profile }: { profile: TeamProfileViewModel }) {
   const first = profile.firstHalfAverages || {};
   const second = profile.secondHalfAverages || {};
-  const firstPressure = (first as { pressureScore?: number }).pressureScore || 0;
-  const secondPressure = (second as { pressureScore?: number }).pressureScore || 0;
+  const hasPeriodData = Object.keys(first).length > 0 || Object.keys(second).length > 0;
 
   return (
     <article className="team-section">
       <h3>Средние по таймам</h3>
-      <div className="team-mini-table period-table">
-        <div><b>Период</b><b>Опасные</b><b>Удары</b><b>В створ</b><b>Угловые</b><b>Индекс</b></div>
-        <div><span>1 тайм</span><span>{first.dangerousAttacks || 0}</span><span>{first.shotsTotal || 0}</span><span>{first.shotsOnTarget || 0}</span><span>{first.corners || 0}</span><span>{firstPressure}</span></div>
-        <div><span>2 тайм</span><span>{second.dangerousAttacks || 0}</span><span>{second.shotsTotal || 0}</span><span>{second.shotsOnTarget || 0}</span><span>{second.corners || 0}</span><span>{secondPressure}</span></div>
-      </div>
+      {hasPeriodData ? (
+        <div className="team-mini-table period-table">
+          <div><b>Период</b><b>Удары</b><b>В створ</b><b>Угловые</b><b>Владение</b></div>
+          <div><span>1 тайм</span><span>{formatOptional(first.shotsTotal)}</span><span>{formatOptional(first.shotsOnTarget)}</span><span>{formatOptional(first.corners)}</span><span>{formatOptional(first.possession, "%")}</span></div>
+          <div><span>2 тайм</span><span>{formatOptional(second.shotsTotal)}</span><span>{formatOptional(second.shotsOnTarget)}</span><span>{formatOptional(second.corners)}</span><span>{formatOptional(second.possession, "%")}</span></div>
+        </div>
+      ) : <p className="muted">API-FOOTBALL не предоставляет разбиение командной статистики по таймам для этого профиля.</p>}
     </article>
   );
 }

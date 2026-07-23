@@ -52,6 +52,7 @@ export type SystemHealthResult = {
     journal: boolean;
     sharedCache: boolean;
     telegramDedupe: boolean;
+    teamProfileCache: boolean;
   };
   latestScan: Record<string, unknown> | null;
   cache: Record<string, unknown> | null;
@@ -64,6 +65,7 @@ export type SystemHealthResult = {
 };
 
 export type ReactSettings = {
+  patternRulesSchemaVersion: number;
   mockMode: boolean;
   autoRefreshEnabled: boolean;
   authRequired: boolean;
@@ -79,6 +81,7 @@ export type ReactSettings = {
   journalAccessToken: string;
   footballDataFunctionName: string;
   footballDataAccessToken: string;
+  teamProfileFunctionName: string;
   systemHealthFunctionName: string;
   patternRuleOverrides: Record<string, Array<{ value: number | string }>>;
   patternEnabledOverrides: Record<string, boolean>;
@@ -96,6 +99,7 @@ const defaultSupabaseUrl = "https://bvhamsuzuqdajoibuaig.supabase.co";
 const defaultSupabaseAnonKey = "sb_publishable___RMv9rrvDsDZSGvS_462g_gJ1pw6HG";
 
 export const defaultReactSettings: ReactSettings = {
+  patternRulesSchemaVersion: 2,
   mockMode: true,
   autoRefreshEnabled: true,
   authRequired: false,
@@ -111,6 +115,7 @@ export const defaultReactSettings: ReactSettings = {
   journalAccessToken: "",
   footballDataFunctionName: "football-live",
   footballDataAccessToken: "",
+  teamProfileFunctionName: "team-profile",
   systemHealthFunctionName: "system-health",
   patternRuleOverrides: {},
   patternEnabledOverrides: {},
@@ -127,8 +132,12 @@ export function readReactSettings(): ReactSettings {
   try {
     const stored = JSON.parse(localStorage.getItem(settingsKey) || "null") as Partial<ReactSettings> | null;
     const settings = { ...defaultReactSettings, ...(stored || {}) };
+    const rulesAreCurrent = stored?.patternRulesSchemaVersion === defaultReactSettings.patternRulesSchemaVersion;
     return {
       ...settings,
+      patternRulesSchemaVersion: defaultReactSettings.patternRulesSchemaVersion,
+      patternRuleOverrides: rulesAreCurrent ? settings.patternRuleOverrides : {},
+      patternConditionProfiles: rulesAreCurrent ? settings.patternConditionProfiles : [],
       supabaseUrl: settings.supabaseUrl.trim() || defaultSupabaseUrl,
       supabaseAnonKey: settings.supabaseAnonKey.trim() || defaultSupabaseAnonKey
     };

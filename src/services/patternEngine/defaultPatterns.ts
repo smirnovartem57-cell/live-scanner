@@ -8,14 +8,13 @@ export const defaultPatterns: Pattern[] = [
     enabled: true,
     type: "pressure_without_goal",
     rules: [
-      { field: "minute", operator: ">=", value: 25 },
-      { field: "minute", operator: "<=", value: 70 },
-      { field: "scoreTotal", operator: "==", value: 0 },
-      { field: "dangerousAttacks", operator: ">=", value: 50 },
-      { field: "shotsTotal", operator: ">=", value: 8 },
-      { field: "shotsOnTarget", operator: ">=", value: 2 },
-      { field: "corners", operator: ">=", value: 3 },
-      { field: "pressureScore", operator: ">=", value: 70 }
+      { label: "Минута от", field: "minute", operator: ">=", value: 25 },
+      { label: "Минута до", field: "minute", operator: "<=", value: 75 },
+      { label: "Голов в матче", field: "scoreTotal", operator: "==", value: 0 },
+      { label: "Удары", field: "shotsTotal", operator: ">=", value: 8 },
+      { label: "Удары в створ", field: "shotsOnTarget", operator: ">=", value: 2 },
+      { label: "Угловые", field: "corners", operator: ">=", value: 3 },
+      { label: "Индекс давления", field: "pressureScore", operator: ">=", value: 55 }
     ]
   },
   {
@@ -25,24 +24,25 @@ export const defaultPatterns: Pattern[] = [
     enabled: true,
     type: "late_goal",
     rules: [
-      { field: "minute", operator: ">=", value: 65 },
-      { field: "scoreDiff", operator: "<=", value: 1 },
-      { field: "dangerousAttacks", operator: ">=", value: 45 },
-      { field: "shotsTotal", operator: ">=", value: 7 },
-      { field: "pressureScore", operator: ">=", value: 65 }
+      { label: "Минута от", field: "minute", operator: ">=", value: 65 },
+      { label: "Разница в счёте", field: "scoreDiff", operator: "<=", value: 1 },
+      { label: "Удары", field: "shotsTotal", operator: ">=", value: 7 },
+      { label: "Удары в створ", field: "shotsOnTarget", operator: ">=", value: 2 },
+      { label: "Индекс давления", field: "pressureScore", operator: ">=", value: 50 }
     ]
   },
   {
     id: "match_woke_up",
     name: "Матч ожил",
-    description: "Темп последних минут заметно выше предыдущего отрезка.",
+    description: "После 30-й минуты команда создаёт плотный поток ударов и угловых.",
     enabled: true,
     type: "match_woke_up",
     rules: [
-      { field: "minute", operator: ">=", value: 30 },
-      { field: "dangerousAttacks", operator: ">=", value: 1.7, period: "last_10" },
-      { field: "shotsTotal", operator: ">=", value: 2, period: "last_10" },
-      { field: "pressureScore", operator: ">=", value: 60 }
+      { label: "Минута от", field: "minute", operator: ">=", value: 30 },
+      { label: "Удары", field: "shotsTotal", operator: ">=", value: 6 },
+      { label: "Удары в створ", field: "shotsOnTarget", operator: ">=", value: 2 },
+      { label: "Угловые", field: "corners", operator: ">=", value: 2 },
+      { label: "Индекс давления", field: "pressureScore", operator: ">=", value: 45 }
     ]
   },
   {
@@ -52,36 +52,37 @@ export const defaultPatterns: Pattern[] = [
     enabled: true,
     type: "favorite_losing_but_pressing",
     rules: [
-      { field: "teamLosing", operator: "==", value: "true" },
-      { field: "dangerousRatio", operator: ">=", value: 1.6 },
-      { field: "shotsRatio", operator: ">=", value: 1.4 },
-      { field: "pressureScore", operator: ">=", value: 65 }
+      { label: "Команда проигрывает", field: "teamLosing", operator: "==", value: "true" },
+      { label: "Минимум ударов", field: "shotsTotal", operator: ">=", value: 5 },
+      { label: "Превосходство по ударам", field: "shotsRatio", operator: ">=", value: 1.4 },
+      { label: "Удары в створ", field: "shotsOnTarget", operator: ">=", value: 2 },
+      { label: "Индекс давления", field: "pressureScore", operator: ">=", value: 45 }
     ]
   },
   {
     id: "corner_pressure",
     name: "Давление на угловой",
-    description: "Атаки, опасные атаки и угловые идут плотным потоком.",
+    description: "Удары, владение и угловые указывают на устойчивое давление.",
     enabled: true,
     type: "corner_pressure",
     rules: [
-      { field: "minute", operator: ">=", value: 20 },
-      { field: "attacks", operator: ">=", value: 60 },
-      { field: "dangerousAttacks", operator: ">=", value: 40 },
-      { field: "corners", operator: ">=", value: 4 }
+      { label: "Минута от", field: "minute", operator: ">=", value: 20 },
+      { label: "Удары", field: "shotsTotal", operator: ">=", value: 6 },
+      { label: "Угловые", field: "corners", operator: ">=", value: 4 },
+      { label: "Владение", field: "possession", operator: ">=", value: 52 }
     ]
   },
   {
     id: "empty_pressure",
     name: "Пустое давление",
-    description: "Много общего давления, но мало реальной остроты.",
+    description: "Команда владеет мячом и бьёт, но почти не попадает в створ.",
     enabled: true,
     type: "empty_pressure",
     rules: [
-      { field: "attacks", operator: ">=", value: 70 },
-      { field: "dangerousAttacks", operator: ">=", value: 45 },
-      { field: "shotsOnTarget", operator: "<=", value: 1 },
-      { field: "corners", operator: "<=", value: 2 }
+      { label: "Владение", field: "possession", operator: ">=", value: 58 },
+      { label: "Удары", field: "shotsTotal", operator: ">=", value: 7 },
+      { label: "Удары в створ", field: "shotsOnTarget", operator: "<=", value: 1 },
+      { label: "Индекс давления", field: "pressureScore", operator: ">=", value: 30 }
     ]
   }
 ];

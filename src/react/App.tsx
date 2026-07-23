@@ -16,6 +16,7 @@ import { useJournalHistory } from "./hooks/useJournalHistory";
 import { useReactSettings } from "./hooks/useReactSettings";
 import { useTelegramNotifications } from "./hooks/useTelegramNotifications";
 import { useSupabaseAuth } from "./hooks/useSupabaseAuth";
+import { useTeamProfileData } from "./hooks/useTeamProfileData";
 import { buildTeamProfileViewModel, type TeamProfileSelection } from "./domain/teamProfile";
 import type { FootballDataSourceStatus } from "../services/footballDataProvider";
 import type { ReactNavItem, ReactViewId } from "./types";
@@ -62,6 +63,11 @@ export function App() {
     ? `${data.sourceStatus.message} · ${formatTime(data.lastLoadedAt)}`
     : "Ожидаем данные";
   const sourceDetails = data ? formatSourceDetails(data.sourceStatus, data.matches.length) : "Источник не загружен";
+  const selectedMatch = useMemo(
+    () => data?.matches.find((match) => match.id === selectedTeam?.matchId) || null,
+    [data?.matches, selectedTeam?.matchId]
+  );
+  const remoteTeamProfile = useTeamProfileData(runtimeSettings, selectedTeam, selectedMatch);
   const teamProfile = useMemo(() => {
     if (!data || !selectedTeam) return null;
     return buildTeamProfileViewModel({
@@ -70,9 +76,11 @@ export function App() {
       snapshots: data.snapshots,
       signals: data.signals,
       history: journal.history,
-      profiles: data.teamProfiles
+      profiles: remoteTeamProfile.profile
+        ? [remoteTeamProfile.profile, ...data.teamProfiles.filter((profile) => profile.id !== remoteTeamProfile.profile?.id)]
+        : data.teamProfiles
     });
-  }, [data, journal.history, selectedTeam]);
+  }, [data, journal.history, remoteTeamProfile.profile, selectedTeam]);
 
   if (settings.authRequired && auth.loading) {
     return <main className="auth-gate"><div className="empty-state">Проверяем вход...</div></main>;
@@ -106,7 +114,14 @@ export function App() {
       {error ? <div className="empty-state">{error}</div> : null}
       {data ? (
         <>
-          {activeView === "scanner" && teamProfile ? <TeamProfileView profile={teamProfile} onClose={() => setSelectedTeam(null)} /> : null}
+          {activeView === "scanner" && teamProfile ? (
+            <TeamProfileView
+              profile={teamProfile}
+              loadingDetails={remoteTeamProfile.loading}
+              detailsError={remoteTeamProfile.error}
+              onClose={() => setSelectedTeam(null)}
+            />
+          ) : null}
           {activeView === "scanner" ? <LiveScannerView matches={data.matches} signals={data.signals} summary={summary} onTeamSelect={setSelectedTeam} /> : null}
           {activeView === "signals" ? <SignalListView matches={data.matches} signals={data.signals} /> : null}
           {activeView === "patterns" ? (

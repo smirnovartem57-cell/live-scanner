@@ -8,6 +8,10 @@ const moduleUrl = pathToFileURL(join(root, "dist-test", "services", "apiFootball
 const normalizer = await import(moduleUrl);
 const quotaPolicyUrl = pathToFileURL(join(root, "dist-test", "services", "apiFootball", "quotaPolicy.js")).href;
 const quotaPolicy = await import(quotaPolicyUrl);
+const defaultPatternsUrl = pathToFileURL(join(root, "dist-test", "services", "patternEngine", "defaultPatterns.js")).href;
+const evaluatePatternUrl = pathToFileURL(join(root, "dist-test", "services", "patternEngine", "evaluatePattern.js")).href;
+const { defaultPatterns } = await import(defaultPatternsUrl);
+const { evaluatePattern } = await import(evaluatePatternUrl);
 
 const fixture = {
   fixture: {
@@ -86,6 +90,25 @@ assert.equal(event.teamId, "10");
 const profiles = normalizer.normalizeApiFootballTeamProfiles(fixture);
 assert.equal(profiles.length, 2);
 assert.equal(profiles[0].name, "Barcelona");
+
+const realPattern = defaultPatterns.find((pattern) => pattern.id === "pressure_without_goal");
+assert.ok(realPattern);
+const realSignal = evaluatePattern(match, {
+  ...snapshot,
+  home: {
+    shotsTotal: 15,
+    shotsOnTarget: 6,
+    corners: 9,
+    possession: 58,
+    xg: 1.62
+  }
+}, realPattern, "home");
+assert.ok(realSignal, "supported API-FOOTBALL metrics should create a real signal");
+assert.equal(realSignal.patternId, "pressure_without_goal");
+
+const missingStats = normalizer.normalizeApiFootballTeamStats();
+assert.equal(missingStats.shotsTotal, undefined);
+assert.equal(missingStats.possession, undefined);
 
 assert.equal(quotaPolicy.providerRequestsForFixtureCount(0), 1);
 assert.equal(quotaPolicy.providerRequestsForFixtureCount(1), 3);

@@ -1,6 +1,7 @@
 import type { Match, MatchEvent, MatchStatsSnapshot, TeamProfile, TeamRecentMatch } from "../../types/football";
 import type { Pattern, PatternEvent, Signal } from "../../types/patterns";
 import type { FeedbackItem, UserProfile } from "../../types/user";
+import { defaultPatterns } from "../patternEngine/defaultPatterns";
 import type { FootballDataProvider, FootballDataSourceStatus } from "./FootballDataProvider";
 import type { MockFootballData } from "./MockFootballProvider";
 
@@ -56,7 +57,7 @@ export class RealFootballProvider implements FootballDataProvider {
 
   async getPatterns(): Promise<Pattern[]> {
     const snapshot = await this.getSnapshot();
-    return clone(snapshot.data.patterns?.length ? snapshot.data.patterns : this.fallbackData.patterns);
+    return clone(snapshot.data.patterns?.length ? snapshot.data.patterns : defaultPatterns);
   }
 
   async getSeedSignals(): Promise<Signal[]> {
@@ -143,7 +144,7 @@ function normalizeSnapshotResponse(response: RealFootballSnapshotResponse, fallb
       snapshots: response.data?.snapshots || [],
       events: response.data?.events || {},
       signals: response.data?.signals || [],
-      patterns: response.data?.patterns || fallbackData.patterns,
+      patterns: response.data?.patterns || defaultPatterns,
       history: response.data?.history || [],
       teamProfiles: response.data?.teamProfiles || fallbackData.teamProfiles || [],
       userProfile: response.data?.userProfile || fallbackData.userProfile,
