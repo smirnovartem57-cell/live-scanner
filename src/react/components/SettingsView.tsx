@@ -219,6 +219,17 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
           <span>Демо-данные</span>
         </label>
         <p className="muted">MockFootballProvider используется для демо, RealFootballProvider — для защищённого live-источника.</p>
+        <label className="switch field-row">
+          <input
+            type="checkbox"
+            checked={settings.autoRefreshEnabled}
+            onChange={(event) => updateSetting("autoRefreshEnabled", event.target.checked)}
+          />
+          <span>Автообновление real-данных</span>
+        </label>
+        <p className="muted">
+          Обновляет открытое приложение раз в 45 минут. В скрытой вкладке и без интернета запросы не выполняются.
+        </p>
         <div className="setting-stack">
           <span className={settings.mockMode || realDataReady ? "status-pill ok" : "status-pill warning"}>
             {settings.mockMode ? "Демо-режим активен" : realDataReady ? "Real-режим готов" : "Real-режим требует токен"}

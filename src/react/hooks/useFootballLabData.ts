@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MockFootballProvider, RealFootballProvider } from "../../services/footballDataProvider";
 import { SocialDataClient } from "../../services/socialData";
 import type { FootballDataSourceStatus } from "../../services/footballDataProvider";
@@ -36,8 +36,11 @@ export function useFootballLabData(settings: ReactSettings) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const loadInFlightRef = useRef(false);
 
   const load = useCallback(async (isRefresh = false) => {
+    if (loadInFlightRef.current) return;
+    loadInFlightRef.current = true;
     setError(null);
     setLoading(!isRefresh);
     setRefreshing(isRefresh);
@@ -111,6 +114,7 @@ export function useFootballLabData(settings: ReactSettings) {
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Не удалось загрузить данные.");
     } finally {
+      loadInFlightRef.current = false;
       setLoading(false);
       setRefreshing(false);
     }
@@ -142,6 +146,18 @@ export function useFootballLabData(settings: ReactSettings) {
       active = false;
     };
   }, [load]);
+
+  useEffect(() => {
+    if (settings.mockMode || !settings.autoRefreshEnabled) return;
+
+    const refreshInterval = window.setInterval(() => {
+      if (document.visibilityState === "visible" && navigator.onLine) {
+        void load(true);
+      }
+    }, 45 * 60 * 1000);
+
+    return () => window.clearInterval(refreshInterval);
+  }, [load, settings.autoRefreshEnabled, settings.mockMode]);
 
   const summary = useMemo<FootballLabSummary>(() => {
     const signals = data?.signals || [];
