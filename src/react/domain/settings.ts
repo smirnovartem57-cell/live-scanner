@@ -65,6 +65,8 @@ export type ReactSettings = {
 };
 
 const settingsKey = "football-pattern-lab-settings";
+const defaultSupabaseUrl = "https://bvhamsuzuqdajoibuaig.supabase.co";
+const defaultSupabaseAnonKey = "sb_publishable___RMv9rrvDsDZSGvS_462g_gJ1pw6HG";
 
 export const defaultReactSettings: ReactSettings = {
   mockMode: true,
@@ -75,8 +77,8 @@ export const defaultReactSettings: ReactSettings = {
   socialDataFunctionName: "social-data",
   socialDataAccessToken: "",
   journalStorageEnabled: false,
-  supabaseUrl: "",
-  supabaseAnonKey: "",
+  supabaseUrl: defaultSupabaseUrl,
+  supabaseAnonKey: defaultSupabaseAnonKey,
   journalAccessToken: "",
   footballDataFunctionName: "football-live",
   footballDataAccessToken: "",
@@ -93,7 +95,12 @@ export const defaultReactSettings: ReactSettings = {
 export function readReactSettings(): ReactSettings {
   try {
     const stored = JSON.parse(localStorage.getItem(settingsKey) || "null") as Partial<ReactSettings> | null;
-    return { ...defaultReactSettings, ...(stored || {}) };
+    const settings = { ...defaultReactSettings, ...(stored || {}) };
+    return {
+      ...settings,
+      supabaseUrl: settings.supabaseUrl.trim() || defaultSupabaseUrl,
+      supabaseAnonKey: settings.supabaseAnonKey.trim() || defaultSupabaseAnonKey
+    };
   } catch {
     return defaultReactSettings;
   }
