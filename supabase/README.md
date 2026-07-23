@@ -31,8 +31,9 @@ JOURNAL_ACCESS_TOKEN=long-random-private-token
 FOOTBALL_DATA_ACCESS_TOKEN=optional-long-random-private-token
 API_FOOTBALL_KEY=server-only-api-football-key
 API_FOOTBALL_BASE_URL=https://v3.football.api-sports.io
-API_FOOTBALL_CACHE_TTL_SECONDS=45
-API_FOOTBALL_MAX_FIXTURES=30
+API_FOOTBALL_CACHE_TTL_SECONDS=2700
+API_FOOTBALL_MAX_FIXTURES=1
+API_FOOTBALL_DAILY_RESERVE=5
 TELEGRAM_BOT_TOKEN=server-only-telegram-bot-token
 TELEGRAM_ACCESS_TOKEN=optional-long-random-private-token
 SOCIAL_DATA_ACCESS_TOKEN=optional-long-random-private-token
@@ -44,14 +45,15 @@ TELEGRAM_CHANNEL=@channel-or-chat-id
 `JOURNAL_ACCESS_TOKEN` обязателен для закрытого личного доступа к чтению и записи журнала. Если secret не задан или в приложении указан другой токен, `journal-read` и `journal-ingest` вернут `403`.
 `football-live` использует `FOOTBALL_DATA_ACCESS_TOKEN`, а если он не задан, проверяет `JOURNAL_ACCESS_TOKEN`.
 `API_FOOTBALL_KEY` используется только внутри `football-live` и не должен попадать в браузер.
-`API_FOOTBALL_CACHE_TTL_SECONDS` защищает квоту API от частых обновлений, а `API_FOOTBALL_MAX_FIXTURES` ограничивает количество live-матчей, для которых подтягиваются подробные statistics/events.
+`API_FOOTBALL_CACHE_TTL_SECONDS` защищает квоту API от частых обновлений, `API_FOOTBALL_MAX_FIXTURES` ограничивает количество live-матчей, для которых подтягиваются подробные statistics/events, а `API_FOOTBALL_DAILY_RESERVE` прекращает обновления до полного исчерпания дневного лимита.
+Без дополнительных secrets используются безопасные настройки Free: общий кэш на 45 минут, не более одного подробного матча и резерв 5 запросов. Для Pro можно уменьшить TTL и увеличить число матчей, но не выше четырёх за один запуск.
 `telegram-send` использует `TELEGRAM_ACCESS_TOKEN`, а если он не задан — `JOURNAL_ACCESS_TOKEN`. Токен бота хранится только в секрете `TELEGRAM_BOT_TOKEN` и никогда не передаётся в браузер.
 `social-data` читает и обновляет профиль и идеи через service-role доступ. Функция использует `SOCIAL_DATA_ACCESS_TOKEN`, а если он не задан — `JOURNAL_ACCESS_TOKEN`. Таблицы закрыты RLS и напрямую из браузера не читаются.
 `live-scan` запускает тот же Pattern Engine на сервере, записывает новые сигналы и результаты в журнал и отправляет новые сигналы в `TELEGRAM_CHANNEL`. Для защиты используется `LIVE_SCAN_ACCESS_TOKEN`, а если он не задан — `JOURNAL_ACCESS_TOKEN`.
 
 ## Фоновый сканер
 
-Миграция `003_live_scan_cron.sql` добавляет защищённый вызов `live-scan` через Supabase Cron и pg_net. Расписание намеренно не включается автоматически.
+Миграция `003_live_scan_cron.sql` добавляет защищённый вызов `live-scan` через Supabase Cron и pg_net. Расписание намеренно не включается автоматически. Миграция `004_football_live_cache.sql` добавляет общий для всех Edge Function isolates кэш, блокировку параллельного обновления и телеметрию оставшейся квоты API.
 
 Перед включением добавьте в Supabase Vault три секрета:
 
