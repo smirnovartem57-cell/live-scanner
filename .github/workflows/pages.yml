@@ -22,19 +22,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: pnpm
 
       - name: Install dependencies
-        run: npm install
+        run: pnpm install --frozen-lockfile
 
       - name: Typecheck
-        run: npm run typecheck
+        run: pnpm typecheck
 
-      - name: Test API Football normalizer
-        run: npm run test:api-football
+      - name: Test
+        run: pnpm test
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -42,7 +48,7 @@ jobs:
           enablement: true
 
       - name: Build React app
-        run: npm run build:react
+        run: pnpm build:react
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

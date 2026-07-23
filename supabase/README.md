@@ -15,10 +15,10 @@
 
 1. Создать Supabase project.
 2. Открыть SQL Editor.
-3. Выполнить по порядку `migrations/001_journal_storage.sql` и `migrations/002_social_data.sql`.
+3. Выполнить по порядку миграции `001`–`005`.
 4. Развернуть Edge Functions `journal-ingest`, `journal-read`, `football-live`, `telegram-send`, `social-data`, `live-scan` и `system-health`.
 5. Добавить secrets `SUPABASE_SERVICE_ROLE_KEY`, `JOURNAL_ACCESS_TOKEN`, `API_FOOTBALL_KEY`, `TELEGRAM_BOT_TOKEN` и при необходимости отдельные `FOOTBALL_DATA_ACCESS_TOKEN`, `TELEGRAM_ACCESS_TOKEN` и `SOCIAL_DATA_ACCESS_TOKEN` в Supabase Functions.
-6. Когда появятся логины, добавить политики чтения для authenticated users.
+6. Для будущего разделения данных между несколькими пользователями добавить `user_id` и отдельные authenticated RLS policies; текущие таблицы доступны только Edge Functions через service-role.
 
 ## Переменные
 
@@ -75,9 +75,7 @@ select public.disable_live_scanner_cron();
 
 Интервал `*/2 * * * *` рассчитан на платный API-FOOTBALL Pro при дополнительном ограничении числа матчей. На Free плане автоматический частый запуск включать нельзя: доступно только 100 запросов в сутки и 10 запросов в минуту.
 
-## Развёртывание
-
-Развернуть Edge Functions `journal-ingest`, `journal-read` и `football-live`.
+## Формат журнала
 
 Функция принимает:
 
