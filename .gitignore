@@ -3,6 +3,7 @@ dist/
 dist-react/
 dist-test/
 .vite/
+supabase/.temp/
 
 *.log
 .env
