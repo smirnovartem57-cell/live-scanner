@@ -46,7 +46,7 @@ src/services/apiFootball/          нормализация и политика 
 src/services/footballDataProvider/ mock/real источники данных
 src/services/journalStorage/       клиенты постоянного журнала
 supabase/functions/                Edge Functions
-supabase/migrations/               SQL-миграции 001–005
+supabase/migrations/               SQL-миграции 001–006
 data/mock-data.js                  данные демо-режима
 ```
 
@@ -59,6 +59,7 @@ data/mock-data.js                  данные демо-режима
 3. `003_live_scan_cron.sql`
 4. `004_football_live_cache.sql`
 5. `005_telegram_delivery_dedupe.sql`
+6. `006_social_data_service_role.sql`
 
 Развернуть функции:
 
