@@ -8,6 +8,10 @@
   },
   "include": [
     "src/services/apiFootball/normalizeApiFootball.ts",
-    "src/types/football.ts"
+    "src/services/journalStorage/JournalReadClient.ts",
+    "src/services/journalStorage/buildJournalEvents.ts",
+    "src/services/journalStorage/JournalStorage.ts",
+    "src/types/football.ts",
+    "src/types/patterns.ts"
   ]
 }

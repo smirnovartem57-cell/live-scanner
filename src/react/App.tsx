@@ -13,6 +13,7 @@ import { useFootballLabData } from "./hooks/useFootballLabData";
 import { useJournalAutoIngest } from "./hooks/useJournalAutoIngest";
 import { useJournalHistory } from "./hooks/useJournalHistory";
 import { useReactSettings } from "./hooks/useReactSettings";
+import { useTelegramNotifications } from "./hooks/useTelegramNotifications";
 import { buildTeamProfileViewModel, type TeamProfileSelection } from "./domain/teamProfile";
 import type { FootballDataSourceStatus } from "../services/footballDataProvider";
 import type { ReactNavItem, ReactViewId } from "./types";
@@ -32,8 +33,9 @@ export function App() {
   const [activeView, setActiveView] = useState<ReactViewId>("scanner");
   const [selectedTeam, setSelectedTeam] = useState<TeamProfileSelection | null>(null);
   const { settings, setSettings } = useReactSettings();
-  const { data, error, loading, refreshing, reload, summary } = useFootballLabData(settings);
+  const { data, error, loading, refreshing, reload, summary, voteFeedback } = useFootballLabData(settings);
   const journal = useJournalHistory(settings, data?.history || []);
+  useTelegramNotifications(settings, data?.signals || []);
 
   useJournalAutoIngest({
     settings,
@@ -113,7 +115,7 @@ export function App() {
             />
           ) : null}
           {activeView === "profile" ? <ProfileView profile={data.userProfile} history={journal.history} /> : null}
-          {activeView === "ideas" ? <IdeasView items={data.feedbackItems} /> : null}
+          {activeView === "ideas" ? <IdeasView items={data.feedbackItems} onVote={settings.mockMode ? undefined : voteFeedback} /> : null}
           {activeView === "settings" ? <SettingsView settings={settings} setSettings={setSettings} history={journal.history} /> : null}
           {activeView !== "scanner" && activeView !== "signals" && activeView !== "patterns" && activeView !== "history" && activeView !== "analytics" && activeView !== "profile" && activeView !== "ideas" && activeView !== "settings" ? (
             <section className="panel">

@@ -8,7 +8,9 @@
     "build:react": "vite build && node scripts/prepare-react-dist.mjs",
     "preview:react": "vite preview --host 127.0.0.1 --port 4173",
     "typecheck": "tsc --noEmit",
-    "test:api-football": "tsc -p tsconfig.test.json && node scripts/test-api-football-normalizer.mjs"
+    "test:api-football": "tsc -p tsconfig.test.json && node scripts/test-api-football-normalizer.mjs",
+    "test:journal": "tsc -p tsconfig.test.json && node scripts/test-journal.mjs",
+    "test": "tsc -p tsconfig.test.json && node scripts/test-api-football-normalizer.mjs && node scripts/test-journal.mjs"
   },
   "dependencies": {
     "react": "^19.0.0",

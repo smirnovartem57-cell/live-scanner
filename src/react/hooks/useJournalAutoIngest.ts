@@ -41,7 +41,7 @@ export function useJournalAutoIngest({
 
     const currentData = data;
     const sentKeys = readSentKeys();
-    const events = currentData.signals
+    const newEvents = currentData.signals
       .map((signal) => {
         const match = currentData.matches.find((item) => item.id === signal.matchId);
         if (!match) return null;
@@ -50,13 +50,27 @@ export function useJournalAutoIngest({
       .filter((event): event is PatternEvent => Boolean(event))
       .filter((event) => !sentKeys.has(getSentKey(event)));
 
+    const updatedEvents = history
+      .filter((event) => event.resultSource === "auto" && !event.result.manualOutcome)
+      .filter((event) => event.status === "new" || event.status === "in_progress")
+      .map((event) => {
+        const match = currentData.matches.find((item) => item.id === event.matchId);
+        if (!match) return null;
+        const updated = buildPatternEvent(event, match, currentData.events[event.matchId] || []);
+        return hasResultChanged(event, updated) ? updated : null;
+      })
+      .filter((event): event is PatternEvent => Boolean(event));
+
+    const events = [...newEvents, ...updatedEvents];
+
     if (!events.length) return;
 
     let cancelled = false;
 
     async function syncSignals() {
       const client = new JournalIngestClient({ supabaseUrl, anonKey, accessToken });
-      const patternStats = buildPatternStatsDaily([...history, ...events]);
+      const nextHistory = mergeHistory(history, events);
+      const patternStats = buildPatternStatsDaily(nextHistory);
 
       await client.send({
         events,
@@ -121,4 +135,22 @@ function rememberSentKeys(keys: string[]) {
 
   const recentKeys = [...existing].slice(-500);
   localStorage.setItem(sentSignalsKey, JSON.stringify(recentKeys));
+}
+
+function hasResultChanged(previous: PatternEvent, next: PatternEvent) {
+  return previous.status !== next.status ||
+    previous.result.goalWithin5 !== next.result.goalWithin5 ||
+    previous.result.goalWithin10 !== next.result.goalWithin10 ||
+    previous.result.goalWithin15 !== next.result.goalWithin15 ||
+    previous.result.goalMinute !== next.result.goalMinute ||
+    previous.result.goalTeam !== next.result.goalTeam ||
+    previous.result.finalComment !== next.result.finalComment;
+}
+
+function mergeHistory(history: PatternEvent[], updates: PatternEvent[]) {
+  const byId = new Map(history.map((event) => [event.id, event]));
+  for (const event of updates) {
+    byId.set(event.id, event);
+  }
+  return [...byId.values()];
 }

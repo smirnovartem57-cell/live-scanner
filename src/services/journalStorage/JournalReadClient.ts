@@ -44,7 +44,9 @@ type JournalSignalRow = {
   comment: string;
   created_at: string;
   updated_at: string;
-  journal_signal_results?: JournalResultRow[];
+  // PostgREST may represent the one-to-one relation as an object, while older
+  // deployments/configurations can still return a one-element array.
+  journal_signal_results?: JournalResultRow | JournalResultRow[] | null;
 };
 
 type JournalResultRow = {
@@ -121,8 +123,8 @@ function isDiagnosticRow(patternId: string) {
   return patternId === "diagnostic_roundtrip";
 }
 
-function toPatternEvent(row: JournalSignalRow): PatternEvent {
-  const resultRow = row.journal_signal_results?.[0];
+export function toPatternEvent(row: JournalSignalRow): PatternEvent {
+  const resultRow = firstResultRow(row.journal_signal_results);
   const result = toSignalResult(resultRow);
 
   return {
@@ -151,6 +153,14 @@ function toPatternEvent(row: JournalSignalRow): PatternEvent {
     resultSource: resultRow?.result_source || "auto",
     closedAt: resultRow?.closed_at || null
   };
+}
+
+function firstResultRow(value: JournalSignalRow["journal_signal_results"]): JournalResultRow | undefined {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+
+  return value || undefined;
 }
 
 function toSignalResult(row?: JournalResultRow): SignalResult {

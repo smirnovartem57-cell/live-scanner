@@ -4,6 +4,11 @@ import type { PatternStatsDaily } from "./JournalStorage";
 
 export function buildPatternEvent(signal: Signal, match: Match, events: MatchEvent[] = []): PatternEvent {
   const evaluated = evaluateSignalResult(signal, match, events);
+  const previousEvent = "result" in signal ? signal as PatternEvent : null;
+  const resultChanged = previousEvent
+    ? previousEvent.status !== evaluated.status || JSON.stringify(previousEvent.result) !== JSON.stringify(evaluated.result)
+    : false;
+  const updatedAt = resultChanged ? new Date().toISOString() : signal.updatedAt;
 
   return {
     ...signal,
@@ -12,9 +17,12 @@ export function buildPatternEvent(signal: Signal, match: Match, events: MatchEve
     score: `${signal.scoreHome}:${signal.scoreAway}`,
     status: evaluated.status,
     result: evaluated.result,
-    comment: "",
-    resultSource: "auto",
-    closedAt: ["success", "failed"].includes(evaluated.status) ? signal.updatedAt : null
+    updatedAt,
+    comment: previousEvent?.comment || "",
+    resultSource: previousEvent?.resultSource || "auto",
+    closedAt: ["success", "failed"].includes(evaluated.status)
+      ? previousEvent?.closedAt || updatedAt
+      : null
   };
 }
 

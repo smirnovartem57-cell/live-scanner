@@ -22,6 +22,7 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
   const [journalSyncing, setJournalSyncing] = useState(false);
   const [journalRoundtripChecking, setJournalRoundtripChecking] = useState(false);
   const [footballDataChecking, setFootballDataChecking] = useState(false);
+  const [telegramChecking, setTelegramChecking] = useState(false);
   const hasConnection = hasSupabaseConnectionSettings(settings);
   const journalReady = canUseJournalStorage(settings);
   const realDataReady = canUseRealFootballData(settings);
@@ -60,11 +61,22 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
     setSettings((current) => ({ ...current, [key]: value }));
   }
 
-  function runTelegramTest() {
-    setSettings((current) => ({
-      ...current,
-      lastTelegramTest: sendTelegramTestMessage(current)
-    }));
+  async function runTelegramTest() {
+    setTelegramChecking(true);
+    try {
+      const result = await sendTelegramTestMessage(settings);
+      setSettings((current) => ({ ...current, lastTelegramTest: result }));
+    } catch (error) {
+      setSettings((current) => ({ ...current, lastTelegramTest: {
+        ok: false,
+        mode: "telegram",
+        channel: current.telegramChannel.trim() || "канал не указан",
+        message: error instanceof Error ? error.message : "Не удалось отправить сообщение.",
+        createdAt: new Date().toISOString()
+      } }));
+    } finally {
+      setTelegramChecking(false);
+    }
   }
 
   async function runJournalTest() {
@@ -245,7 +257,19 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
             onChange={(event) => updateSetting("telegramChannel", event.target.value)}
           />
         </label>
-        <button className="primary-button" type="button" onClick={runTelegramTest}>Отправить тестовое сообщение</button>
+        <label className="input-label">
+          Edge Function
+          <input type="text" value={settings.telegramFunctionName} placeholder="telegram-send"
+            onChange={(event) => updateSetting("telegramFunctionName", event.target.value)} />
+        </label>
+        <label className="input-label">
+          Telegram access token
+          <input type="password" value={settings.telegramAccessToken} placeholder="если пусто, используется Journal access token"
+            onChange={(event) => updateSetting("telegramAccessToken", event.target.value)} />
+        </label>
+        <button className="primary-button" type="button" onClick={runTelegramTest} disabled={telegramChecking}>
+          {telegramChecking ? "Отправляем..." : "Отправить тестовое сообщение"}
+        </button>
         {settings.lastTelegramTest ? (
           <p className="telegram-status">
             {settings.lastTelegramTest.message}
@@ -335,6 +359,24 @@ export function SettingsView({ settings, setSettings, history }: SettingsViewPro
             value={settings.footballDataAccessToken}
             placeholder="если пусто, используется Journal access token"
             onChange={(event) => updateSetting("footballDataAccessToken", event.target.value)}
+          />
+        </label>
+        <label className="input-label">
+          Profile / Ideas Edge Function
+          <input
+            type="text"
+            value={settings.socialDataFunctionName}
+            placeholder="social-data"
+            onChange={(event) => updateSetting("socialDataFunctionName", event.target.value)}
+          />
+        </label>
+        <label className="input-label">
+          Profile / Ideas access token
+          <input
+            type="password"
+            value={settings.socialDataAccessToken}
+            placeholder="если пусто, используется Journal access token"
+            onChange={(event) => updateSetting("socialDataAccessToken", event.target.value)}
           />
         </label>
         <button className="primary-button" type="button" onClick={runFootballDataTest} disabled={footballDataChecking}>

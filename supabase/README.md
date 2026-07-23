@@ -6,6 +6,8 @@
 - `journal_signal_results` — результат сигнала и ручное закрытие.
 - `pattern_stats_daily` — дневная статистика паттернов.
 - `journal_ingestion_runs` — служебный лог запусков синхронизации.
+- `app_profiles` — закрытый профиль пользователя и настройки социального доверия.
+- `feedback_items` — идеи, обратная связь, приоритеты, статусы и голоса.
 
 Сырые live-снимки матчей пока не сохраняем постоянно. Они нужны только для текущего расчета Pattern Engine. Это снижает объем базы и стоимость.
 
@@ -13,9 +15,9 @@
 
 1. Создать Supabase project.
 2. Открыть SQL Editor.
-3. Выполнить `migrations/001_journal_storage.sql`.
-4. Развернуть Edge Functions `journal-ingest`, `journal-read` и `football-live`.
-5. Добавить secrets `SUPABASE_SERVICE_ROLE_KEY`, `JOURNAL_ACCESS_TOKEN`, `API_FOOTBALL_KEY` и при необходимости `FOOTBALL_DATA_ACCESS_TOKEN` в Supabase Functions.
+3. Выполнить по порядку `migrations/001_journal_storage.sql` и `migrations/002_social_data.sql`.
+4. Развернуть Edge Functions `journal-ingest`, `journal-read`, `football-live`, `telegram-send` и `social-data`.
+5. Добавить secrets `SUPABASE_SERVICE_ROLE_KEY`, `JOURNAL_ACCESS_TOKEN`, `API_FOOTBALL_KEY`, `TELEGRAM_BOT_TOKEN` и при необходимости отдельные `FOOTBALL_DATA_ACCESS_TOKEN`, `TELEGRAM_ACCESS_TOKEN` и `SOCIAL_DATA_ACCESS_TOKEN` в Supabase Functions.
 6. Когда появятся логины, добавить политики чтения для authenticated users.
 
 ## Переменные
@@ -31,6 +33,9 @@ API_FOOTBALL_KEY=server-only-api-football-key
 API_FOOTBALL_BASE_URL=https://v3.football.api-sports.io
 API_FOOTBALL_CACHE_TTL_SECONDS=45
 API_FOOTBALL_MAX_FIXTURES=30
+TELEGRAM_BOT_TOKEN=server-only-telegram-bot-token
+TELEGRAM_ACCESS_TOKEN=optional-long-random-private-token
+SOCIAL_DATA_ACCESS_TOKEN=optional-long-random-private-token
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` нельзя добавлять в GitHub Pages или frontend env.
@@ -38,6 +43,8 @@ API_FOOTBALL_MAX_FIXTURES=30
 `football-live` использует `FOOTBALL_DATA_ACCESS_TOKEN`, а если он не задан, проверяет `JOURNAL_ACCESS_TOKEN`.
 `API_FOOTBALL_KEY` используется только внутри `football-live` и не должен попадать в браузер.
 `API_FOOTBALL_CACHE_TTL_SECONDS` защищает квоту API от частых обновлений, а `API_FOOTBALL_MAX_FIXTURES` ограничивает количество live-матчей, для которых подтягиваются подробные statistics/events.
+`telegram-send` использует `TELEGRAM_ACCESS_TOKEN`, а если он не задан — `JOURNAL_ACCESS_TOKEN`. Токен бота хранится только в секрете `TELEGRAM_BOT_TOKEN` и никогда не передаётся в браузер.
+`social-data` читает и обновляет профиль и идеи через service-role доступ. Функция использует `SOCIAL_DATA_ACCESS_TOKEN`, а если он не задан — `JOURNAL_ACCESS_TOKEN`. Таблицы закрыты RLS и напрямую из браузера не читаются.
 
 ## Следующий шаг
 

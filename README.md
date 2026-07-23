@@ -46,8 +46,8 @@
 - FootballDataProvider с контрактом, MockFootballProvider и RealFootballProvider-заглушкой.
 - RealFootballProvider подключается только к защищённой Supabase Edge Function `football-live`.
 - UI Telegram-уведомлений и service-заглушка для тестового сообщения и отправки аналитического сигнала.
-- Раздел `Профиль` с mock-архитектурой пользователя, будущего публичного профиля и социального доверия.
-- Раздел `Идеи` с mock-данными для идей, feedback, статусов и приоритетов.
+- Раздел `Профиль` с backend-архитектурой пользователя, будущего публичного профиля и социального доверия.
+- Раздел `Идеи` с backend-данными для идей, feedback, статусов, приоритетов и голосования.
 - PWA manifest и service worker.
 
 ## Как открыть
@@ -141,6 +141,8 @@ icons/live-scanner-icon-*.png
 icons/live-scanner-logo.png
 supabase/migrations/001_journal_storage.sql
                 минимальная схема Supabase только для журнала и статистики паттернов
+supabase/migrations/002_social_data.sql
+                закрытые таблицы профиля и идей, а также атомарное голосование
 supabase/functions/journal-ingest/
                 Edge Function для безопасной записи журнала через service-role secret
 supabase/functions/journal-read/
@@ -323,7 +325,7 @@ RealFootballProvider
 
 `RealFootballProvider` пока возвращает пустые значения и оставлен как точка подключения будущего football API.
 
-## Telegram-заглушка
+## Telegram-уведомления
 
 Файл `services/telegram-service.js` содержит:
 
@@ -333,16 +335,16 @@ sendSignalToTelegram(signal, settings)
 buildSignalMessage(signal)
 ```
 
-Сервис пока работает в mock-режиме: готовит текст аналитического уведомления и возвращает статус без внешней отправки.
+React-приложение отправляет тестовые сообщения и новые сигналы через защищённую Supabase Edge Function `telegram-send`. `TELEGRAM_BOT_TOKEN` хранится только в Supabase secrets; в браузере задаются chat id и access token функции. Legacy-файл `services/telegram-service.js` остаётся резервной mock-реализацией.
 
 ## Пользователи и Ideas / Feedback
 
-Задачи 9-10 подготовлены на mock-данных:
+Профиль и идеи используют mock-данные в демо-режиме и защищённую Edge Function `social-data` в real-режиме:
 
 - `userProfile` хранит личный профиль, будущий публичный профиль, права доступа и social trust.
 - `feedbackItems` хранит идеи, feedback, приоритет, статус, количество голосов и дату создания.
 - Кнопка `Профиль` в верхней панели открывает раздел профиля.
-- Раздел `Идеи` показывает roadmap/feedback без подключения сервера.
+- Раздел `Идеи` показывает roadmap/feedback и сохраняет голоса в Supabase.
 
 ## Env на будущее
 

@@ -1,9 +1,10 @@
 import { buildPatternStatsDaily, JournalIngestClient, JournalReadClient } from "../../services/journalStorage";
+import { TelegramClient } from "../../services/telegram";
 import type { Pattern, PatternConditionProfile, PatternEvent } from "../../types/patterns";
 
 export type TelegramTestResult = {
   ok: boolean;
-  mode: "mock";
+  mode: "telegram" | "mock";
   channel: string;
   message: string;
   createdAt: string;
@@ -43,6 +44,10 @@ export type ReactSettings = {
   mockMode: boolean;
   telegramEnabled: boolean;
   telegramChannel: string;
+  telegramFunctionName: string;
+  telegramAccessToken: string;
+  socialDataFunctionName: string;
+  socialDataAccessToken: string;
   journalStorageEnabled: boolean;
   supabaseUrl: string;
   supabaseAnonKey: string;
@@ -65,6 +70,10 @@ export const defaultReactSettings: ReactSettings = {
   mockMode: true,
   telegramEnabled: false,
   telegramChannel: "",
+  telegramFunctionName: "telegram-send",
+  telegramAccessToken: "",
+  socialDataFunctionName: "social-data",
+  socialDataAccessToken: "",
   journalStorageEnabled: false,
   supabaseUrl: "",
   supabaseAnonKey: "",
@@ -122,6 +131,14 @@ export function getFootballDataAccessToken(settings: ReactSettings): string {
   return (settings.footballDataAccessToken || settings.journalAccessToken).trim();
 }
 
+export function getTelegramAccessToken(settings: ReactSettings): string {
+  return (settings.telegramAccessToken || settings.journalAccessToken).trim();
+}
+
+export function getSocialDataAccessToken(settings: ReactSettings): string {
+  return (settings.socialDataAccessToken || settings.journalAccessToken).trim();
+}
+
 export function hasSupabaseConnectionSettings(settings: ReactSettings): boolean {
   return Boolean(settings.supabaseUrl.trim() && settings.supabaseAnonKey.trim());
 }
@@ -134,7 +151,12 @@ export function canUseRealFootballData(settings: ReactSettings): boolean {
   return !settings.mockMode && hasSupabaseConnectionSettings(settings) && Boolean(getFootballDataAccessToken(settings));
 }
 
-export function sendTelegramTestMessage(settings: ReactSettings): TelegramTestResult {
+export function canUseTelegram(settings: ReactSettings): boolean {
+  return settings.telegramEnabled && hasSupabaseConnectionSettings(settings) &&
+    Boolean(settings.telegramChannel.trim() && getTelegramAccessToken(settings));
+}
+
+export function sendTelegramMockTestMessage(settings: ReactSettings): TelegramTestResult {
   return {
     ok: true,
     mode: "mock",
@@ -142,6 +164,19 @@ export function sendTelegramTestMessage(settings: ReactSettings): TelegramTestRe
     message: "Тестовое аналитическое уведомление подготовлено.",
     createdAt: new Date().toISOString()
   };
+}
+
+export async function sendTelegramTestMessage(settings: ReactSettings): Promise<TelegramTestResult> {
+  if (!hasSupabaseConnectionSettings(settings)) throw new Error("Укажите Supabase URL и anon key.");
+  if (!settings.telegramChannel.trim()) throw new Error("Укажите Telegram-канал или chat id.");
+  const accessToken = getTelegramAccessToken(settings);
+  if (!accessToken) throw new Error("Укажите Telegram access token или Journal access token.");
+  return await new TelegramClient({
+    supabaseUrl: settings.supabaseUrl,
+    anonKey: settings.supabaseAnonKey,
+    accessToken,
+    functionName: settings.telegramFunctionName
+  }).sendTest(settings.telegramChannel.trim());
 }
 
 export async function sendJournalSyncTest(settings: ReactSettings, history: PatternEvent[]): Promise<JournalSyncTestResult> {

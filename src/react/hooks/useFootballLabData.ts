@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MockFootballProvider, RealFootballProvider } from "../../services/footballDataProvider";
+import { SocialDataClient } from "../../services/socialData";
 import type { FootballDataSourceStatus } from "../../services/footballDataProvider";
 import { evaluateMatch } from "../../services/patternEngine";
 import type { Match, MatchEvent, MatchStatsSnapshot, TeamProfile } from "../../types/football";
 import type { Pattern, PatternEvent, Signal } from "../../types/patterns";
 import type { FeedbackItem, UserProfile } from "../../types/user";
-import { applyPatternSettings, getFootballDataAccessToken, hasSupabaseConnectionSettings, type ReactSettings } from "../domain/settings";
+import { applyPatternSettings, getFootballDataAccessToken, getSocialDataAccessToken, hasSupabaseConnectionSettings, type ReactSettings } from "../domain/settings";
 import { getBrowserMockData } from "../mockData";
 
 export type FootballLabViewModel = {
@@ -60,7 +61,7 @@ export function useFootballLabData(settings: ReactSettings) {
           },
           mockData
         );
-      const [matches, snapshots, eventsResult, providerPatterns, seedSignals, history, userProfile, feedbackItems] = await Promise.all([
+      const [matches, snapshots, eventsResult, providerPatterns, seedSignals, history, fallbackUserProfile, fallbackFeedbackItems] = await Promise.all([
         provider.getLiveMatches(),
         provider.getMatchStats(),
         provider.getMatchEvents(),
@@ -76,6 +77,22 @@ export function useFootballLabData(settings: ReactSettings) {
       const teamProfiles = (await Promise.all(teamIds.map((teamId) => provider.getTeamProfile(teamId))))
         .filter((profile): profile is TeamProfile => Boolean(profile));
       const generatedSignals = buildGeneratedSignals(matches, snapshots, patterns, seedSignals);
+      let userProfile = fallbackUserProfile;
+      let feedbackItems = fallbackFeedbackItems;
+      if (!settings.mockMode && getSocialDataAccessToken(settings)) {
+        try {
+          const social = await new SocialDataClient({
+            supabaseUrl: settings.supabaseUrl,
+            anonKey: settings.supabaseAnonKey,
+            accessToken: getSocialDataAccessToken(settings),
+            functionName: settings.socialDataFunctionName
+          }).read();
+          userProfile = social.profile || fallbackUserProfile;
+          feedbackItems = social.feedbackItems.length ? social.feedbackItems : fallbackFeedbackItems;
+        } catch (socialError) {
+          console.warn("Social data loading failed", socialError);
+        }
+      }
 
       setData({
         matches,
@@ -105,7 +122,9 @@ export function useFootballLabData(settings: ReactSettings) {
     settings.patternEnabledOverrides,
     settings.patternRuleOverrides,
     settings.supabaseAnonKey,
-    settings.supabaseUrl
+    settings.supabaseUrl,
+    settings.socialDataAccessToken,
+    settings.socialDataFunctionName
   ]);
 
   useEffect(() => {
@@ -137,7 +156,19 @@ export function useFootballLabData(settings: ReactSettings) {
 
   const reload = useCallback(() => load(true), [load]);
 
-  return { data, error, loading, refreshing, reload, summary };
+  const voteFeedback = useCallback(async (feedbackId: string) => {
+    const accessToken = getSocialDataAccessToken(settings);
+    if (!hasSupabaseConnectionSettings(settings) || !accessToken) throw new Error("Backend идей ещё не настроен.");
+    const result = await new SocialDataClient({
+      supabaseUrl: settings.supabaseUrl,
+      anonKey: settings.supabaseAnonKey,
+      accessToken,
+      functionName: settings.socialDataFunctionName
+    }).vote(feedbackId);
+    setData((current) => current ? { ...current, feedbackItems: result.feedbackItems } : current);
+  }, [settings]);
+
+  return { data, error, loading, refreshing, reload, summary, voteFeedback };
 }
 
 function buildGeneratedSignals(
