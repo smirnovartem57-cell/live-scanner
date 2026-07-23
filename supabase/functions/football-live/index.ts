@@ -167,32 +167,32 @@ Deno.serve(async (request) => {
         : "/fixtures?live=all",
       quota
     );
-    const allFixtures = fixturesResponse.response || [];
+    const allFixtures = orderFixtures(fixturesResponse.response || [], preferredFixtureIds);
     const allowedFixtures = allowedDetailFixtureCount(quota.dailyRemaining, maxFixtures, dailyReserve);
-    const fixtures = orderFixtures(allFixtures, preferredFixtureIds).slice(0, allowedFixtures);
+    const detailFixtures = allFixtures.slice(0, allowedFixtures);
     const [statistics, events] = await Promise.all([
-      getStatistics(apiBaseUrl, apiKey, fixtures, quota),
-      getEvents(apiBaseUrl, apiKey, fixtures, quota)
+      getStatistics(apiBaseUrl, apiKey, detailFixtures, quota),
+      getEvents(apiBaseUrl, apiKey, detailFixtures, quota)
     ]);
 
     response = {
       ok: true,
       provider: "api-football",
-      message: `Loaded ${fixtures.length} of ${allFixtures.length} live matches.`,
+      message: `Loaded ${allFixtures.length} live matches; detailed statistics for ${detailFixtures.length}.`,
       cached: false,
       stale: false,
       refreshing: false,
       quota: { ...quota },
       data: {
-        matches: fixtures.map(normalizeApiFootballMatch),
-        snapshots: fixtures.map((fixture) => normalizeApiFootballSnapshot(fixture, statistics.get(String(fixture.fixture.id)) || [])),
-        events: Object.fromEntries(fixtures.map((fixture) => {
+        matches: allFixtures.map(normalizeApiFootballMatch),
+        snapshots: detailFixtures.map((fixture) => normalizeApiFootballSnapshot(fixture, statistics.get(String(fixture.fixture.id)) || [])),
+        events: Object.fromEntries(detailFixtures.map((fixture) => {
           const fixtureId = String(fixture.fixture.id);
           return [fixtureId, (events.get(fixtureId) || []).map((event) => normalizeApiFootballEvent(event, fixture))];
         })),
         signals: [],
         history: [],
-        teamProfiles: fixtures.flatMap(normalizeApiFootballTeamProfiles),
+        teamProfiles: allFixtures.flatMap(normalizeApiFootballTeamProfiles),
         feedbackItems: []
       }
     };
@@ -437,7 +437,8 @@ function normalizeFixtureIds(value: unknown) {
 }
 
 function buildCacheKey(fixtureIds: string[]) {
-  return fixtureIds.length ? `live-snapshot:${[...fixtureIds].sort().join("-")}` : "live-snapshot";
+  const scope = fixtureIds.length ? [...fixtureIds].sort().join("-") : "all";
+  return `live-snapshot-v2:${scope}`;
 }
 
 function orderFixtures(fixtures: ApiFootballFixture[], preferredFixtureIds: string[]) {
